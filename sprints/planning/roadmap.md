@@ -21,32 +21,36 @@ Two-layer architecture, decided up front:
   curator, never as renderer. Over time proposals record sequencing as typed
   edges at write time and the curator only catches strays.
 
-## Now — Phase 0: korg prerequisites
+## Phase 0: korg prerequisites — COMPLETE 2026-08-05
 
-The build work lives in the **korg** project (proposals to be filed); tracked
-here because kfdc is blocked on it.
+Shipped as korg sprints 043 (971), 044 (972), 045 (973) plus the 825 sprint,
+all in one day. Dogfood done the same day: the first real program is korg
+node 979 ("kfdc Phase 0 - the board substrate", slices 825→971→972→973) and
+the awaiting lane is seeded with live rows (#964 khound call, #841, #842,
+and 979 itself — closes when Ken's user test passes). Board endpoint:
+`GET /api/board` on korg.
 
-- [ ] **Single-project proposals enforced, not conventional** — require a
+- [x] **Single-project proposals enforced, not conventional** — require a
       project on every new proposal; refuse a `covers` edge when the WI's
       project differs from the proposal's; backfill the 6 mechanically
       resolvable project-less proposals. (The 2026-07-23 linking-layer review
       measured exactly one real cross-project `covers` edge — the rest are
       artifacts.)
-- [ ] **korg proposal 825 lands** (proposal membership on rows and rails) —
+- [x] **korg proposal 825 lands** (proposal membership on rows and rails) —
       already queued at rank 6.5; it is the substrate for "what's spoken
       for". Sequencing recorded on 825: after #817's page rewrite; fold with
       #861's contract revision, whichever lands second.
-- [ ] **`program` node type** — the multi-project layer. A program `covers`
+- [x] **`program` node type** — the multi-project layer. A program `covers`
       *proposals* (ordered), and occasionally standalone WIs; proposals stay
       strictly single-project. Replaces the informal markdown "program plan"
       pattern (project-routing 2026-07-31, infra-cleanup 2026-08).
-- [ ] **"Awaiting Ken" expressible** — an edge or flag agents can set and
+- [x] **"Awaiting Ken" expressible** — an edge or flag agents can set and
       one read can list. Commander's Call renders it.
-- [ ] **Board rollup read** — one call returning active sprints + queue +
+- [x] **Board rollup read** — one call returning active sprints + queue +
       programs + blocked/awaiting, so the board is one request, not a
       17-call crawl.
 
-## Next — Phase 1: walking skeleton
+## Now — Phase 1: walking skeleton
 
 - [ ] SvelteKit + TypeScript scaffold (node adapter); `just check` rewired
       to real gates (lint, svelte-check, build, test).
