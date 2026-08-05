@@ -132,3 +132,17 @@ made with Ken.
   Interim: kfdc + korg as two grouped windows and Alt-Tab. Decided
   2026-08-05; build after kfdc has some mileage.
 - Session-freshness feed (which sprints have live agent activity).
+- Transmit drawer (Ken, 2026-08-05): collapsed chat strip between the
+  panels and the Net Log — type a one-shot mission, dispatched to headless
+  `claude -p` (Sonnet default, Opus button) via the Phase-2 curator harness
+  on kai, which it reuses (sequence AFTER Phase 2; also survives the
+  Phase-3 kubsdb move, since the runner stays on kai). Wrapper prompt:
+  background one-shot, constrained tools (korg/klams MCP, no shell),
+  outcome written as a korg comment/report on the node acted on — never a
+  side file — so the board and Net Log show the result through the normal
+  path (the Net Log is the read-back). On ambiguity the runner does not
+  guess: it comments its question and sets awaiting — the ask comes back
+  to Ken on the board itself. Click a row → drawer prefills
+  `re: <project> <id>` for zero-alt-tab locality. Endpoint needs a trivial
+  token (tailnet-only but still arbitrary-agent-execution). Does NOT
+  replace korg #981 — register-decision-and-clear stays deterministic.
