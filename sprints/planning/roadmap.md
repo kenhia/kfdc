@@ -83,20 +83,25 @@ renders state; transitions vanish between glances. Record:
       codes FM/CC/OD/OP, ids deep-linked where korg has a page (korg's own
       AwaitingLane scheme).
 
-## Phase 2: curator
+## Now — Phase 2: curator — filed as korg proposal kfdc:999 (sprint 003)
 
 Hosting decision (2026-08-05): the curator runs on **kai** — `claude -p`,
 korg MCP wiring and the kmon timer pattern already live there, and it only
 talks to korg over the network. No phase puts agent tooling on kubsdb.
+Sequenced #995 → #996 → #997; #998 stretch. The korg write vocabulary
+(edge labels, synopsis home, provenance format) is #996's first decision,
+made with Ken.
 
-- [ ] Curator prompt in-repo + `bin/update-fdc` wrapper (headless
+- [ ] #995 Curator prompt in-repo + `bin/update-fdc` wrapper (headless
       `claude -p` with korg MCP; runnable by hand and by systemd user
       timer — kmon pattern).
-- [ ] Mission synopses + deconfliction mined from proposal prose → written
-      into korg as typed edges/comments with a `mined-from` provenance note.
-- [ ] Deconfliction + Sensor Net panels render the curator's output from
-      korg.
-- [ ] Optional `update-fdc` skill as interactive sugar over the same prompt.
+- [ ] #996 Mission synopses + deconfliction mined from proposal prose →
+      written into korg as typed edges/comments with a `mined-from`
+      provenance note.
+- [ ] #997 Deconfliction + Sensor Net panels render the curator's output
+      from korg.
+- [ ] #998 Optional `update-fdc` skill as interactive sugar over the same
+      prompt (stretch).
 
 ## Phase 3: full board — switch over
 
