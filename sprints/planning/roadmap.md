@@ -65,20 +65,23 @@ Record: `sprints/001-walking-skeleton.md`.
       kai, one ts.net URL.
 - [x] Stretch #986 taken: Commander's Call from `board.awaiting`.
 
-## Now — Phase 1.5: Net Log — filed as korg proposal kfdc:994
+## Phase 1.5: Net Log — BUILT 2026-08-05 (sprint 002, proposal kfdc:994)
 
 Added 2026-08-05 after the first real loss: sprint-ship + refresh removed a
 fire mission AND a commander's-call row, and nothing said which. The board
-renders state; transitions vanish between glances.
+renders state; transitions vanish between glances. Record:
+`sprints/002-net-log.md`.
 
-- [ ] #992 Observer: digest each `/api/board` read (+ modest interval
-      poll), diff against the last digest, append significant changes to a
-      small local store (SQLite/JSONL, ~30d retention). Viewer state, not
-      work data — korg #977 stays the principled home for work history;
-      lines carry observation time, never invented precision.
-- [ ] #993 Strip: full-width under the panels, separator above, one line
+- [x] #992 Observer: every `fetchBoard` observes (page load, proxy, and a
+      3-min poll from `hooks.server.ts`), diffs against the last digest,
+      appends to JSONL in `~/.local/state/kfdc` (~30d retention, survives
+      redeploys). Viewer state, not work data — korg #977 stays the
+      principled home for work history; lines carry observation time,
+      never invented precision.
+- [x] #993 Strip: full-width under the panels, separator above, one line
       per change — `FM: complete kfdc 984 - proposal completed` — panel
-      codes FM/CC/OD/OP, clickable ids where korg has a page.
+      codes FM/CC/OD/OP, ids deep-linked where korg has a page (korg's own
+      AwaitingLane scheme).
 
 ## Phase 2: curator
 

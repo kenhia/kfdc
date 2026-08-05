@@ -13,7 +13,9 @@ is a deliberate commitment, not an omission.
 - **The FDC vocabulary is load-bearing** (Ken is ex-11C): Fire Missions
   (active sprints) · On Deck / priorities of fire (ranked queue) ·
   Deconfliction (sequencing collisions) · Commander's Call (blocked on Ken) ·
-  Operations (multi-project programs) · Sensor Net (health/risk).
+  Operations (multi-project programs) · Sensor Net (health/risk) ·
+  Net Log (radio traffic on the fires net — what changed since you last
+  looked, observed times, panel codes FM/CC/OD/OP).
 - **Proposed/unbuilt things get dashed borders** (grease-pencil); live data
   gets solid. Never blur that line.
 - Status is encoded in form + color, never color alone (chips carry text).
