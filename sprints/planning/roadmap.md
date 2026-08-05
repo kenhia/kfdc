@@ -50,21 +50,26 @@ and 979 itself — closes when Ken's user test passes). Board endpoint:
       programs + blocked/awaiting, so the board is one request, not a
       17-call crawl.
 
-## Now — Phase 1: walking skeleton — filed as korg proposal kfdc:987
+## Phase 1: walking skeleton — BUILT 2026-08-05, awaiting Ken's user test
 
-WIs #983 (scaffold + /api/board proxy + gates), #984 (Fire Missions + On
-Deck + statline), #985 (tailscale serve), stretch #986 (Commander's Call,
-pulled forward from Phase 3 — droppable). Start with `/start-sprint
-korg:987`.
+Sprint 001 (proposal kfdc:987): all four WIs including the stretch. The
+board is live at **https://kai.encke-wahoo.ts.net:8100** — Fire Missions,
+On Deck (+depth), statline, Commander's Call, rendering production korg.
+Record: `sprints/001-walking-skeleton.md`.
 
-- [ ] SvelteKit + TypeScript scaffold (node adapter); `just check` rewired
+- [x] SvelteKit + TypeScript scaffold (node adapter); `just check` rewired
       to real gates (lint, svelte-check, build, test).
-- [ ] Fire Missions + On Deck panels rendered deterministically from korg
+- [x] Fire Missions + On Deck panels rendered deterministically from korg
       REST via server routes; token in `.env`.
-- [ ] Concept CSS applied (tokens in `docs/design.md`); tailscale serve on
+- [x] Concept CSS applied (tokens in `docs/design.md`); tailscale serve on
       kai, one ts.net URL.
+- [x] Stretch #986 taken: Commander's Call from `board.awaiting`.
 
 ## Phase 2: curator
+
+Hosting decision (2026-08-05): the curator runs on **kai** — `claude -p`,
+korg MCP wiring and the kmon timer pattern already live there, and it only
+talks to korg over the network. No phase puts agent tooling on kubsdb.
 
 - [ ] Curator prompt in-repo + `bin/update-fdc` wrapper (headless
       `claude -p` with korg MCP; runnable by hand and by systemd user
@@ -77,9 +82,13 @@ korg:987`.
 
 ## Phase 3: full board — switch over
 
-- [ ] Operations (programs) + Commander's Call panels once the Phase-0 node
-      types land.
+- [ ] Operations (programs) panel. (Commander's Call shipped early —
+      sprint 001 took the stretch.)
 - [ ] Ticker from korg events/reports.
+- [ ] Production deploy: move kfdc hosting to **kubsdb** alongside korg;
+      retire kai's interim unit + serve entry (recorded as k-homelab #988,
+      whose comment carries the fold-in-then-retire plan). kai:8100 stays
+      the dev host until then; kubsdb needs no agent tooling for this.
 - [ ] Retire this roadmap into korg: file the remaining plan as a program,
       manage kfdc *in* kfdc.
 

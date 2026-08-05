@@ -45,13 +45,21 @@ what's blocked, what's waiting on Ken* across every project, reading `korg`
 (the system of record) — plus a headless **curator** agent pass that writes
 summaries and sequencing edges *back into korg* for the board to render.
 
-Status: **pre-stack scaffold.** The plan from here to a usable board —
-including the korg prerequisites that must land first — is
-`sprints/planning/roadmap.md`. Read it before doing anything.
+Status: **Phase 1 live** at `https://kai.encke-wahoo.ts.net:8100` — Fire
+Missions, On Deck, statline and Commander's Call render production korg
+(sprint 001). kai is the interim host; production moves to kubsdb in
+Phase 3. The plan onward is `sprints/planning/roadmap.md`. Read it before
+doing anything.
 
-- Stack (decided, not yet scaffolded): SvelteKit + TypeScript, node adapter,
-  served via tailscale serve. `just check` verifies harness invariants only
-  until the stack lands; rewire it then.
+- Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
+  `sveltekit()` plugin in `vite.config.ts` — no `svelte.config.js`; that is
+  the current scaffold style, not an omission). One server-only path to
+  korg: `src/lib/server/korg.ts`; pure board derivations + types:
+  `src/lib/board.ts` (three-part progress per korg #980, statline per D-3,
+  ages against the board's `generated`); panels in `src/lib/panels/`.
+  `just check` runs the real gates (prettier/eslint, svelte-check, build,
+  vitest + harness invariants); `just deploy` rebuilds + restarts
+  `kfdc.service` on kai.
 - Design: `docs/design/kfdc-concept.html` is the approved concept mockup
   (self-contained, open in a browser); `docs/design.md` records the visual
   identity and panel vocabulary. The FDC metaphor (fire missions / on deck /
@@ -68,5 +76,5 @@ including the korg prerequisites that must land first — is
   `docs/design/kfdc-concept.html`. Cross-repo: `korg`
   (kai:~/src/tools/korg) owns the data model; `korg-dash`
   (kai:~/src/tools/korg-dash) stays the small-panel summary feed for
-  kdeskdash — kfdc does not replace it, they should share korg's rollup
-  read once it exists.
+  kdeskdash — kfdc does not replace it; both consume korg's
+  `GET /api/board` rollup.
