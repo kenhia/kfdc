@@ -2,6 +2,7 @@
 	import { statline } from '$lib/board';
 	import CommandersCall from '$lib/panels/CommandersCall.svelte';
 	import FireMissions from '$lib/panels/FireMissions.svelte';
+	import NetLog from '$lib/panels/NetLog.svelte';
 	import OnDeck from '$lib/panels/OnDeck.svelte';
 
 	let { data } = $props();
@@ -41,3 +42,5 @@
 		<CommandersCall awaiting={board.awaiting} generated={board.generated} />
 	</div>
 </div>
+
+<NetLog lines={data.netlog} korgBase={data.korgBase} />
