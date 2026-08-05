@@ -1,0 +1,72 @@
+<!-- kproject:begin — managed by kprojects/install.sh; do not edit inside this block -->
+## kproject conventions
+
+This project uses the kproject minimal harness
+(`~/src/ai-agents/kprojects`). Keep context small; prefer doing over
+ceremony.
+
+### Layout
+
+- `sprints/` — the project's evolution, one record per PR-sized unit of
+  work (a "sprint")
+  - `planning/` — planning docs; at minimum `roadmap.md` (the general plan)
+  - `review/` — more formal reviews as the project matures
+  - sprint records: `###-<short-name>.md` for small projects, or a
+    `###-<short-name>/` directory of files for larger/more formal ones
+  - a sprint record is one informal narrative: goal, decisions, what
+    shipped, follow-ups — written during the sprint, not after
+- `docs/` — project documentation, architecture, usage
+- `.scratch/` — git-ignored scratch space for user or agent ephemera;
+  use it instead of /tmp
+- `justfile` — dev recipes; default recipe is `@just --list`; `just check`
+  runs the CI gates; `just deploy` (or variants) if the project deploys
+- `.env` — git-ignored; tokens and environment vars
+
+### Workflow
+
+- One sprint ≈ one PR. Sprint proposals and work items are managed in
+  `korg`; durable cross-project knowledge goes in `klams`.
+- If the korg or klams MCP tools are unavailable in your session, say so
+  up front — don't silently work around missing infrastructure.
+- TDD preferred: write the failing test first when practical.
+
+### Tooling preferences
+
+- Python managed by `uv`; lint/format with `ruff`; typecheck with `ty`
+  (astral toolchain)
+- License is MIT unless specifically directed otherwise
+<!-- kproject:end -->
+
+## Project
+
+kfdc — **K Fire Direction Center**: the homelab overseer board. A widescreen,
+deliberately dense web dashboard that answers *what's firing, what's on deck,
+what's blocked, what's waiting on Ken* across every project, reading `korg`
+(the system of record) — plus a headless **curator** agent pass that writes
+summaries and sequencing edges *back into korg* for the board to render.
+
+Status: **pre-stack scaffold.** The plan from here to a usable board —
+including the korg prerequisites that must land first — is
+`sprints/planning/roadmap.md`. Read it before doing anything.
+
+- Stack (decided, not yet scaffolded): SvelteKit + TypeScript, node adapter,
+  served via tailscale serve. `just check` verifies harness invariants only
+  until the stack lands; rewire it then.
+- Design: `docs/design/kfdc-concept.html` is the approved concept mockup
+  (self-contained, open in a browser); `docs/design.md` records the visual
+  identity and panel vocabulary. The FDC metaphor (fire missions / on deck /
+  deconfliction / commander's call) is deliberate — Ken is ex-11C. Keep the
+  vocabulary; keep the density.
+- Architecture rule: **agents curate korg; the board renders korg.** The
+  curator (`claude -p` headless, future `bin/update-fdc`) writes typed
+  edges, report nodes and comments into korg — never a side file the board
+  reads. If a panel needs data korg can't hold, that's a korg work item,
+  not a workaround.
+- korg's production API runs on kubsdb:5674; kfdc reads it via REST through
+  SvelteKit server routes (token in `.env`, never in the client).
+- Read first: `sprints/planning/roadmap.md`, `docs/design.md`,
+  `docs/design/kfdc-concept.html`. Cross-repo: `korg`
+  (kai:~/src/tools/korg) owns the data model; `korg-dash`
+  (kai:~/src/tools/korg-dash) stays the small-panel summary feed for
+  kdeskdash — kfdc does not replace it, they should share korg's rollup
+  read once it exists.

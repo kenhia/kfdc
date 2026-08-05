@@ -1,0 +1,466 @@
+<title>KFDC — Homelab Fire Direction (concept)</title>
+<style>
+  :root {
+    --ground: #15170f;
+    --panel: #1c1f15;
+    --panel-2: #22261a;
+    --line: #383d2a;
+    --line-soft: #2a2e1f;
+    --ink: #e9e3cc;
+    --muted: #a29d85;
+    --faint: #757060;
+    --amber: #e2a63d;
+    --amber-dim: #8a6a2f;
+    --red: #e0603f;
+    --green: #97ba6b;
+    --cyan: #8fb5ba;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --sans: system-ui, "Segoe UI", sans-serif;
+  }
+  html { background: var(--ground); }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.45;
+    margin: 0;
+    padding: 0 18px 18px;
+  }
+  ::selection { background: var(--amber-dim); color: var(--ground); }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 28px;
+    padding: 14px 4px 10px;
+    border-bottom: 2px solid var(--line);
+    margin-bottom: 14px;
+  }
+  .wordmark {
+    font-family: var(--mono);
+    font-size: 26px; font-weight: 700; letter-spacing: .35em;
+    color: var(--ink); white-space: nowrap;
+  }
+  .wordmark .dot { color: var(--amber); }
+  .mission {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .statline {
+    margin-left: auto; display: flex; gap: 22px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .statline b { color: var(--ink); font-weight: 600; }
+  .statline .warn b { color: var(--red); }
+
+  .concept-note {
+    font-family: var(--mono); font-size: 11px; color: var(--faint);
+    margin: -6px 4px 14px;
+  }
+  .concept-note em { color: var(--amber); font-style: normal; }
+
+  /* ---------- grid ---------- */
+  .board {
+    display: grid; gap: 14px;
+    grid-template-columns: minmax(280px,1.05fr) minmax(340px,1.45fr) minmax(280px,1fr) minmax(280px,1.05fr);
+  }
+  @media (max-width: 1500px) { .board { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 760px)  { .board { grid-template-columns: 1fr; } }
+
+  .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+  section.panel {
+    background: var(--panel);
+    border: 1px solid var(--line-soft);
+    padding: 0 0 10px;
+  }
+  .panel-head {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 9px 12px 7px;
+    border-bottom: 1px solid var(--line-soft);
+    margin-bottom: 10px;
+  }
+  .panel-head h2 {
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    letter-spacing: .22em; text-transform: uppercase; margin: 0;
+    color: var(--ink);
+  }
+  .panel-head .sub {
+    font-size: 11px; color: var(--faint); letter-spacing: .02em;
+  }
+  .panel-head .tag-proposed {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .14em;
+    color: var(--amber); border: 1px dashed var(--amber-dim);
+    padding: 2px 7px; text-transform: uppercase; white-space: nowrap;
+  }
+  .panel > * { padding-left: 12px; padding-right: 12px; }
+  .panel > .panel-head { padding-left: 12px; padding-right: 12px; }
+
+  /* ---------- shared chips ---------- */
+  .proj {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em;
+    color: var(--cyan); border: 1px solid color-mix(in oklab, var(--cyan) 40%, transparent);
+    padding: 1px 6px; white-space: nowrap;
+  }
+  .id { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .status {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; padding: 2px 7px; white-space: nowrap;
+  }
+  .status.active  { color: var(--ground); background: var(--amber); font-weight: 700; }
+  .status.slow    { color: var(--amber); border: 1px solid var(--amber-dim); }
+  .status.blocked { color: var(--red); border: 1px solid color-mix(in oklab, var(--red) 55%, transparent); }
+  .status.risk    { color: var(--red); border: 1px solid color-mix(in oklab, var(--red) 55%, transparent); }
+  .status.done    { color: var(--green); border: 1px solid color-mix(in oklab, var(--green) 45%, transparent); }
+  .status.queued  { color: var(--muted); border: 1px solid var(--line); }
+
+  /* ---------- fire missions (active) ---------- */
+  .mission-card {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--amber);
+    background: var(--panel-2);
+    padding: 10px 12px 11px; margin: 0 12px 10px;
+  }
+  .mission-card.slow-burn { border-left-color: var(--amber-dim); }
+  .mission-card .row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .mission-card h3 { font-size: 14px; font-weight: 600; margin: 0 0 4px; text-wrap: balance; }
+  .mission-card p { margin: 0 0 8px; color: var(--muted); font-size: 12.5px; }
+  .wi-track { display: flex; gap: 3px; align-items: center; }
+  .wi-track i {
+    width: 22px; height: 7px; background: var(--line);
+  }
+  .wi-track i.done { background: var(--green); }
+  .wi-track i.now  { background: var(--amber); }
+  .wi-track .cnt { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-left: 7px; }
+  .freshness { font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin-top: 7px; }
+  .freshness .ok { color: var(--green); }
+
+  /* ---------- operations (programs) ---------- */
+  .op {
+    margin: 0 12px 12px; padding: 9px 11px 11px;
+    border: 1px dashed var(--amber-dim);
+    background: color-mix(in oklab, var(--amber) 4%, var(--panel));
+  }
+  .op.op-done { border-style: solid; border-color: var(--line); background: var(--panel-2); }
+  .op .row1 { display: flex; align-items: baseline; gap: 9px; margin-bottom: 3px; }
+  .op h3 { font-family: var(--mono); font-size: 12.5px; letter-spacing: .08em; margin: 0; }
+  .op .aim { font-size: 12px; color: var(--muted); margin: 0 0 9px; }
+  .slices { display: flex; flex-wrap: wrap; align-items: center; row-gap: 6px; }
+  .slice {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 4px 8px; font-size: 11.5px; white-space: nowrap;
+  }
+  .slice.s-done { border-color: color-mix(in oklab, var(--green) 40%, transparent); }
+  .slice.s-done .slice-t { color: var(--muted); }
+  .slice.s-now { border-color: var(--amber); }
+  .slice .mark { font-family: var(--mono); font-size: 10px; }
+  .slice.s-done .mark { color: var(--green); }
+  .slice.s-now .mark { color: var(--amber); }
+  .slice.s-next .mark { color: var(--faint); }
+  .arrow { font-family: var(--mono); color: var(--faint); padding: 0 7px; }
+
+  /* ---------- deconfliction ---------- */
+  .conflict {
+    margin: 0 12px 10px; padding: 9px 11px;
+    border: 1px solid color-mix(in oklab, var(--red) 30%, var(--line));
+    background: color-mix(in oklab, var(--red) 4%, var(--panel));
+  }
+  .conflict .row1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+  .conflict .vs { font-family: var(--mono); font-size: 11px; color: var(--red); letter-spacing: .1em; }
+  .conflict p { margin: 0; font-size: 12px; color: var(--muted); }
+  .conflict .src { font-family: var(--mono); font-size: 10px; color: var(--faint); display: block; margin-top: 5px; }
+  .node-chip {
+    font-family: var(--mono); font-size: 11px; color: var(--ink);
+    border: 1px solid var(--line); background: var(--panel-2); padding: 2px 7px;
+  }
+
+  /* ---------- on deck ---------- */
+  table.queue { border-collapse: collapse; width: calc(100% - 24px); margin: 0 12px; }
+  table.queue td {
+    padding: 5px 8px 5px 0; border-bottom: 1px solid var(--line-soft);
+    vertical-align: baseline; font-size: 12.5px;
+  }
+  table.queue tr:last-child td { border-bottom: 0; }
+  td.rank {
+    font-family: var(--mono); font-size: 12px; color: var(--amber);
+    font-variant-numeric: tabular-nums; width: 2.6em; white-space: nowrap;
+  }
+  td.qproj { width: 1%; padding-right: 10px; }
+  td.qtitle { color: var(--ink); }
+  td.qtitle .flag { color: var(--red); font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; margin-left: 6px; }
+  .queue-foot { font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin: 8px 12px 0; }
+
+  .depth { margin: 10px 12px 0; }
+  .depth .drow { display: grid; grid-template-columns: 8.5em 1fr 2em; gap: 8px; align-items: center; margin-bottom: 4px; }
+  .depth .dlabel { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; }
+  .depth .dbar { height: 8px; background: var(--cyan); opacity: .85; }
+  .depth .dval { font-family: var(--mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+  /* ---------- commander's call ---------- */
+  .call {
+    margin: 0 12px 9px; padding: 9px 11px;
+    border: 1px solid var(--line); border-left: 3px solid var(--red);
+    background: var(--panel-2);
+  }
+  .call .row1 { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
+  .call h3 { font-size: 13px; font-weight: 600; margin: 0 0 3px; }
+  .call p { margin: 0; font-size: 12px; color: var(--muted); }
+  .call .age { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+
+  .health { list-style: none; margin: 0 12px; padding: 0; }
+  .health li {
+    display: flex; gap: 9px; align-items: baseline;
+    padding: 5px 0; border-bottom: 1px solid var(--line-soft);
+    font-size: 12px; color: var(--muted);
+  }
+  .health li:last-child { border-bottom: 0; }
+  .health .light { width: 8px; height: 8px; flex: none; align-self: center; border-radius: 50%; }
+  .light.g { background: var(--green); }
+  .light.a { background: var(--amber); }
+  .light.r { background: var(--red); }
+  .health b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- ticker ---------- */
+  footer.ticker {
+    margin-top: 14px; border-top: 2px solid var(--line);
+    padding: 8px 4px 0;
+    display: flex; gap: 26px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+  }
+  footer.ticker .t { color: var(--faint); margin-right: 7px; }
+  footer.ticker .src-note { margin-left: auto; color: var(--faint); }
+</style>
+
+<header>
+  <div class="wordmark">K<span class="dot">·</span>F<span class="dot">·</span>D<span class="dot">·</span>C</div>
+  <div class="mission">Fire direction for the homelab — what's firing, what's on deck, what's masked</div>
+  <div class="statline">
+    <span><b>16</b> live proposals</span>
+    <span><b>2</b> active</span>
+    <span><b>29</b> projects</span>
+    <span><b>109</b> shipped</span>
+    <span class="warn"><b>4</b> awaiting Ken</span>
+    <span>2026-08-04</span>
+  </div>
+</header>
+<p class="concept-note">CONCEPT MOCKUP — every proposal, WI, rank and collision below is real korg/klams data from today. Panels tagged <em>proposed</em> need data-model work in korg before they can be live.</p>
+
+<div class="board">
+
+  <!-- ============ col 1: fire missions ============ -->
+  <div class="col">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Fire Missions</h2>
+        <span class="sub">active sprints</span>
+      </div>
+
+      <div class="mission-card">
+        <div class="row1">
+          <span class="proj">kdeskdash</span>
+          <span class="id">korg:957</span>
+          <span class="status active">firing</span>
+        </div>
+        <h3>Claude usage: session-free feed, Fable gauge, per-gauge staleness</h3>
+        <p>Rework the desk dashboard's Claude-usage panel: drop the session dependency, add a Fable gauge, make staleness per-gauge.</p>
+        <div class="wi-track">
+          <i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i>
+          <span class="cnt">2/6 WIs</span>
+        </div>
+        <div class="freshness"><span class="ok">●</span> session activity 41 min ago</div>
+      </div>
+
+      <div class="mission-card slow-burn">
+        <div class="row1">
+          <span class="proj">hv-simulator</span>
+          <span class="id">korg:186</span>
+          <span class="status slow">slow burn</span>
+        </div>
+        <h3>Wormhole legs</h3>
+        <p>Ken's own long-running Fun-category sprint, worked in cognitive-break time.</p>
+        <div class="wi-track">
+          <i class="now"></i>
+          <span class="cnt">1 WI</span>
+        </div>
+        <div class="freshness">○ no live session — normal for this one, don't de-stale</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Deconfliction</h2>
+        <span class="sub">collisions &amp; sequencing</span>
+      </div>
+
+      <div class="conflict">
+        <div class="row1">
+          <span class="node-chip">korg 825 · row markers</span>
+          <span class="vs">⟂ SAME CONTRACT</span>
+          <span class="node-chip">korg #861 · read tiering</span>
+        </div>
+        <p>Both rewrite <b>WorkItemRow/WorkItemSummary</b> — published contracts. Whichever lands second must fold into the first's revision, not ship a second one.</p>
+        <span class="src">mined from: comment on proposal 825, 2026-08-01</span>
+      </div>
+
+      <div class="conflict">
+        <div class="row1">
+          <span class="node-chip">korg 825 · #824/#813 rows</span>
+          <span class="vs">⟵ AFTER</span>
+          <span class="node-chip">korg #762 · page rewrite</span>
+        </div>
+        <p>#762 rewrites how the work-items page loads its rows; 825 decorates those same rows. Decorate first and you do it twice.</p>
+        <span class="src">mined from: proposal 825 notes, sequencing section</span>
+      </div>
+
+      <p style="font-size:11.5px; color:var(--faint); margin:2px 12px 0;">Today these live only in proposal comments — you find them by reading all 16. This panel is the point of the board.</p>
+    </section>
+  </div>
+
+  <!-- ============ col 2: operations ============ -->
+  <div class="col">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Operations</h2>
+        <span class="sub">multi-project programs — ordered single-project slices</span>
+        <span class="tag-proposed">proposed node type</span>
+      </div>
+
+      <div class="op">
+        <div class="row1">
+          <h3>OP PLANNING-INTEGRITY</h3>
+          <span class="status active">in motion</span>
+        </div>
+        <p class="aim">Make "what's in flight and what's spoken for" answerable in one read — then feed it to a board like this one.</p>
+        <div class="slices">
+          <span class="slice s-done"><span class="mark">✓</span><span class="proj">korg</span><span class="slice-t">agent-surface reads</span></span>
+          <span class="arrow">→</span>
+          <span class="slice s-now"><span class="mark">▶</span><span class="proj">korg</span><span class="slice-t">825 · membership on rows</span></span>
+          <span class="arrow">→</span>
+          <span class="slice s-next"><span class="mark">·</span><span class="proj">korg</span><span class="slice-t">#870 · planning detail view</span></span>
+          <span class="arrow">→</span>
+          <span class="slice s-next"><span class="mark">·</span><span class="proj">korg-dash</span><span class="slice-t">rollup contract</span></span>
+          <span class="arrow">→</span>
+          <span class="slice s-next"><span class="mark">·</span><span class="proj">kdeskdash</span><span class="slice-t">infographic mode</span></span>
+        </div>
+      </div>
+
+      <div class="op">
+        <div class="row1">
+          <h3>OP RETRIEVAL-HEAD</h3>
+          <span class="status blocked">holding — awaiting decision</span>
+        </div>
+        <p class="aim">khound: one search call that replaces the klams/korg/grep gauntlet. Pitch reviewed (Sol + Fable), author responded. Approved shape: small vertical experiment incl. federation, then stop/go.</p>
+        <div class="slices">
+          <span class="slice s-now"><span class="mark">■</span><span class="proj">agent-projects</span><span class="slice-t">#964 · pitch — your call</span></span>
+          <span class="arrow">→</span>
+          <span class="slice s-next"><span class="mark">·</span><span class="proj">khound</span><span class="slice-t">vertical slice + measure</span></span>
+        </div>
+      </div>
+
+      <div class="op op-done">
+        <div class="row1">
+          <h3>OP INFRA-CLEANUP 2026-08</h3>
+          <span class="status done">closed 08-01</span>
+        </div>
+        <p class="aim">The August cleanup program — post-review merged as k-homelab PR #31. Residue deliberately queued: 819 observability, #841, #844.</p>
+        <div class="slices">
+          <span class="slice s-done"><span class="mark">✓</span><span class="proj">k-homelab</span><span class="slice-t">cleanup sprints</span></span>
+          <span class="arrow">→</span>
+          <span class="slice s-done"><span class="mark">✓</span><span class="proj">korg</span><span class="slice-t">queue re-review</span></span>
+          <span class="arrow">→</span>
+          <span class="slice s-done"><span class="mark">✓</span><span class="proj">k-homelab</span><span class="slice-t">post-review PR #31</span></span>
+        </div>
+      </div>
+
+      <p style="font-size:11.5px; color:var(--muted); margin:0 12px;">A <b>program</b> covers <em>proposals</em>, not WIs — so proposals stay strictly single-project and the cross-project story lives one level up. You already write these as markdown program plans; this makes them nodes korg can render.</p>
+    </section>
+  </div>
+
+  <!-- ============ col 3: on deck ============ -->
+  <div class="col">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>On Deck</h2>
+        <span class="sub">priorities of fire — queue by rank</span>
+      </div>
+      <table class="queue">
+        <tr><td class="rank">1</td><td class="qproj"><span class="proj">agent-skills</span></td><td class="qtitle">Decide kagent-harness dual-target idea, then delete the repo</td></tr>
+        <tr><td class="rank">2</td><td class="qproj"><span class="proj">kyac</span></td><td class="qtitle">015 — auto-approve policy tier (autonomy rung 1)</td></tr>
+        <tr><td class="rank">3</td><td class="qproj"><span class="proj">kapollo</span></td><td class="qtitle">Core UX sprint</td></tr>
+        <tr><td class="rank">6</td><td class="qproj"><span class="proj">korg</span></td><td class="qtitle">Eval/drill runs indistinguishable from real traffic</td></tr>
+        <tr><td class="rank">6.5</td><td class="qproj"><span class="proj">korg</span></td><td class="qtitle">825 · Proposal membership on rows &amp; rails</td></tr>
+        <tr><td class="rank">7</td><td class="qproj"><span class="proj">kapollo</span></td><td class="qtitle">Input &amp; shell commands sprint</td></tr>
+        <tr><td class="rank">8</td><td class="qproj"><span class="proj">hv-simulator</span></td><td class="qtitle">Nav &amp; routing sprint</td></tr>
+        <tr><td class="rank">12</td><td class="qproj"><span class="proj">kprojects</span></td><td class="qtitle">Installable anywhere, stack-aware when it lands</td></tr>
+        <tr><td class="rank">18</td><td class="qproj"><span class="proj">k-homelab</span></td><td class="qtitle">819 · observability, five items<span class="flag">⚑ SILENT RISK</span></td></tr>
+      </table>
+      <p class="queue-foot">+7 more queued · omitted: 109 done, 4 declined, 6 archived</p>
+
+      <div class="depth">
+        <div class="drow"><span class="dlabel">korg</span><div class="dbar" style="width:60%"></div><span class="dval">3</span></div>
+        <div class="drow"><span class="dlabel">kapollo</span><div class="dbar" style="width:40%"></div><span class="dval">2</span></div>
+        <div class="drow"><span class="dlabel">k-homelab</span><div class="dbar" style="width:40%"></div><span class="dval">2</span></div>
+        <div class="drow"><span class="dlabel">hv-simulator</span><div class="dbar" style="width:40%"></div><span class="dval">2</span></div>
+        <div class="drow"><span class="dlabel">7 others</span><div class="dbar" style="width:100%; opacity:.45"></div><span class="dval">7</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ col 4: commander's call + health ============ -->
+  <div class="col">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Commander's Call</h2>
+        <span class="sub">blocked on you — nothing else moves these</span>
+      </div>
+
+      <div class="call">
+        <div class="row1"><span class="proj">agent-projects</span><span class="id">#964</span><span class="age">reviews in · 1d</span></div>
+        <h3>khound pitch — proceed or kill</h3>
+        <p>Sol + Fable reviews are in, author responded 08-04. Decision: fund the small vertical experiment, or not.</p>
+      </div>
+
+      <div class="call">
+        <div class="row1"><span class="proj">k-homelab</span><span class="id">#841</span><span class="age">queued · 30d+</span></div>
+        <h3>kubsdb password rotation</h3>
+        <p>Your ops action — agents can't do this one.</p>
+      </div>
+
+      <div class="call">
+        <div class="row1"><span class="proj">korg</span><span class="id">#842</span><span class="age">open · 14d</span></div>
+        <h3>Prod DB credential exists only in the running container</h3>
+        <p>No compose file, no store. One container loss from a bad day. Pairs with krot.</p>
+      </div>
+
+      <div class="call">
+        <div class="row1"><span class="proj">agent-skills</span><span class="id">744</span><span class="age">rank 1</span></div>
+        <h3>kagent-harness — decide, then delete</h3>
+        <p>Top of the queue and it's a decision, not a build.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Sensor Net</h2>
+        <span class="sub">kmon · staleness · risk</span>
+      </div>
+      <ul class="health">
+        <li><span class="light g"></span><span><b>kmon</b> daily timer green · findings → homelab-health</span></li>
+        <li><span class="light a"></span><span><b>korg #950</b> staleness age-out: a report source that goes quiet is itself the alert — not built yet</span></li>
+        <li><span class="light r"></span><span><b>observability gap</b> — proposal 819 open at rank 18; highest remaining silent risk after cleanup</span></li>
+        <li><span class="light a"></span><span><b>k-homelab #844</b> ksandbox substrate — incus-docker-fw has still never executed</span></li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<footer class="ticker">
+  <span><span class="t">08-04</span>khound scaffolded on kproject harness</span>
+  <span><span class="t">08-02</span>korg agent-surface program completed — lean reads + omitted envelopes</span>
+  <span><span class="t">08-02</span>queue re-review: 16 live, dupes folded</span>
+  <span><span class="t">08-01</span>infra-cleanup closed · k-homelab PR #31</span>
+  <span class="src-note">feed: korg events + klams — assembled by hand for this mockup</span>
+</footer>

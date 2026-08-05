@@ -1,0 +1,33 @@
+# kfdc
+
+**K Fire Direction Center** — the homelab overseer board. A widescreen,
+deliberately dense web dashboard answering *what's firing, what's on deck,
+what's blocked, what's waiting on Ken* across every active project.
+
+kfdc reads [`korg`](https://github.com/kenhia/korg) (the system of record for
+work) and renders it deterministically; a headless curator agent writes
+summaries and sequencing edges back into korg for the board to pick up.
+Agents curate korg; the board renders korg. The FDC framing is literal:
+fire missions (active sprints), priorities of fire (the ranked queue),
+deconfliction (sequencing collisions), commander's call (decisions only Ken
+can make).
+
+> Status: **pre-stack scaffold.** The path to a usable board — including the
+> korg data-model prerequisites — is
+> [`sprints/planning/roadmap.md`](sprints/planning/roadmap.md). The approved
+> visual concept is
+> [`docs/design/kfdc-concept.html`](docs/design/kfdc-concept.html).
+
+Related: `korg-dash` remains the small-panel summary feed for the kdeskdash
+desk display; kfdc is the full-screen board. They should share korg's rollup
+read once it exists.
+
+## Development
+
+On the [kprojects](https://github.com/kenhia/kprojects) minimal harness:
+`just` lists recipes, `just check` runs the CI gates (harness invariants
+only, until the SvelteKit stack lands).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
