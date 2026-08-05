@@ -50,7 +50,12 @@ and 979 itself — closes when Ken's user test passes). Board endpoint:
       programs + blocked/awaiting, so the board is one request, not a
       17-call crawl.
 
-## Now — Phase 1: walking skeleton
+## Now — Phase 1: walking skeleton — filed as korg proposal kfdc:987
+
+WIs #983 (scaffold + /api/board proxy + gates), #984 (Fire Missions + On
+Deck + statline), #985 (tailscale serve), stretch #986 (Commander's Call,
+pulled forward from Phase 3 — droppable). Start with `/start-sprint
+korg:987`.
 
 - [ ] SvelteKit + TypeScript scaffold (node adapter); `just check` rewired
       to real gates (lint, svelte-check, build, test).
