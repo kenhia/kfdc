@@ -1,2 +1,22 @@
+# kproject harness
 .scratch/
+.korg-sprint-proposal
+
+# Env
 .env
+.env.*
+!.env.example
+
+# Node / SvelteKit
+node_modules
+/.svelte-kit
+/build
+.output
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

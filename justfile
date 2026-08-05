@@ -2,9 +2,23 @@
 default:
     @just --list
 
-# Run CI gates — harness invariants only until the SvelteKit stack lands
-# (roadmap Phase 1 rewires this to lint + svelte-check + build + test)
-check:
+# Run the dev server
+dev:
+    npm run dev
+
+# Run CI gates: harness invariants + lint + svelte-check + build + test
+check: harness
+    npm run lint
+    npm run check
+    npm run build
+    npm test
+
+# Auto-format the tree
+format:
+    npm run format
+
+# Harness invariants — still guard the kproject managed block and design docs
+harness:
     @test -f CLAUDE.md
     @test -f .github/copilot-instructions.md
     @grep -q "kproject:begin" CLAUDE.md
@@ -14,4 +28,4 @@ check:
     @test -f sprints/planning/roadmap.md
     @test -f docs/design.md
     @test -f docs/design/kfdc-concept.html
-    @echo "check: harness invariants OK (stack gates pending — see roadmap Phase 1)"
+    @echo "harness invariants OK"

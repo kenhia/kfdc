@@ -1,0 +1,16 @@
+# Package Managers
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb
+
+# Miscellaneous
+/static/
+
+# Hand-authored prose + approved design artifact — not prettier's to reflow
+README.md
+CLAUDE.md
+.github/
+docs/
+sprints/
