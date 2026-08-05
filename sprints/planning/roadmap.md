@@ -81,4 +81,13 @@ here because kfdc is blocked on it.
 - Deterministic collision hints (same-contract / same-file heuristics)
   feeding the curator.
 - Wall mode: auto-refresh, zero chrome, for the widescreen monitor.
+- Expanded mode: korg hosted in an iframe pane right of the board — click a
+  WI/proposal and the pane deep-links to the item in the real korg UI. Keeps
+  kfdc edit-free: the board renders only the rollup; the full node (notes,
+  comments, edit, clear-awaiting) is always real korg in the pane. korg
+  prereqs when picked up: stable per-node deep-link routes (also serves
+  korg-vs resolve-by-ID) and a frame-ancestors policy allowing kfdc's
+  ts.net origin; v1 control is one-way (`iframe.src`), no postMessage.
+  Interim: kfdc + korg as two grouped windows and Alt-Tab. Decided
+  2026-08-05; build after kfdc has some mileage.
 - Session-freshness feed (which sprints have live agent activity).
