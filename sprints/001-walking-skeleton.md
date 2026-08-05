@@ -41,8 +41,35 @@ Scope (sequenced): #983 scaffold + `/api/board` proxy + real CI gates →
 
 ## Shipped
 
-(updated as the sprint progresses)
+- **#983** — SvelteKit + TS scaffold (node adapter, new vite-plugin config
+  style: adapter passed to `sveltekit()` in `vite.config.ts`, no
+  `svelte.config.js`). One server path to korg (`src/lib/server/korg.ts`)
+  behind `GET /api/board`; board types + statline/progress/age derivations
+  in `src/lib/board.ts`, written test-first. `just check` = harness
+  invariants + prettier/eslint + svelte-check + build + vitest.
+- **#984** — Fire Missions, On Deck (queue + omitted counts + depth bars),
+  statline — concept CSS as `src/app.css`, FDC reticle favicon, no-comms
+  error page. Verified against live production data by screenshot.
+- **#986** (stretch, taken) — Commander's Call renders `board.awaiting`
+  read-only, ages against `generated`.
+- **#985** — deployed on kai at **https://kai.encke-wahoo.ts.net:8100**
+  (port 8100: the 81mm nod). `just deploy` rebuilds + restarts.
+
+### Deploy record (kai)
+
+- systemd user unit `~/.config/systemd/user/kfdc.service`: WorkingDirectory
+  `%h/src/tools/kfdc`, EnvironmentFile `%h/src/tools/kfdc/.env`,
+  `HOST=127.0.0.1 PORT=8100 ORIGIN=https://kai.encke-wahoo.ts.net:8100`,
+  ExecStart `/usr/bin/node build/index.js`, Restart=on-failure, enabled
+  (linger already on, so it survives reboot).
+- `sudo tailscale serve --bg --https=8100 http://127.0.0.1:8100` —
+  loopback-bind pattern, one URL valid everywhere including kai itself.
+  Needs declaring in k-homelab `manifests/kai.yml` `tailscale_serve`
+  (incoming-change note filed).
 
 ## Follow-ups
 
-(recorded as they surface)
+- Declare the serve entry + unit in k-homelab (incoming-change note filed
+  per record-machine-change).
+- Wall mode (auto-refresh) and session-freshness stay roadmap Later; the
+  board is a static render per load today.

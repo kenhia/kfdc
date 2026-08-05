@@ -50,19 +50,20 @@ and 979 itself — closes when Ken's user test passes). Board endpoint:
       programs + blocked/awaiting, so the board is one request, not a
       17-call crawl.
 
-## Now — Phase 1: walking skeleton — filed as korg proposal kfdc:987
+## Phase 1: walking skeleton — BUILT 2026-08-05, awaiting Ken's user test
 
-WIs #983 (scaffold + /api/board proxy + gates), #984 (Fire Missions + On
-Deck + statline), #985 (tailscale serve), stretch #986 (Commander's Call,
-pulled forward from Phase 3 — droppable). Start with `/start-sprint
-korg:987`.
+Sprint 001 (proposal kfdc:987): all four WIs including the stretch. The
+board is live at **https://kai.encke-wahoo.ts.net:8100** — Fire Missions,
+On Deck (+depth), statline, Commander's Call, rendering production korg.
+Record: `sprints/001-walking-skeleton.md`.
 
-- [ ] SvelteKit + TypeScript scaffold (node adapter); `just check` rewired
+- [x] SvelteKit + TypeScript scaffold (node adapter); `just check` rewired
       to real gates (lint, svelte-check, build, test).
-- [ ] Fire Missions + On Deck panels rendered deterministically from korg
+- [x] Fire Missions + On Deck panels rendered deterministically from korg
       REST via server routes; token in `.env`.
-- [ ] Concept CSS applied (tokens in `docs/design.md`); tailscale serve on
+- [x] Concept CSS applied (tokens in `docs/design.md`); tailscale serve on
       kai, one ts.net URL.
+- [x] Stretch #986 taken: Commander's Call from `board.awaiting`.
 
 ## Phase 2: curator
 
