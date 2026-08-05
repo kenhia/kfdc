@@ -67,6 +67,10 @@ Record: `sprints/001-walking-skeleton.md`.
 
 ## Phase 2: curator
 
+Hosting decision (2026-08-05): the curator runs on **kai** — `claude -p`,
+korg MCP wiring and the kmon timer pattern already live there, and it only
+talks to korg over the network. No phase puts agent tooling on kubsdb.
+
 - [ ] Curator prompt in-repo + `bin/update-fdc` wrapper (headless
       `claude -p` with korg MCP; runnable by hand and by systemd user
       timer — kmon pattern).
@@ -78,9 +82,13 @@ Record: `sprints/001-walking-skeleton.md`.
 
 ## Phase 3: full board — switch over
 
-- [ ] Operations (programs) + Commander's Call panels once the Phase-0 node
-      types land.
+- [ ] Operations (programs) panel. (Commander's Call shipped early —
+      sprint 001 took the stretch.)
 - [ ] Ticker from korg events/reports.
+- [ ] Production deploy: move kfdc hosting to **kubsdb** alongside korg;
+      retire kai's interim unit + serve entry (recorded as k-homelab #988,
+      whose comment carries the fold-in-then-retire plan). kai:8100 stays
+      the dev host until then; kubsdb needs no agent tooling for this.
 - [ ] Retire this roadmap into korg: file the remaining plan as a program,
       manage kfdc *in* kfdc.
 
