@@ -71,6 +71,16 @@ a full-width strip under the panels renders the traffic (#993). Sequenced
   in dev against production korg by doctoring the saved digest and watching
   `FM: firing` / `CC: cleared` lines render with correct links.
 
+## Deployed 2026-08-05
+
+PR #2 squash-merged as `2e2320f`; `just deploy` from merged main (rollback
+target: redeploy `9f9e2c9`, sprint 001). Verified live on kai:8100 — strip
+renders under the panels, `GET /api/netlog` serves, and the deploy
+healthcheck's own board read baselined the prod store
+(`~/.local/state/kfdc/last-digest.json`, no unit change needed). Proposal
+kfdc:994 closed *after* this deploy, deliberately, so the live observer
+logs its own sprint completing as first traffic.
+
 ## Follow-ups
 
 - When korg #977 (transition log) lands, enrich lines with real actor/exact
