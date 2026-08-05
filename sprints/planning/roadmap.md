@@ -65,6 +65,21 @@ Record: `sprints/001-walking-skeleton.md`.
       kai, one ts.net URL.
 - [x] Stretch #986 taken: Commander's Call from `board.awaiting`.
 
+## Now — Phase 1.5: Net Log — filed as korg proposal kfdc:994
+
+Added 2026-08-05 after the first real loss: sprint-ship + refresh removed a
+fire mission AND a commander's-call row, and nothing said which. The board
+renders state; transitions vanish between glances.
+
+- [ ] #992 Observer: digest each `/api/board` read (+ modest interval
+      poll), diff against the last digest, append significant changes to a
+      small local store (SQLite/JSONL, ~30d retention). Viewer state, not
+      work data — korg #977 stays the principled home for work history;
+      lines carry observation time, never invented precision.
+- [ ] #993 Strip: full-width under the panels, separator above, one line
+      per change — `FM: complete kfdc 984 - proposal completed` — panel
+      codes FM/CC/OD/OP, clickable ids where korg has a page.
+
 ## Phase 2: curator
 
 Hosting decision (2026-08-05): the curator runs on **kai** — `claude -p`,
