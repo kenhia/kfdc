@@ -60,6 +60,17 @@ one live edge reads `kprojects 912 → claude-cleo 749` — prerequisite first.
 SPLASH has no live instance today; unit tests pin the transition, the empty
 guard, and the sort.
 
+## Deployed 2026-08-06
+
+`just deploy` on kai from merged main (`a24c51a`, PR #4 squash); rollback
+target is the previous main (`c4257e9`, rebuild + restart). Verified live at
+https://kai.encke-wahoo.ts.net:8100: both program cards render (2 done + 5
+proposed slice chips, arrows between), Deconfliction reads
+`kprojects 912 → claude-cleo 749`, and the Net Log's first post-deploy
+observation logged `FM: complete kfdc 1030` — the board watched this
+sprint's own proposal complete, with no spurious slice traffic from the
+digest upgrade. No data migration in this sprint.
+
 ## Follow-ups
 
 - korg #977 (transition log) remains the Net Log's principled enrichment;
