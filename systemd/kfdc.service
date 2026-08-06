@@ -1,0 +1,35 @@
+# kfdc — the board itself. Installed by deploy/install.sh from a published
+# bundle, never hand-written on a host. Until sprint 005 this unit existed
+# only in ~/.config/systemd/user on kai and in no repo at all; it is here
+# now so the unit that shipped with a build is recoverable with that build.
+#
+# Nothing here names kai, and nothing here names the clone: the service runs
+# out of the unpacked artifact via the `current` symlink, so a deploy is a
+# symlink repoint plus a restart, and a rollback is the same move backwards.
+# Placement — which port, which public origin — lives in the env file, which
+# is why moving the board to kubsdb (Phase 3) touches no file in this repo.
+[Unit]
+Description=kfdc — K Fire Direction Center (homelab overseer board, SvelteKit node adapter)
+After=network-online.target tailscaled.service
+
+[Service]
+WorkingDirectory=%h/.local/share/kfdc/current
+
+# Order matters: the file is read first so the Environment= lines below win.
+# HOST in particular is not the operator's to change — see below.
+EnvironmentFile=%h/.config/kfdc/kfdc.env
+Environment=NODE_ENV=production
+
+# Loopback, always. tailscaled holds <ts-ip>:<port> itself to serve this
+# host's own ts.net traffic, so a wildcard bind fights it for the port and
+# crash-loops with EADDRINUSE (the homelab's oldest serve gotcha). The
+# adapter's default is 0.0.0.0, so leaving this out is not neutral.
+Environment=HOST=127.0.0.1
+
+# PORT and ORIGIN come from the env file: they are placement, not shape.
+ExecStart=/usr/bin/node build/index.js
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
