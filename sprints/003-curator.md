@@ -146,6 +146,19 @@ What korg holds today, measured before deciding the write vocabulary:
   same `curator/prompt.md` interactively with per-write narration; the
   skill defers to the prompt file, never forks it.
 
+## Deployed 2026-08-06
+
+PR #3 squash-merged as `a370720`; `just deploy` from merged main (rollback
+target: redeploy `2e2320f`, sprint 002). Verified live on kai:8100 —
+Deconfliction renders the three mined `⟵ AFTER` cards with mined-from
+provenance, Sensor Net renders reports as status lights, Fire Missions
+cards carry ⟦curator⟧ synopsis lines (no collision card, correctly: zero
+`collides-with` edges exist). Daily timer installed and armed (next fire
+10:31 UTC; k-homelab #1010). Proposal kfdc:999 closed *after* the deploy,
+deliberately — the Net Log observed `FM: complete kfdc 999` alongside the
+`FM: complete korg 1004` it had logged earlier: the board logging its own
+sprint shipping, both layers.
+
 ## Follow-ups
 
 - The curator's first pass found real stale references in proposal prose
