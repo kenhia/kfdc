@@ -136,10 +136,49 @@ declaration in response to that symptom.
 ## Follow-ups
 
 - **k-homelab #1010** (`Fold in: kfdc-curator systemd user timer on kai`)
-  must carry the **corrected** unit, not the one currently in
-  `~/.config/systemd/user`. Outside this repo; not widened into this sprint.
+  must carry the **corrected** unit. `~/.config/systemd/user` now holds it
+  (verified identical to `main` post-deploy), so the fold-in can read it from
+  either. Outside this repo; not widened into this sprint.
 - **homelab-health #1038** (the kmon finding) can close once the unit has run
   green on its own timer — the next scheduled fire, not this manual start.
 - **Phase 3 stays out of scope.** Both fixes are built for where kfdc lives
   now. When the board moves to kubsdb, the only line in `deploy-board` that
   changes is the verify URL; the curator does not move at all.
+
+## Deployed 2026-08-06
+
+PR [#6](https://github.com/kenhia/kfdc/pull/6) squash-merged as `5b93648`,
+then — for the first time — **sprint-ship Phase 7 fired on its own**, invoking
+the `deploy-board` skill this sprint added. Sprint 005 reached this point and
+the phase skipped in silence; that is the whole delta.
+
+```
+just publish              ->  0.5.0-5b93648 (456K), latest -> 0.5.0-5b93648
+just deploy 0.5.0-5b93648 ->  pid 2340520 running 0.5.0-5b93648
+```
+
+- **Artifact:** `artifacts/kfdc/0.5.0-5b93648/`. `5b93648` is an ancestor of
+  `origin/main` — the Phase-7-after-merge ordering holding.
+- **Rollback target:** `just deploy 0.5.0-31d2033` (sprint 005's version, the
+  previous `main` build, still in the store and still unpacked on kai). This is
+  the first sprint with a real previous-`main` rollback target; 005 had none.
+  `0.5.0-ed6c764` was pruned from disk by `--keep 3` and remains in the store.
+- **Verified live**, by the skill's own assertions rather than the installer's:
+  `/proc/2340520/cwd` → `0.5.0-5b93648`; the board answers 200 over
+  `https://kai.encke-wahoo.ts.net:8100` and its server-rendered HTML contains
+  `Fire Missions`; `just versions` agrees across store `latest:`, disk and
+  process.
+
+Because the sprint changed no app code, the smoke test is the sprint's own
+subject matter rather than the board's behaviour:
+
+- The installed `~/.config/systemd/user/kfdc-curator.service` is byte-identical
+  to merged `main` and carries `Environment=PATH=` at line 17. Last run
+  `success 0`.
+- `.sprint-deploy` on `main` resolves to `deploy-board`, the skill is present,
+  and `just harness` passes — the invariant guarding exactly that.
+
+One caveat, deliberately not papered over: the timer's `LAST` still shows the
+failed 10:33 fire from before the fix. The unit is green, but it has not yet
+run green **on its own schedule** — next fire Fri 2026-08-07 10:33 UTC. That,
+not this deploy, is what closes homelab-health #1038.
