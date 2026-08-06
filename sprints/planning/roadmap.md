@@ -83,25 +83,31 @@ renders state; transitions vanish between glances. Record:
       codes FM/CC/OD/OP, ids deep-linked where korg has a page (korg's own
       AwaitingLane scheme).
 
-## Now — Phase 2: curator — filed as korg proposal kfdc:999 (sprint 003)
+## Phase 2: curator — BUILT 2026-08-06 (sprint 003, proposal kfdc:999)
 
-Hosting decision (2026-08-05): the curator runs on **kai** — `claude -p`,
-korg MCP wiring and the kmon timer pattern already live there, and it only
-talks to korg over the network. No phase puts agent tooling on kubsdb.
-Sequenced #995 → #996 → #997; #998 stretch. The korg write vocabulary
-(edge labels, synopsis home, provenance format) is #996's first decision,
-made with Ken.
+Write vocabulary decided with Ken 2026-08-05 (recorded in
+`sprints/003-curator.md`): `depends_on` for mined sequencing,
+new `collides-with` registry label for collisions, one `⟦curator⟧`-marked
+comment per proposal for synopses, `origin: "kfdc-curator"` on every edge.
+The korg substrate slice (label + board `proposal_edges`/`synopsis`) landed
+as korg sprint 046 / proposal korg:1004 inside this sprint window —
+sequencing recorded at write time as kfdc:999 `depends_on` korg:1004, the
+direction of travel's first instance. Curator runs on kai (kmon timer).
 
-- [ ] #995 Curator prompt in-repo + `bin/update-fdc` wrapper (headless
-      `claude -p` with korg MCP; runnable by hand and by systemd user
-      timer — kmon pattern).
-- [ ] #996 Mission synopses + deconfliction mined from proposal prose →
-      written into korg as typed edges/comments with a `mined-from`
-      provenance note.
-- [ ] #997 Deconfliction + Sensor Net panels render the curator's output
-      from korg.
-- [ ] #998 Optional `update-fdc` skill as interactive sugar over the same
-      prompt (stretch).
+- [x] #995 Curator prompt in-repo (`curator/prompt.md`, the single source
+      of truth) + `bin/update-fdc` (headless `claude -p`, korg-only tools)
+      + `kfdc-curator.timer` (daily 10:30 UTC).
+- [x] #996 Two supervised passes against production: 3 sequencing edges +
+      9 synopses, all provenance-stamped; ambiguous references dropped
+      with reasons. Re-run wrote zero edges and zero duplicate/changed
+      synopses (the mechanical idempotence contract); the synopsis-worthy
+      threshold wobbled once (3 rows skipped by pass 1, written by pass
+      2), answered with a never-rephrase rule in the prompt.
+- [x] #997 Deconfliction + Sensor Net panels render `proposal_edges` +
+      `synopsis` + `reports`; Fire Missions cards carry the synopsis line;
+      parser pins the first real body as a test fixture.
+- [x] #998 Stretch taken: `/update-fdc` skill runs the same prompt
+      interactively.
 
 ## Phase 3: full board — switch over
 

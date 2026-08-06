@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# kfdc curator — one headless pass over the live korg queue.
+#
+# Reads curator/prompt.md (the single source of truth — the /update-fdc
+# skill runs the SAME file interactively; neither may fork it) and runs it
+# via `claude -p` with korg as the only reachable tool surface: strict MCP
+# config, no shell, no filesystem tools. Safe to re-run: a pass that finds
+# nothing new writes nothing (see the prompt's idempotence contract).
+#
+# Hand-run:      bin/update-fdc            (or `just curator`)
+# Timer:         systemd/kfdc-curator.timer (kmon pattern; `just curator-install`)
+# Model:         KFDC_CURATOR_MODEL overrides (default claude-sonnet-5)
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+exec claude -p \
+  --model "${KFDC_CURATOR_MODEL:-claude-sonnet-5}" \
+  --mcp-config "$ROOT/curator/mcp-config.json" \
+  --strict-mcp-config \
+  --allowed-tools "mcp__korg" \
+  --disallowed-tools "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task" \
+  < "$ROOT/curator/prompt.md"

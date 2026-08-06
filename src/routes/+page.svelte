@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { statline } from '$lib/board';
 	import CommandersCall from '$lib/panels/CommandersCall.svelte';
+	import Deconfliction from '$lib/panels/Deconfliction.svelte';
 	import FireMissions from '$lib/panels/FireMissions.svelte';
 	import NetLog from '$lib/panels/NetLog.svelte';
 	import OnDeck from '$lib/panels/OnDeck.svelte';
+	import SensorNet from '$lib/panels/SensorNet.svelte';
 
 	let { data } = $props();
 
@@ -34,12 +36,14 @@
 <div class="board">
 	<div class="col">
 		<FireMissions active={board.active} />
+		<Deconfliction {board} />
 	</div>
 	<div class="col">
 		<OnDeck queue={board.queue} omitted={board.proposals_omitted} depth={board.depth} />
 	</div>
 	<div class="col">
 		<CommandersCall awaiting={board.awaiting} generated={board.generated} />
+		<SensorNet reports={board.reports} generated={board.generated} />
 	</div>
 </div>
 

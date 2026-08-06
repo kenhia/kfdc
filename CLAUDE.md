@@ -45,11 +45,11 @@ what's blocked, what's waiting on Ken* across every project, reading `korg`
 (the system of record) — plus a headless **curator** agent pass that writes
 summaries and sequencing edges *back into korg* for the board to render.
 
-Status: **Phase 1 live** at `https://kai.encke-wahoo.ts.net:8100` — Fire
-Missions, On Deck, statline and Commander's Call render production korg
-(sprint 001). kai is the interim host; production moves to kubsdb in
-Phase 3. The plan onward is `sprints/planning/roadmap.md`. Read it before
-doing anything.
+Status: **Phase 2 live** at `https://kai.encke-wahoo.ts.net:8100` — Fire
+Missions, On Deck, statline, Commander's Call, Net Log, Deconfliction and
+Sensor Net render production korg (sprints 001–003). kai is the interim
+host; production moves to kubsdb in Phase 3. The plan onward is
+`sprints/planning/roadmap.md`. Read it before doing anything.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
   `sveltekit()` plugin in `vite.config.ts` — no `svelte.config.js`; that is
@@ -66,10 +66,14 @@ doing anything.
   deconfliction / commander's call) is deliberate — Ken is ex-11C. Keep the
   vocabulary; keep the density.
 - Architecture rule: **agents curate korg; the board renders korg.** The
-  curator (`claude -p` headless, future `bin/update-fdc`) writes typed
-  edges, report nodes and comments into korg — never a side file the board
-  reads. If a panel needs data korg can't hold, that's a korg work item,
-  not a workaround.
+  curator (sprint 003) writes typed edges and ⟦curator⟧-marked comments
+  into korg — never a side file the board reads. `curator/prompt.md` is
+  the single source of truth; `bin/update-fdc` runs it headless (daily
+  timer `kfdc-curator.timer` on kai, `just curator` by hand) and the
+  `/update-fdc` skill runs the same file interactively — never fork the
+  prompt. The read side is `src/lib/curator.ts` (format is a contract:
+  both sides move together). If a panel needs data korg can't hold,
+  that's a korg work item, not a workaround.
 - korg's production API runs on kubsdb:5674; kfdc reads it via REST through
   SvelteKit server routes (token in `.env`, never in the client).
 - Read first: `sprints/planning/roadmap.md`, `docs/design.md`,

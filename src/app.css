@@ -403,3 +403,116 @@ td.qtitle {
 	color: var(--muted);
 	margin: 0;
 }
+
+/* ---------- deconfliction (sprint 003, concept CSS) ---------- */
+.conflict {
+	margin: 0 12px 10px;
+	padding: 9px 11px;
+	border: 1px solid color-mix(in oklab, var(--red) 30%, var(--line));
+	background: color-mix(in oklab, var(--red) 4%, var(--panel));
+}
+/* Sequencing is ordering, not danger — amber, and the glyph differs too. */
+.conflict.seq {
+	border-color: color-mix(in oklab, var(--amber) 30%, var(--line));
+	background: color-mix(in oklab, var(--amber) 4%, var(--panel));
+}
+.conflict .row1 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 5px;
+}
+.conflict .vs {
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--red);
+	letter-spacing: 0.1em;
+}
+.conflict.seq .vs {
+	color: var(--amber);
+}
+.conflict p {
+	margin: 0;
+	font-size: 12px;
+	color: var(--muted);
+}
+.conflict .src {
+	font-family: var(--mono);
+	font-size: 10px;
+	color: var(--faint);
+	display: block;
+	margin-top: 5px;
+}
+.node-chip {
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--ink);
+	border: 1px solid var(--line);
+	background: var(--panel-2);
+	padding: 2px 7px;
+}
+
+/* ---------- sensor net (sprint 003, concept CSS) ---------- */
+.health {
+	list-style: none;
+	margin: 0 12px;
+	padding: 0;
+}
+.health li {
+	display: flex;
+	gap: 9px;
+	align-items: baseline;
+	padding: 5px 0;
+	border-bottom: 1px solid var(--line-soft);
+	font-size: 12px;
+	color: var(--muted);
+}
+.health li:last-child {
+	border-bottom: 0;
+}
+.health .light {
+	width: 8px;
+	height: 8px;
+	flex: none;
+	align-self: center;
+	border-radius: 50%;
+}
+.light.g {
+	background: var(--green);
+}
+.light.a {
+	background: var(--amber);
+}
+.light.r {
+	background: var(--red);
+}
+.health b {
+	color: var(--ink);
+	font-weight: 600;
+}
+.health .esc {
+	font-family: var(--mono);
+	font-size: 10px;
+	color: var(--red);
+	letter-spacing: 0.08em;
+	margin-left: 4px;
+}
+.health .age {
+	font-family: var(--mono);
+	font-size: 10.5px;
+	color: var(--faint);
+	margin-left: 4px;
+}
+.health .net-silent {
+	color: var(--faint);
+	font-style: italic;
+}
+
+/* Curator's current-state line on a mission card. */
+.mission-card .synopsis {
+	font-family: var(--mono);
+	font-size: 11px;
+	color: color-mix(in oklab, var(--amber) 55%, var(--muted));
+	margin: 4px 0 0;
+}

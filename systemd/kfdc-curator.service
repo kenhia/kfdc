@@ -1,0 +1,14 @@
+# kfdc curator pass — user unit on kai (kmon pattern; install with
+# `just curator-install`). Hand-run stays the primary interface until the
+# pass earns trust: bin/update-fdc or `just curator`.
+[Unit]
+Description=kfdc curator pass (mines korg prose into typed edges + synopses)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/src/tools/kfdc
+EnvironmentFile=-%h/src/tools/kfdc/.env
+ExecStart=%h/src/tools/kfdc/bin/update-fdc
+TimeoutStartSec=20min

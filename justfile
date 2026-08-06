@@ -17,6 +17,18 @@ check: harness
 format:
     npm run format
 
+# One headless curator pass against production korg (curator/prompt.md)
+curator:
+    bin/update-fdc
+
+# Install + enable the daily curator timer (kmon pattern; units in systemd/)
+curator-install:
+    mkdir -p ~/.config/systemd/user
+    cp systemd/kfdc-curator.service systemd/kfdc-curator.timer ~/.config/systemd/user/
+    systemctl --user daemon-reload
+    systemctl --user enable --now kfdc-curator.timer
+    @systemctl --user list-timers kfdc-curator.timer --no-pager
+
 # Rebuild and restart the board on kai (unit kfdc.service; serve config in sprint 001)
 deploy:
     npm run build
