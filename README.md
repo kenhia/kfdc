@@ -12,10 +12,10 @@ fire missions (active sprints), priorities of fire (the ranked queue),
 deconfliction (sequencing collisions), commander's call (decisions only Ken
 can make).
 
-> Status: **Phase 1 live** — the walking skeleton (Fire Missions, On Deck,
-> statline, Commander's Call) renders production korg at
-> `https://kai.encke-wahoo.ts.net:8100` (tailnet only; interim host — the
-> production move to kubsdb is Phase 3). The plan onward is
+> Status: **Phase 2 live** — Fire Missions, On Deck, statline, Commander's
+> Call, Net Log, Deconfliction, Sensor Net and Operations render production
+> korg at `https://kai.encke-wahoo.ts.net:8100` (tailnet only; interim host
+> — the production move to kubsdb is Phase 3). The plan onward is
 > [`sprints/planning/roadmap.md`](sprints/planning/roadmap.md); the approved
 > visual concept is
 > [`docs/design/kfdc-concept.html`](docs/design/kfdc-concept.html).
@@ -29,9 +29,13 @@ read once it exists.
 SvelteKit + TypeScript (node adapter), on the
 [kprojects](https://github.com/kenhia/kprojects) minimal harness. `just`
 lists recipes; `just dev` runs the dev server; `just check` runs the CI
-gates (harness invariants, prettier/eslint, svelte-check, build, vitest);
-`just deploy` rebuilds and restarts the board on kai. korg base URL lives
-in `.env` (see `.env.example`).
+gates (harness invariants, prettier/eslint, svelte-check, build, vitest).
+korg base URL lives in `.env` (see `.env.example`).
+
+`just publish` puts a versioned bundle in the homelab package store and
+`just deploy` installs that artifact on the serving host — naming an older
+version is the rollback. See [`docs/deploying.md`](docs/deploying.md); kfdc
+does not build in place.
 
 ## License
 

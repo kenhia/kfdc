@@ -214,7 +214,9 @@ fi
 ok=0
 i=0
 while [ "$i" -lt 20 ]; do
-    if curl -fsS -o /dev/null "http://127.0.0.1:$PORT/api/board"; then ok=1; break; fi
+    # -s without -S: a refused connection in the first second or two is the
+    # service still starting, not news. The failure below is the news.
+    if curl -fs -o /dev/null "http://127.0.0.1:$PORT/api/board"; then ok=1; break; fi
     i=$((i + 1))
     sleep 1
 done
