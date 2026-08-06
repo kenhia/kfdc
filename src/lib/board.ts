@@ -17,6 +17,22 @@ export interface ProposalRow {
 	done: number;
 	closed: number;
 	updated: string;
+	// The newest ⟦curator⟧-marked comment (korg #1003), or null until the
+	// curator's first pass over this row. Format contract: curator/prompt.md;
+	// parsed by $lib/curator.
+	synopsis: { body: string; updated: string } | null;
+}
+
+// An edge between two live board rows (korg #1003) — Deconfliction's
+// substrate. `origin`/`created` are korg's write-side edge provenance;
+// origin "kfdc-curator" marks a mined edge.
+export interface ProposalEdge {
+	left: number;
+	right: number;
+	label: string;
+	directed: boolean;
+	origin: string | null;
+	created: string;
 }
 
 export interface AwaitingRow {
@@ -72,6 +88,7 @@ export interface Board {
 	active: ProposalRow[];
 	queue: ProposalRow[];
 	proposals_omitted: { done: number; declined: number; archived: number };
+	proposal_edges: ProposalEdge[];
 	programs: ProgramRow[];
 	programs_omitted: { done: number; archived: number };
 	awaiting: AwaitingRow[];

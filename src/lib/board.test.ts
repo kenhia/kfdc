@@ -16,6 +16,7 @@ const row = (over: Partial<ProposalRow> = {}): ProposalRow => ({
 	done: 0,
 	closed: 0,
 	updated: '2026-08-05T00:00:00Z',
+	synopsis: null,
 	...over
 });
 
@@ -24,6 +25,7 @@ const board = (over: Partial<Board> = {}): Board => ({
 	active: [row(), row({ node_id: 2 })],
 	queue: [row({ node_id: 3, status: 'proposed' })],
 	proposals_omitted: { done: 114, declined: 4, archived: 6 },
+	proposal_edges: [],
 	programs: [],
 	programs_omitted: { done: 1, archived: 0 },
 	awaiting: [

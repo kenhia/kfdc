@@ -84,10 +84,74 @@ What korg holds today, measured before deciding the write vocabulary:
   702, origin `kfdc-sprint-003`) — the roadmap's direction-of-travel,
   dogfooded on its own sprint.
 
+## Render-side decisions (#997, during implementation)
+
+- **The synopsis format is a two-sided contract**: `curator/prompt.md`
+  defines the write side, `src/lib/curator.ts` parses the read side —
+  both move together or not at all. The first real production body
+  (korg:749, 2026-08-06) is pinned verbatim as a test fixture, the 002
+  pattern (real lines as literal expectations).
+- **Collisions sort before sequencing** on the Deconfliction panel —
+  a collision demands a decision, sequencing just orders — newest first
+  within each.
+- **Sequencing cards are amber, collision cards red** (deliberate
+  deviation from the concept, which tinted both red): sequencing is
+  ordering, not danger, and the board reserves red for blocked/risk.
+  The glyphs (`⟂ SAME CONTRACT` / `⟵ AFTER`) carry the distinction in
+  form too, per the never-color-alone rule.
+- **Edges without prose still render**: provenance line falls back to
+  `mined by curator` (origin kfdc-curator) or `recorded at write time` —
+  a typed edge with no synopsis line is legitimate, especially as
+  write-time sequencing (the direction of travel) grows.
+- **Fire Missions cards carry the synopsis line** (marker shown, mono,
+  amber-muted); On Deck stays dense — no synopsis in the queue table, v1.
+- **Sensor Net is the concept's minimum**: `board.reports` as
+  status-colored lights (form + color: status word in the title attr,
+  ESCALATED as text), ages against `generated`. Curator escalations
+  arrive via ordinary reports when they start existing; no new substrate.
+- **Net Log vocabulary untouched** — FM/CC/OD/OP only; panel codes for
+  the new panels are a separate deliberate decision (per #997's WI note).
+
 ## Shipped
 
-(filled as it lands)
+- **korg 046** (the substrate slice): see korg's
+  `sprints/046-curated-layer.md` — `collides-with` in the registry, board
+  `proposal_edges` + per-row `synopsis`, deployed to kubsdb 2026-08-06,
+  proposal korg:1004 done, WIs #1002/#1003 resolved.
+- **#995** — `curator/prompt.md` (single source of truth),
+  `curator/mcp-config.json` (korg-only, strict), `bin/update-fdc`
+  (headless `claude -p`, Sonnet default via `KFDC_CURATOR_MODEL`, no
+  shell/filesystem tools), `systemd/kfdc-curator.{service,timer}` (kmon
+  pattern, daily 10:30 UTC), `just curator` / `just curator-install`.
+- **#996** — two supervised passes (Sonnet, production korg). Pass 1:
+  3 `depends_on` edges (1007→1006, 749→912, 749→748), each citing its
+  prose basis; 6 `⟦curator⟧` synopses; 0 collisions claimed; ambiguous
+  references dropped with reasons (precision over recall held — an
+  off-by-one proposal id and two stale 2026-07-31 references were
+  skipped, not guessed). All writes verified on the live board with
+  `origin: "kfdc-curator"`; format byte-compatible with the parser.
+  Pass 2 (the idempotence check): **zero edges written** — it re-verified
+  all three against current prose — and zero duplicate or rewritten
+  synopses; but it wrote 3 synopses on rows pass 1 had judged
+  below-the-bar (999, 819, 820 — the latter two genuinely useful,
+  surfacing already-mooted work). Mechanical idempotence held; the
+  judgment threshold wobbled. Answered with a **never-rephrase rule** in
+  the prompt: update only when the facts moved, never the phrasing.
+- **#997** — `src/lib/curator.ts` (parseSynopsis + deconfliction cards,
+  written test-first, 8 tests), board types grown
+  (`ProposalRow.synopsis`, `Board.proposal_edges`),
+  `Deconfliction.svelte` + `SensorNet.svelte` (concept CSS carried into
+  app.css), Fire Missions synopsis line.
+- **#998 (stretch)** — `.claude/skills/update-fdc/SKILL.md`: runs the
+  same `curator/prompt.md` interactively with per-write narration; the
+  skill defers to the prompt file, never forks it.
 
 ## Follow-ups
 
-(filled as they surface)
+- The curator's first pass found real stale references in proposal prose
+  (korg:821 citing proposals that have since shipped) — a future pass
+  vocabulary could flag those for humans rather than only skipping them.
+- Panel codes for Deconfliction/Sensor Net in the Net Log: separate
+  deliberate decision, deferred (WI #997's note).
+- korg #977 (transition log) and #990 (SPLASH state) remain the Net Log's
+  planned enrichments from 002.

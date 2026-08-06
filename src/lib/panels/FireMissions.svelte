@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { progress, type ProposalRow } from '$lib/board';
+	import { parseSynopsis } from '$lib/curator';
 
 	let { active }: { active: ProposalRow[] } = $props();
+
+	// The curator's current-state line for a mission, when one exists and says
+	// something (the write side skips synopses that would restate the summary).
+	function synopsisLine(row: ProposalRow): string | null {
+		if (!row.synopsis) return null;
+		return parseSynopsis(row.synopsis.body)?.line || null;
+	}
 
 	// Track segment states, three-part per korg #980: Ken-verified (closed) as
 	// green, work-complete-but-unverified as amber, remainder as unfilled.
@@ -29,6 +37,9 @@
 			</div>
 			<h3>{row.title}</h3>
 			<p>{row.summary}</p>
+			{#if synopsisLine(row)}
+				<p class="synopsis">⟦curator⟧ {synopsisLine(row)}</p>
+			{/if}
 			<div class="wi-track">
 				{#each segments(row) as state, i (i)}
 					<i class={state}></i>

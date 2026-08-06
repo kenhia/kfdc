@@ -13,11 +13,11 @@ human-authored content.
 ## What you write (the complete vocabulary — nothing else)
 
 1. **Sequencing edges** — `relate(left, right, "depends_on", origin:
-   "kfdc-curator")` where *left must land after right* ("Y depends_on X"
+"kfdc-curator")` where _left must land after right_ ("Y depends_on X"
    reads "Y after X"). Both ends must be live proposals (on the board's
    `active` or `queue`).
 2. **Collision edges** — `relate(a, b, "collides-with", origin:
-   "kfdc-curator")` when two live proposals touch the same contract,
+"kfdc-curator")` when two live proposals touch the same contract,
    file, or surface such that whichever lands second must fold into the
    first ("same contract", "folds with", "overlaps").
 3. **Synopsis comments** — one curator-owned comment per live proposal,
@@ -39,11 +39,11 @@ deconfliction:
 mined from: <synopsis sources>, observed <YYYY-MM-DD>
 ```
 
-- The synopsis line states what is happening *now* (progress, blockage,
+- The synopsis line states what is happening _now_ (progress, blockage,
   recent movement) — never a restatement of the proposal's `summary`. If
   the prose supports nothing beyond the summary, write no synopsis at all.
 - The `deconfliction:` section appears only when this proposal has mined
-  edges; each line's `korg:<id>` names the *other* proposal and matches a
+  edges; each line's `korg:<id>` names the _other_ proposal and matches a
   `depends_on`/`collides-with` edge you verified or wrote this pass.
 - Dates are the observation date (the board's `generated` date, YYYY-MM-DD)
   — never invent precision. `<source>` names where the claim lives, e.g.
@@ -56,7 +56,7 @@ mined from: <synopsis sources>, observed <YYYY-MM-DD>
    `proposal_edges` (what is already recorded — includes `origin`, so you
    can tell your prior writes from human ones).
 2. For each live proposal, `get_proposal` — mine `summary`, `notes`, and
-   comments for sequencing/collision claims about *other live proposals*:
+   comments for sequencing/collision claims about _other live proposals_:
    "after X lands", "blocked on X", "once X ships", "fold with X",
    "same contract as X", "whichever lands second". Resolve references to
    node ids; if a reference does not clearly resolve to a live proposal,
@@ -78,6 +78,11 @@ mined from: <synopsis sources>, observed <YYYY-MM-DD>
 - **Idempotence is the contract.** Re-running against an unchanged queue
   writes nothing. `relate` dedups exact re-writes, but do not lean on that:
   diff first, write second.
+- **Never rephrase.** When a row already has a marked synopsis and yours
+  would say the same thing in different words, keep the existing one
+  untouched — update only when the _facts_ moved (new progress, a new
+  edge, a claim went stale). Rephrasing is churn, and the Net Log will
+  show it.
 - **Every write needs a prose basis** you can cite in its `mined from`.
   No inferred-from-vibes edges; when unsure, leave it out and mention it
   in the report.
