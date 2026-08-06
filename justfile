@@ -113,4 +113,6 @@ harness:
     @test -f docs/design/kfdc-concept.html
     @test -x deploy/install.sh
     @test -f systemd/kfdc.service
+    @test -f .sprint-deploy
+    @for s in $(grep -vE '^[[:space:]]*(#|$)' .sprint-deploy); do test -f ".claude/skills/$s/SKILL.md" || { echo "harness: .sprint-deploy names '$s' but .claude/skills/$s/SKILL.md is missing" >&2; exit 1; }; done
     @echo "harness invariants OK"

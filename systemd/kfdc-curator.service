@@ -9,6 +9,12 @@ After=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=%h/src/tools/kfdc
+# A systemd *user* unit does not inherit a login shell's PATH, and the
+# manager's default omits ~/.local/bin — where `claude` lives. Without this
+# the timer dies at `exec claude` with status 127 while `bin/update-fdc` and
+# `just curator` both work, because those inherit an interactive PATH.
+# Declared before EnvironmentFile so a host could still override it in .env.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=-%h/src/tools/kfdc/.env
 ExecStart=%h/src/tools/kfdc/bin/update-fdc
 TimeoutStartSec=20min

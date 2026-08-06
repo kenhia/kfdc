@@ -96,7 +96,10 @@ direction of travel's first instance. Curator runs on kai (kmon timer).
 
 - [x] #995 Curator prompt in-repo (`curator/prompt.md`, the single source
       of truth) + `bin/update-fdc` (headless `claude -p`, korg-only tools)
-      + `kfdc-curator.timer` (daily 10:30 UTC).
+      + `kfdc-curator.timer` (daily 10:30 UTC). The *timer* was in fact dead
+      from here until sprint 006 (#1040): the unit set no PATH and a systemd
+      user unit inherits none, so `exec claude` exited 127 while both
+      hand-run paths kept working. Only kmon noticed.
 - [x] #996 Two supervised passes against production: 3 sequencing edges +
       9 synopses, all provenance-stamped; ambiguous references dropped
       with reasons. Re-run wrote zero edges and zero duplicate/changed
@@ -132,7 +135,9 @@ of each other; no "Phase 3 first".
       `~/.config/kfdc/kfdc.env`, so it no longer depends on the clone.
       kai's `:8100` serve entry is declared in k-homelab. Record:
       `sprints/005-deploy-from-store.md`; how it works:
-      `docs/deploying.md`.
+      `docs/deploying.md`. Sprint 006 (#1035) made shipping *invoke* it:
+      `.sprint-deploy` names the `deploy-board` skill, so sprint-ship
+      Phase 7 fires instead of skipping silently as it did here.
 - [ ] Production deploy: move kfdc hosting to **kubsdb** — unblocked by
       sprint 005, and now only a *placement* change: same artifact fetched
       on kubsdb (bootstrap recipe in `docs/deploying.md`), new serve entry

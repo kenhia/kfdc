@@ -66,8 +66,12 @@ the interim host; production moves to kubsdb in Phase 3. The plan onward is
   `~/.local/share/kfdc/current`, not the clone, with placement (PORT,
   ORIGIN) in `~/.config/kfdc/kfdc.env` — which is why moving to kubsdb
   touches no file here. `docs/deploying.md`; doctrine is k-homelab
-  `docs/deploying.md`. The curator is the one thing that still runs from
-  the clone on kai, and stays there.
+  `docs/deploying.md`. Shipping deploys automatically: `.sprint-deploy`
+  names the `deploy-board` skill, which sprint-ship's Phase 7 invokes after
+  the merge (sprint 006 — before that the deploy was silently skipped). The
+  curator is the one thing that still runs from the clone on kai, and stays
+  there — its unit needs an explicit `Environment=PATH=` because a systemd
+  *user* unit inherits no login PATH.
 - Design: `docs/design/kfdc-concept.html` is the approved concept mockup
   (self-contained, open in a browser); `docs/design.md` records the visual
   identity and panel vocabulary. The FDC metaphor (fire missions / on deck /

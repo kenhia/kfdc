@@ -24,6 +24,25 @@ just versions           # what the store holds, what this host has, what it runs
 hostname fails later as a confusing curl error instead of here as a
 sentence.
 
+## Shipping a sprint deploys it
+
+You do not normally type those commands. `.sprint-deploy` at the repo root
+names the `deploy-board` skill (`.claude/skills/deploy-board/SKILL.md`), and
+`/sprint-ship` Phase 7 invokes it after the merge and local cleanup — so
+what ships is published from merged `main`, and every store version's commit
+is an ancestor of `origin/main`.
+
+That declaration is the entire mechanism. Sprint 005 shipped and the deploy
+was run by hand, because an **absent `.sprint-deploy` makes Phase 7 skip
+silently** (korg #1035) — the phase existed and kfdc simply never declared
+itself. A `just harness` invariant now asserts the file exists and that every
+skill it names is present, so the declaration cannot rot into a silent skip
+again.
+
+The skill owns preflight, procedure, verification and rollback; Phase 7
+delegates to it wholly. Deploy by hand — a rollback, or a host bootstrap — by
+following the same skill.
+
 ## What gets published
 
 ```
@@ -128,6 +147,15 @@ The curator. `bin/update-fdc`, `kfdc-curator.timer` and `just curator` need
 the repo (`curator/prompt.md`) and a `claude` binary, and read the clone's
 own `.env`. That is deliberate and stays on kai when the board moves —
 kubsdb needs no agent tooling.
+
+Its unit carries an explicit `Environment=PATH=%h/.local/bin:...` and must
+keep it. A systemd **user** unit does not inherit a login shell's PATH, and
+the manager's default omits `~/.local/bin`, where `claude` lives — so
+without it the timer dies at `exec claude` with status 127 while
+`bin/update-fdc` and `just curator` both keep working, because those inherit
+an interactive PATH (korg #1040). That asymmetry is why it went unseen for a
+sprint: only kmon noticed. The unit is installed by `just curator-install`,
+by hand, on kai — a board deploy does not touch it.
 
 There is no "install from this checkout" mode. Building in place and
 restarting is exactly the habit the store exists to end.
