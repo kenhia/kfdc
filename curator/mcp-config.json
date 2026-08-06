@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "korg": {
+      "type": "http",
+      "url": "https://kubsdb.encke-wahoo.ts.net:5674/mcp"
+    }
+  }
+}

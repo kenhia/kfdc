@@ -1,0 +1,13 @@
+# kfdc curator timer — modest daily cadence, deliberately. kai runs UTC;
+# 10:30 UTC lands a fresh curation before kmon's 11:00 daily report and any
+# US-timezone morning board glance.
+[Unit]
+Description=kfdc curator daily timer
+
+[Timer]
+OnCalendar=*-*-* 10:30:00 UTC
+RandomizedDelaySec=5m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
