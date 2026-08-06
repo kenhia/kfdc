@@ -117,9 +117,10 @@ machinery overlaps, and its kfdc slice (proposal korg:1024, bundles to the
 store) already owns exactly that part. Phase 3's bullets are independent
 of each other; no "Phase 3 first".
 
-- [ ] Operations (programs) panel — **unblocked now**; two live programs
-      exist to render. (Commander's Call shipped early — sprint 001 took
-      the stretch.)
+- [ ] Operations (programs) panel — filed as proposal kfdc:1030 (#1029 +
+      QOL ride-alongs #990 SPLASH, #1027 arrow); sequenced before program
+      korg:1026 runs so its slices tick on the board live. (Commander's
+      Call shipped early — sprint 001 took the stretch.)
 - [ ] Ticker from korg events/reports — blocked on korg #977 (transition
       log).
 - [ ] Production deploy: move kfdc hosting to **kubsdb** — sequenced
