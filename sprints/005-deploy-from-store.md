@@ -105,12 +105,6 @@ go missing.
 
 ## Follow-ups
 
-- **`latest` does not exist yet.** Both published versions came from this
-  branch with `--no-latest`, and a branch commit vanishes at squash-merge.
-  **Ship step: after this merges, `just publish` from `main` and `just
-  deploy`** — that creates the pointer and puts kai on a version whose
-  commit is in `main`'s history. Until then `just deploy` with no argument
-  fails (loudly, naming the missing pointer).
 - **No `deploy-remote`.** Installing on another host means ssh-ing there and
   running the store bootstrap from `docs/deploying.md`. Deliberate: the
   Phase-3 kubsdb move is the first real need for it, and it should be
@@ -125,3 +119,33 @@ go missing.
 - The curator still runs from the clone on kai and always will — it needs
   `curator/prompt.md` and a `claude` binary. It stays on kai when the board
   moves.
+
+## Deployed 2026-08-06
+
+PR [#5](https://github.com/kenhia/kfdc/pull/5) squash-merged as `31d2033`,
+then the first real use of the thing this sprint built:
+
+```
+just publish   # from main, clean tree  ->  0.5.0-31d2033, latest -> 0.5.0-31d2033
+just deploy    # no argument, resolves latest
+```
+
+- **Artifact:** `artifacts/kfdc/0.5.0-31d2033/` (464 KB tarball). This is the
+  first version published from `main`, so it is the first one `latest` has
+  ever pointed at — the two branch versions were `--no-latest` by design, and
+  their commits no longer exist after the squash.
+- **Rollback target:** `just deploy 0.5.0-aa8f4fa` (the pre-merge branch
+  build, still in the store and still unpacked on kai). The real rollback
+  target from here on is the previous `main` version; there isn't one yet
+  because this is the first.
+- **Verified live**, beyond the installer's own health check: kai is running
+  `0.5.0-31d2033` (pid 743309, asserted against `/proc/<pid>/cwd`, not just a
+  200); `31d2033` is an ancestor of `origin/main`; the board renders over
+  `https://kai.encke-wahoo.ts.net:8100` with all seven panels present; and
+  `just versions` agrees across store, disk and process.
+
+The satisfying part: the board is now rendering *its own* slice as complete.
+`kfdc deploys from published bundles ✓ 1/1` sits in the Operations panel as
+program korg:1026's fourth chip — the panel sprint 004 landed early
+specifically so this program could be watched ticking rather than read about
+afterwards.
