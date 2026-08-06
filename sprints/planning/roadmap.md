@@ -111,13 +111,24 @@ direction of travel's first instance. Curator runs on kai (kmon timer).
 
 ## Phase 3: full board — switch over
 
-- [ ] Operations (programs) panel. (Commander's Call shipped early —
-      sprint 001 took the stretch.)
-- [ ] Ticker from korg events/reports.
-- [ ] Production deploy: move kfdc hosting to **kubsdb** alongside korg;
-      retire kai's interim unit + serve entry (recorded as k-homelab #988,
-      whose comment carries the fold-in-then-retire plan). kai:8100 stays
-      the dev host until then; kubsdb needs no agent tooling for this.
+Scoping decision (2026-08-06, vs the "Deploy from the store" program
+korg:1026): Phase 3 does NOT fold into that program — only the deploy
+machinery overlaps, and its kfdc slice (proposal korg:1024, bundles to the
+store) already owns exactly that part. Phase 3's bullets are independent
+of each other; no "Phase 3 first".
+
+- [ ] Operations (programs) panel — **unblocked now**; two live programs
+      exist to render. (Commander's Call shipped early — sprint 001 took
+      the stretch.)
+- [ ] Ticker from korg events/reports — blocked on korg #977 (transition
+      log).
+- [ ] Production deploy: move kfdc hosting to **kubsdb** — sequenced
+      AFTER proposal korg:1024 lands, riding the store mechanism it builds
+      (same artifact, fetched on kubsdb; new serve entry; retire kai's
+      unit + :8100 — k-homelab #988's comment carries the fold-then-retire
+      plan). Migrate the Net Log store (`~/.local/state/kfdc`) with it —
+      viewer history must survive the move. kubsdb needs no agent tooling;
+      the curator and transmit runner stay on kai.
 - [ ] Retire this roadmap into korg: file the remaining plan as a program,
       manage kfdc *in* kfdc.
 
