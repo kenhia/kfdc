@@ -45,11 +45,11 @@ what's blocked, what's waiting on Ken* across every project, reading `korg`
 (the system of record) — plus a headless **curator** agent pass that writes
 summaries and sequencing edges *back into korg* for the board to render.
 
-Status: **Phase 1 live** at `https://kai.encke-wahoo.ts.net:8100` — Fire
-Missions, On Deck, statline and Commander's Call render production korg
-(sprint 001). kai is the interim host; production moves to kubsdb in
-Phase 3. The plan onward is `sprints/planning/roadmap.md`. Read it before
-doing anything.
+Status: **Phase 2 live** at `https://kai.encke-wahoo.ts.net:8100` — Fire
+Missions, On Deck, statline, Commander's Call, Net Log, Deconfliction,
+Sensor Net and Operations render production korg (sprints 001–004). kai is
+the interim host; production moves to kubsdb in Phase 3. The plan onward is
+`sprints/planning/roadmap.md`. Read it before doing anything.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
   `sveltekit()` plugin in `vite.config.ts` — no `svelte.config.js`; that is
@@ -58,18 +58,30 @@ doing anything.
   `src/lib/board.ts` (three-part progress per korg #980, statline per D-3,
   ages against the board's `generated`); panels in `src/lib/panels/`.
   `just check` runs the real gates (prettier/eslint, svelte-check, build,
-  vitest + harness invariants); `just deploy` rebuilds + restarts
-  `kfdc.service` on kai.
+  vitest + harness invariants).
+- Deploy: **kfdc does not build in place** (sprint 005). `just publish`
+  puts a versioned bundle in the homelab package store; `just deploy
+  [version]` installs *that artifact* on the serving host and naming an
+  older version is the rollback. The service runs out of
+  `~/.local/share/kfdc/current`, not the clone, with placement (PORT,
+  ORIGIN) in `~/.config/kfdc/kfdc.env` — which is why moving to kubsdb
+  touches no file here. `docs/deploying.md`; doctrine is k-homelab
+  `docs/deploying.md`. The curator is the one thing that still runs from
+  the clone on kai, and stays there.
 - Design: `docs/design/kfdc-concept.html` is the approved concept mockup
   (self-contained, open in a browser); `docs/design.md` records the visual
   identity and panel vocabulary. The FDC metaphor (fire missions / on deck /
   deconfliction / commander's call) is deliberate — Ken is ex-11C. Keep the
   vocabulary; keep the density.
 - Architecture rule: **agents curate korg; the board renders korg.** The
-  curator (`claude -p` headless, future `bin/update-fdc`) writes typed
-  edges, report nodes and comments into korg — never a side file the board
-  reads. If a panel needs data korg can't hold, that's a korg work item,
-  not a workaround.
+  curator (sprint 003) writes typed edges and ⟦curator⟧-marked comments
+  into korg — never a side file the board reads. `curator/prompt.md` is
+  the single source of truth; `bin/update-fdc` runs it headless (daily
+  timer `kfdc-curator.timer` on kai, `just curator` by hand) and the
+  `/update-fdc` skill runs the same file interactively — never fork the
+  prompt. The read side is `src/lib/curator.ts` (format is a contract:
+  both sides move together). If a panel needs data korg can't hold,
+  that's a korg work item, not a workaround.
 - korg's production API runs on kubsdb:5674; kfdc reads it via REST through
   SvelteKit server routes (token in `.env`, never in the client).
 - Read first: `sprints/planning/roadmap.md`, `docs/design.md`,

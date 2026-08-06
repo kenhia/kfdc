@@ -124,13 +124,23 @@ of each other; no "Phase 3 first".
       Call shipped early — sprint 001 took the stretch.)
 - [ ] Ticker from korg events/reports — blocked on korg #977 (transition
       log).
-- [ ] Production deploy: move kfdc hosting to **kubsdb** — sequenced
-      AFTER proposal korg:1024 lands, riding the store mechanism it builds
-      (same artifact, fetched on kubsdb; new serve entry; retire kai's
-      unit + :8100 — k-homelab #988's comment carries the fold-then-retire
-      plan). Migrate the Net Log store (`~/.local/state/kfdc`) with it —
-      viewer history must survive the move. kubsdb needs no agent tooling;
-      the curator and transmit runner stay on kai.
+- [x] Deploy from the store — SHIPPED 2026-08-06 as sprint 005 (proposal
+      korg:1024, #1014), slice 4 of program korg:1026. `just publish` →
+      `artifacts/kfdc/<version>/`, `just deploy [version]` installs that
+      artifact and rolling back is naming an older one. The service runs
+      out of `~/.local/share/kfdc/current` with placement in
+      `~/.config/kfdc/kfdc.env`, so it no longer depends on the clone.
+      kai's `:8100` serve entry is declared in k-homelab. Record:
+      `sprints/005-deploy-from-store.md`; how it works:
+      `docs/deploying.md`.
+- [ ] Production deploy: move kfdc hosting to **kubsdb** — unblocked by
+      sprint 005, and now only a *placement* change: same artifact fetched
+      on kubsdb (bootstrap recipe in `docs/deploying.md`), new serve entry
+      declared for that host, retire kai's unit + :8100 (k-homelab #988's
+      comment carries the fold-then-retire plan). Migrate the Net Log store
+      (`~/.local/state/kfdc`) with it — viewer history must survive the
+      move. kubsdb needs no agent tooling; the curator and transmit runner
+      stay on kai.
 - [ ] Retire this roadmap into korg: file the remaining plan as a program,
       manage kfdc *in* kfdc.
 

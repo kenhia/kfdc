@@ -46,9 +46,9 @@ what's blocked, what's waiting on Ken* across every project, reading `korg`
 summaries and sequencing edges *back into korg* for the board to render.
 
 Status: **Phase 2 live** at `https://kai.encke-wahoo.ts.net:8100` — Fire
-Missions, On Deck, statline, Commander's Call, Net Log, Deconfliction and
-Sensor Net render production korg (sprints 001–003). kai is the interim
-host; production moves to kubsdb in Phase 3. The plan onward is
+Missions, On Deck, statline, Commander's Call, Net Log, Deconfliction,
+Sensor Net and Operations render production korg (sprints 001–004). kai is
+the interim host; production moves to kubsdb in Phase 3. The plan onward is
 `sprints/planning/roadmap.md`. Read it before doing anything.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
@@ -58,8 +58,16 @@ host; production moves to kubsdb in Phase 3. The plan onward is
   `src/lib/board.ts` (three-part progress per korg #980, statline per D-3,
   ages against the board's `generated`); panels in `src/lib/panels/`.
   `just check` runs the real gates (prettier/eslint, svelte-check, build,
-  vitest + harness invariants); `just deploy` rebuilds + restarts
-  `kfdc.service` on kai.
+  vitest + harness invariants).
+- Deploy: **kfdc does not build in place** (sprint 005). `just publish`
+  puts a versioned bundle in the homelab package store; `just deploy
+  [version]` installs *that artifact* on the serving host and naming an
+  older version is the rollback. The service runs out of
+  `~/.local/share/kfdc/current`, not the clone, with placement (PORT,
+  ORIGIN) in `~/.config/kfdc/kfdc.env` — which is why moving to kubsdb
+  touches no file here. `docs/deploying.md`; doctrine is k-homelab
+  `docs/deploying.md`. The curator is the one thing that still runs from
+  the clone on kai, and stays there.
 - Design: `docs/design/kfdc-concept.html` is the approved concept mockup
   (self-contained, open in a browser); `docs/design.md` records the visual
   identity and panel vocabulary. The FDC metaphor (fire missions / on deck /
