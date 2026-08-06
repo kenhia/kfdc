@@ -22,12 +22,19 @@
 		<span class="sub">collisions &amp; sequencing</span>
 	</div>
 
-	{#each cards as c (`${c.kind}:${c.left.node_id}:${c.right.node_id}`)}
+	<!-- Chips read left-to-right in execution order (kfdc #1027): the arrow
+	     points with time and needs no sequence words; the ⟂ form stays
+	     symmetric because collisions are unordered. -->
+	{#each cards as c (`${c.kind}:${c.chips[0].node_id}:${c.chips[1].node_id}`)}
 		<div class="conflict" class:seq={c.kind === 'after'}>
 			<div class="row1">
-				<span class="node-chip" title={c.left.title}>{c.left.project} {c.left.node_id}</span>
-				<span class="vs">{c.kind === 'collides-with' ? '⟂ SAME CONTRACT' : '⟵ AFTER'}</span>
-				<span class="node-chip" title={c.right.title}>{c.right.project} {c.right.node_id}</span>
+				<span class="node-chip" title={c.chips[0].title}
+					>{c.chips[0].project} {c.chips[0].node_id}</span
+				>
+				<span class="vs">{c.kind === 'collides-with' ? '⟂ SAME CONTRACT ⟂' : '→'}</span>
+				<span class="node-chip" title={c.chips[1].title}
+					>{c.chips[1].project} {c.chips[1].node_id}</span
+				>
 			</div>
 			{#if c.why}<p>{c.why}</p>{/if}
 			<span class="src">{src(c)}</span>

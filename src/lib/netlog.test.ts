@@ -80,7 +80,30 @@ describe('digestBoard', () => {
 						awaiting_since: '2026-08-01T00:00:00Z'
 					}
 				],
-				programs: [{ node_id: 979, title: 'Phase 0', summary: '', status: 'active', slices: [] }]
+				programs: [
+					{
+						node_id: 979,
+						title: 'Phase 0',
+						aim: '',
+						status: 'active',
+						span: ['korg'],
+						slice_count: 1,
+						slices: [
+							{
+								node_id: 973,
+								title: 'Board rollup read',
+								project: 'korg',
+								status: 'done',
+								rank: '0',
+								open: 0,
+								resolved: 0,
+								done: 0,
+								closed: 1,
+								covered_count: 1
+							}
+						]
+					}
+				]
 			})
 		);
 		expect(d).toEqual(
@@ -96,7 +119,13 @@ describe('digestBoard', () => {
 						note: 'decide, then delete'
 					}
 				},
-				op: { 979: { title: 'Phase 0', status: 'active' } }
+				op: {
+					979: {
+						title: 'Phase 0',
+						status: 'active',
+						slices: { 973: { title: 'Board rollup read', project: 'korg', status: 'done' } }
+					}
+				}
 			})
 		);
 	});
@@ -170,6 +199,44 @@ describe('diffDigests', () => {
 		]);
 		// v1 vocabulary: appearance alone is not traffic.
 		expect(diffDigests(digest(), before)).toEqual([]);
+	});
+
+	// #1029: a slice ticking IS the program moving.
+	it('reports a slice status transition as OP traffic', () => {
+		const slice = (status: string) => ({
+			title: 'korg deploys via the registry',
+			project: 'korg',
+			status
+		});
+		const op = (status: string) => ({
+			1026: { title: 'Deploy from the store', status: 'active', slices: { 1021: slice(status) } }
+		});
+		const out = diffDigests(digest({ op: op('proposed') }), digest({ op: op('active') }));
+		expect(out.map(formatLine)).toEqual([
+			'OP: slice proposed→active korg 1021 - korg deploys via the registry'
+		]);
+		// A slice is a proposal — the line deep-links like one.
+		expect(lineHref(out[0], 'https://korg.example')).toBe('https://korg.example/planning');
+	});
+
+	it('is silent when a pre-slice digest is the baseline, and on slice appearance', () => {
+		const withSlice = digest({
+			op: {
+				1026: {
+					title: 'D',
+					status: 'active',
+					slices: { 1021: { title: 't', project: 'korg', status: 'active' } }
+				}
+			}
+		});
+		// The digest on disk predates #1029: no slices key at all.
+		expect(
+			diffDigests(digest({ op: { 1026: { title: 'D', status: 'active' } } }), withSlice)
+		).toEqual([]);
+		// Appearance alone is not traffic, matching the program rule.
+		expect(
+			diffDigests(digest({ op: { 1026: { title: 'D', status: 'active', slices: {} } } }), withSlice)
+		).toEqual([]);
 	});
 
 	it('stamps every line with the observing digest generation time', () => {

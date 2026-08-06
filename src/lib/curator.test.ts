@@ -131,8 +131,20 @@ describe('deconfliction', () => {
 		const cards = deconfliction(b);
 		expect(cards).toHaveLength(1);
 		expect(cards[0].kind).toBe('after');
-		expect(cards[0].left).toEqual({ node_id: 1, title: 'one', project: 'korg' });
-		expect(cards[0].right).toEqual({ node_id: 2, title: 'two', project: 'kfdc' });
+		// #1027: chips read left-to-right in execution order — 1 depends_on 2,
+		// so the prerequisite (2) renders first and the arrow points with time.
+		expect(cards[0].chips).toEqual([
+			{ node_id: 2, title: 'two', project: 'kfdc' },
+			{ node_id: 1, title: 'one', project: 'korg' }
+		]);
+	});
+
+	it('keeps collision chips in edge order — collisions are unordered', () => {
+		const b = board({
+			active: [row({ node_id: 1, title: 'one' }), row({ node_id: 2, title: 'two' })],
+			proposal_edges: [edge({ left: 1, right: 2, label: 'collides-with', directed: false })]
+		});
+		expect(deconfliction(b)[0].chips.map((c) => c.node_id)).toEqual([1, 2]);
 	});
 
 	it('attaches prose and provenance from either endpoint synopsis', () => {

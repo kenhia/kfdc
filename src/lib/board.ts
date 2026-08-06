@@ -67,19 +67,31 @@ export interface ReportRow {
 	updated: string;
 }
 
+// One proposal covered by a program, in rank order, carrying the same four
+// status counts as a ProposalRow so #980's three-part progress derives the
+// same way (korg sprint 045's D-5 — no extra read needed).
 export interface ProgramSlice {
 	node_id: number;
 	title: string;
 	project: string;
 	status: string;
-	position: number;
+	rank: string;
+	open: number;
+	resolved: number;
+	done: number;
+	closed: number;
+	covered_count: number;
 }
 
 export interface ProgramRow {
 	node_id: number;
 	title: string;
-	summary: string;
+	// The one-line intent; korg's field is `aim`, not `summary`.
+	aim: string;
 	status: string;
+	// Projects the program spans — derived by korg from the slices.
+	span: string[];
+	slice_count: number;
 	slices: ProgramSlice[];
 }
 
@@ -110,12 +122,32 @@ export function statline(b: Board) {
 
 // Three-part progress, semantics pinned on korg #980:
 // work-complete (resolved+done+closed) / Ken-verified (closed) / total.
-export function progress(r: ProposalRow) {
+// Takes anything carrying the four counts — a proposal row or a program slice.
+export function progress(r: {
+	resolved: number;
+	done: number;
+	closed: number;
+	covered_count: number;
+}) {
 	return {
 		complete: r.resolved + r.done + r.closed,
 		verified: r.closed,
 		total: r.covered_count
 	};
+}
+
+// SPLASH (kfdc #990, 11C semantics): rounds complete, watch for impact — an
+// active mission whose rollup reached work-complete == total. Sprint-ship is
+// imminent and Ken's verification is the next event.
+export function splashing(r: ProposalRow): boolean {
+	const p = progress(r);
+	return p.total > 0 && p.complete >= p.total;
+}
+
+// Splashing missions sort to the top of Fire Missions; otherwise korg's order
+// stands (Array.sort is stable).
+export function fireMissionOrder(active: ProposalRow[]): ProposalRow[] {
+	return [...active].sort((a, b) => Number(splashing(b)) - Number(splashing(a)));
 }
 
 // Ages are computed against the board's `generated` (Postgres's clock, the

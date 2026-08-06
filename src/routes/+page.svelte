@@ -5,6 +5,7 @@
 	import FireMissions from '$lib/panels/FireMissions.svelte';
 	import NetLog from '$lib/panels/NetLog.svelte';
 	import OnDeck from '$lib/panels/OnDeck.svelte';
+	import Operations from '$lib/panels/Operations.svelte';
 	import SensorNet from '$lib/panels/SensorNet.svelte';
 
 	let { data } = $props();
@@ -39,6 +40,8 @@
 		<Deconfliction {board} />
 	</div>
 	<div class="col">
+		<!-- Operations holds the concept's second column; On Deck rides below. -->
+		<Operations programs={board.programs} omitted={board.programs_omitted} />
 		<OnDeck queue={board.queue} omitted={board.proposals_omitted} depth={board.depth} />
 	</div>
 	<div class="col">

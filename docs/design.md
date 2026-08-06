@@ -34,8 +34,14 @@ is a deliberate commitment, not an omission.
 | `--amber` | `#e2a63d` | active / firing / attention |
 | `--red` | `#e0603f` | blocked / risk / awaiting-Ken |
 | `--green` | `#97ba6b` | done / clear / healthy |
+| `--splash` | `#b6f26b` | fire mission at work-complete — watch for impact |
 | `--cyan` | `#8fb5ba` | project chips / queued info |
 
 Semantic colors (red/green/amber lights) are reserved for state; `--cyan`
 identifies projects everywhere. Panel headers: mono, uppercase,
 letter-spaced, underlined by `--line-soft`.
+
+`--splash` (kfdc #990) is deliberately brighter than `--green`: the
+done-token stays muted, but splash is the moment Ken should be watching —
+rounds complete, verification is the next event. Contrast on `--ground` is
+~13.7:1 (the badge sets ground-colored text on a splash field, same ratio).
