@@ -1,8 +1,12 @@
 <script lang="ts">
-	import { progress, type ProposalRow } from '$lib/board';
+	import { fireMissionOrder, progress, splashing, type ProposalRow } from '$lib/board';
 	import { parseSynopsis } from '$lib/curator';
 
 	let { active }: { active: ProposalRow[] } = $props();
+
+	// Splashing missions (#990) surface to the top — rounds are complete and
+	// Ken should be watching for impact.
+	const ordered = $derived(fireMissionOrder(active));
 
 	// The curator's current-state line for a mission, when one exists and says
 	// something (the write side skips synopses that would restate the summary).
@@ -27,13 +31,18 @@
 		<span class="sub">active sprints</span>
 	</div>
 
-	{#each active as row (row.node_id)}
+	{#each ordered as row (row.node_id)}
 		{@const p = progress(row)}
-		<div class="mission-card">
+		{@const splash = splashing(row)}
+		<div class="mission-card" class:splash>
 			<div class="row1">
 				<span class="proj">{row.project}</span>
 				<span class="id">korg:{row.node_id}</span>
-				<span class="status active">firing</span>
+				{#if splash}
+					<span class="status splash">splash</span>
+				{:else}
+					<span class="status active">firing</span>
+				{/if}
 			</div>
 			<h3>{row.title}</h3>
 			<p>{row.summary}</p>

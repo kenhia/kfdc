@@ -15,6 +15,7 @@
 	--amber-dim: #8a6a2f;
 	--red: #e0603f;
 	--green: #97ba6b;
+	--splash: #b6f26b;
 	--cyan: #8fb5ba;
 	--mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 	--sans: system-ui, 'Segoe UI', sans-serif;
@@ -161,6 +162,23 @@ section.panel {
 	background: var(--amber);
 	font-weight: 700;
 }
+/* SPLASH (#990): rounds complete, watch for impact — deliberately brighter
+   than the muted done-green so it pops against the dark ground. */
+.status.splash {
+	color: var(--ground);
+	background: var(--splash);
+	font-weight: 700;
+}
+.status.holding {
+	color: var(--ground);
+	background: var(--red);
+	font-weight: 700;
+}
+.status.done {
+	color: var(--ground);
+	background: var(--green);
+	font-weight: 700;
+}
 
 /* ---------- fire missions ---------- */
 .mission-card {
@@ -169,6 +187,11 @@ section.panel {
 	background: var(--panel-2);
 	padding: 10px 12px 11px;
 	margin: 0 12px 10px;
+}
+/* The amber firing accents shift to splash when the rollup completes (#990). */
+.mission-card.splash {
+	border-left-color: var(--splash);
+	background: color-mix(in oklab, var(--splash) 7%, var(--panel-2));
 }
 .mission-card .row1 {
 	display: flex;
@@ -402,6 +425,109 @@ td.qtitle {
 	font-size: 12px;
 	color: var(--muted);
 	margin: 0;
+}
+
+/* ---------- operations (sprint 004, concept CSS) — borders gone solid:
+   the concept's dashed .op meant "proposed node type"; programs are live
+   data now, and live data gets solid (docs/design.md) ---------- */
+.op {
+	margin: 0 12px 12px;
+	padding: 9px 11px 11px;
+	border: 1px solid color-mix(in oklab, var(--amber) 30%, var(--line));
+	background: color-mix(in oklab, var(--amber) 4%, var(--panel));
+}
+/* Holding is a decision waiting on Ken — red, like Commander's Call. */
+.op.holding {
+	border-color: color-mix(in oklab, var(--red) 30%, var(--line));
+	background: color-mix(in oklab, var(--red) 4%, var(--panel));
+}
+.op.op-done {
+	border-color: var(--line);
+	background: var(--panel-2);
+}
+.op .row1 {
+	display: flex;
+	align-items: baseline;
+	gap: 9px;
+	flex-wrap: wrap;
+	margin-bottom: 3px;
+}
+.op h3 {
+	font-family: var(--mono);
+	font-size: 12.5px;
+	letter-spacing: 0.08em;
+	margin: 0;
+}
+.op .span-chips {
+	display: inline-flex;
+	gap: 5px;
+	flex-wrap: wrap;
+	margin-left: auto;
+}
+.op .aim {
+	font-size: 12px;
+	color: var(--muted);
+	margin: 0 0 9px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.slices {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	row-gap: 6px;
+}
+.slice {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	border: 1px solid var(--line);
+	background: var(--panel);
+	padding: 4px 8px;
+	font-size: 11.5px;
+	white-space: nowrap;
+}
+.slice.s-done {
+	border-color: color-mix(in oklab, var(--green) 40%, transparent);
+}
+.slice.s-done .slice-t {
+	color: var(--muted);
+}
+.slice.s-now {
+	border-color: var(--amber);
+}
+.slice .mark {
+	font-family: var(--mono);
+	font-size: 10px;
+}
+.slice.s-done .mark {
+	color: var(--green);
+}
+.slice.s-now .mark {
+	color: var(--amber);
+}
+.slice.s-next .mark {
+	color: var(--faint);
+}
+.slice .slice-t {
+	max-width: 15em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.slice .s-cnt {
+	font-family: var(--mono);
+	font-size: 10px;
+	color: var(--faint);
+	font-variant-numeric: tabular-nums;
+}
+.slice .s-cnt .ver {
+	color: var(--green);
+}
+.arrow {
+	font-family: var(--mono);
+	color: var(--faint);
+	padding: 0 7px;
 }
 
 /* ---------- deconfliction (sprint 003, concept CSS) ---------- */

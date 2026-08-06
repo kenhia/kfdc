@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { formatAge, progress, statline, type Board, type ProposalRow } from './board';
+import {
+	fireMissionOrder,
+	formatAge,
+	progress,
+	splashing,
+	statline,
+	type Board,
+	type ProposalRow
+} from './board';
 
 const row = (over: Partial<ProposalRow> = {}): ProposalRow => ({
 	node_id: 1,
@@ -75,6 +83,42 @@ describe('progress', () => {
 
 	it('is all-zero-complete on a fresh proposal', () => {
 		expect(progress(row())).toEqual({ complete: 0, verified: 0, total: 4 });
+	});
+
+	// #1029: a program slice carries the same four counts — one derivation,
+	// not a fourth progress variant.
+	it('derives the same three parts from a program slice', () => {
+		expect(progress({ resolved: 0, done: 0, closed: 1, covered_count: 1 })).toEqual({
+			complete: 1,
+			verified: 1,
+			total: 1
+		});
+	});
+});
+
+describe('splashing', () => {
+	// #990: rounds complete, watch for impact — work-complete == total > 0.
+	it('splashes exactly at work-complete == total, regardless of verification', () => {
+		expect(splashing(row({ open: 0, resolved: 2, done: 1, closed: 1 }))).toBe(true);
+		expect(splashing(row({ open: 1, resolved: 2, done: 0, closed: 1 }))).toBe(false);
+	});
+
+	it('never splashes an empty mission', () => {
+		expect(splashing(row({ open: 0, covered_count: 0 }))).toBe(false);
+	});
+});
+
+describe('fireMissionOrder', () => {
+	it('sorts splashing missions to the top and otherwise preserves order', () => {
+		const missions = [
+			row({ node_id: 1 }),
+			row({ node_id: 2, open: 0, resolved: 4 }),
+			row({ node_id: 3 }),
+			row({ node_id: 4, open: 0, resolved: 2, done: 2 })
+		];
+		expect(fireMissionOrder(missions).map((r) => r.node_id)).toEqual([2, 4, 1, 3]);
+		// The input order itself is korg's — never mutated in place.
+		expect(missions.map((r) => r.node_id)).toEqual([1, 2, 3, 4]);
 	});
 });
 

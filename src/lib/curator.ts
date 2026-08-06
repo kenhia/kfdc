@@ -50,10 +50,18 @@ export function parseSynopsis(body: string): ParsedSynopsis | null {
 	return parsed;
 }
 
+export interface NodeChip {
+	node_id: number;
+	title: string;
+	project: string;
+}
+
 export interface ConflictCard {
 	kind: 'after' | 'collides-with';
-	left: { node_id: number; title: string; project: string };
-	right: { node_id: number; title: string; project: string };
+	// In render order (kfdc #1027): reading order IS execution order. A
+	// depends_on edge puts the prerequisite (the edge's right endpoint) first
+	// and the dependent second; collisions are unordered and keep edge order.
+	chips: [NodeChip, NodeChip];
 	why: string | null;
 	minedFrom: string | null;
 	origin: string | null;
@@ -97,8 +105,7 @@ export function deconfliction(b: Board): ConflictCard[] {
 			const line = prose(e, kind);
 			return {
 				kind,
-				left: chip(e.left),
-				right: chip(e.right),
+				chips: kind === 'after' ? [chip(e.right), chip(e.left)] : [chip(e.left), chip(e.right)],
 				why: line?.why ?? null,
 				minedFrom: line?.minedFrom ?? null,
 				origin: e.origin,

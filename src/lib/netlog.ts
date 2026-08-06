@@ -21,7 +21,17 @@ export interface Digest {
 			note: string | null;
 		}
 	>;
-	op: Record<string, { title: string; status: string }>;
+	// `slices` is absent on digests written before slice transitions entered
+	// the vocabulary (kfdc #1029) — the diff reads absence as "no information",
+	// never as "the program had no slices".
+	op: Record<
+		string,
+		{
+			title: string;
+			status: string;
+			slices?: Record<string, { title: string; project: string; status: string }>;
+		}
+	>;
 	// proposals_omitted.done — lets an FM departure be read as a ship.
 	done: number;
 }
@@ -56,7 +66,12 @@ export function digestBoard(b: Board): Digest {
 			note: r.awaiting_note
 		};
 	const op: Digest['op'] = {};
-	for (const r of b.programs) op[r.node_id] = { title: r.title, status: r.status };
+	for (const r of b.programs) {
+		const slices: NonNullable<Digest['op'][string]['slices']> = {};
+		for (const s of r.slices)
+			slices[s.node_id] = { title: s.title, project: s.project, status: s.status };
+		op[r.node_id] = { title: r.title, status: r.status, slices };
+	}
 	return { v: 1, generated: b.generated, fm, od, cc, op, done: b.proposals_omitted.done };
 }
 
@@ -68,7 +83,9 @@ export function fragment(title: string, max = 60): string {
 // Significant-change vocabulary v1 (kfdc #992) — explicit and small:
 // FM firing / splash (work-complete) / complete-or-out; CC call made /
 // cleared; OD on deck / off deck (rank shuffles are silent by construction —
-// rank is not in the digest); OP status changed. Expand only deliberately.
+// rank is not in the digest); OP program status changed, slice status changed
+// (kfdc #1029 — a slice ticking IS the program moving; appearance alone stays
+// silent). Expand only deliberately.
 export function diffDigests(prev: Digest, next: Digest): NetLogLine[] {
 	const at = next.generated;
 	const lines: NetLogLine[] = [];
@@ -151,6 +168,25 @@ export function diffDigests(prev: Digest, next: Digest): NetLogLine[] {
 				kind: 'program',
 				text: fragment(e.title)
 			});
+		}
+		// Slice transitions (kfdc #1029). Both sides must carry slices — a
+		// pre-#1029 digest has none to compare against, and diffing against
+		// absence would misread the upgrade as every slice appearing.
+		if (!was?.slices || !e.slices) continue;
+		for (const [sid, s] of Object.entries(e.slices)) {
+			const sWas = was.slices[sid];
+			if (sWas && sWas.status !== s.status) {
+				lines.push({
+					observed: at,
+					panel: 'OP',
+					verb: `slice ${sWas.status}→${s.status}`,
+					project: s.project,
+					node_id: Number(sid),
+					wi_number: null,
+					kind: 'sprint_proposal',
+					text: fragment(s.title)
+				});
+			}
 		}
 	}
 
