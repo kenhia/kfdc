@@ -58,7 +58,11 @@ the interim host; production moves to kubsdb in Phase 3. The plan onward is
   `src/lib/board.ts` (three-part progress per korg #980, statline per D-3,
   ages against the board's `generated`); panels in `src/lib/panels/`.
   `just check` runs the real gates (prettier/eslint, svelte-check, build,
-  vitest + harness invariants).
+  vitest + harness invariants). vitest has two projects (sprint 007):
+  `server` (node) for everything, `client` (jsdom +
+  `@testing-library/svelte`) for `*.svelte.test.ts` component tests — they
+  partition on that one pattern, so a component test must carry the
+  `.svelte.test.ts` suffix or it runs in the wrong environment.
 - Deploy: **kfdc does not build in place** (sprint 005). `just publish`
   puts a versioned bundle in the homelab package store; `just deploy
   [version]` installs *that artifact* on the serving host and naming an

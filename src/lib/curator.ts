@@ -66,6 +66,20 @@ export interface ConflictCard {
 	minedFrom: string | null;
 	origin: string | null;
 	created: string;
+	// korg #978's `sequenced_by`: the live program already drawing this
+	// dependency as an ordered sequence, or null. Never set on a collision —
+	// a collision is unordered, so no program order can express it.
+	sequencedBy: number | null;
+}
+
+export interface DeconflictionView {
+	// What the panel draws.
+	cards: ConflictCard[];
+	// What it sets aside: dependencies a live program's ordered slices already
+	// express (kfdc #1070 — "the same data twice, in Operations and
+	// Deconfliction"). Reported as a count rather than dropped silently, or
+	// the panel's "fires deconflicted" would be doing the hiding.
+	sequenced: ConflictCard[];
 }
 
 // The Deconfliction panel: depends_on / collides-with edges whose both ends
@@ -73,8 +87,17 @@ export interface ConflictCard {
 // carries a matching deconfliction line (edge `depends_on` ↔ line `after`).
 // Collisions sort before sequencing — they demand a decision, not just
 // ordering — newest first within each.
-export function deconfliction(b: Board): ConflictCard[] {
+export function deconfliction(b: Board): DeconflictionView {
 	const rows = new Map([...b.active, ...b.queue].map((r) => [r.node_id, r] as const));
+	// korg is the only side that can say a dependency is program-ordered, so
+	// it labels it and kfdc filters on the label (korg #978). Keyed
+	// dependent→blocker, which is a depends_on edge's left→right; `covered`
+	// entries hang off a work item and have no proposal edge to match.
+	const sequencedBy = new Map(
+		b.blocked
+			.filter((x) => x.via === 'proposal' && x.sequenced_by !== null)
+			.map((x) => [`${x.dependent}:${x.blocker}`, x.sequenced_by!] as const)
+	);
 	const chip = (id: number) => {
 		const r = rows.get(id)!;
 		return { node_id: r.node_id, title: r.title, project: r.project };
@@ -93,7 +116,7 @@ export function deconfliction(b: Board): ConflictCard[] {
 		return null;
 	};
 
-	return b.proposal_edges
+	const all = b.proposal_edges
 		.filter(
 			(e) =>
 				(e.label === 'depends_on' || e.label === 'collides-with') &&
@@ -109,7 +132,8 @@ export function deconfliction(b: Board): ConflictCard[] {
 				why: line?.why ?? null,
 				minedFrom: line?.minedFrom ?? null,
 				origin: e.origin,
-				created: e.created
+				created: e.created,
+				sequencedBy: kind === 'after' ? (sequencedBy.get(`${e.left}:${e.right}`) ?? null) : null
 			};
 		})
 		.sort(
@@ -117,4 +141,9 @@ export function deconfliction(b: Board): ConflictCard[] {
 				Number(a.kind === 'after') - Number(b.kind === 'after') ||
 				b.created.localeCompare(a.created)
 		);
+
+	return {
+		cards: all.filter((c) => c.sequencedBy === null),
+		sequenced: all.filter((c) => c.sequencedBy !== null)
+	};
 }

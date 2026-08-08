@@ -125,8 +125,21 @@ of each other; no "Phase 3 first".
       arrow), before program korg:1026 runs so its slices tick on the
       board live. Record: `sprints/004-operations-panel.md`. (Commander's
       Call shipped early — sprint 001 took the stretch.)
-- [ ] Ticker from korg events/reports — blocked on korg #977 (transition
-      log).
+- [ ] Ticker from korg events/reports — **unblocked 2026-08-08**: korg #977
+      shipped (korg sprint 053), and `/api/board` now carries `events` (the
+      newest 20 status transitions). Untyped and unrendered in kfdc. Note the
+      log starts at korg migration 0026 and was not backfilled, so empty means
+      "nothing has moved since the migration", not "nothing ever moved" — a
+      panel that cannot say the difference should render nothing.
+- [x] Program-ordered work renders once — SHIPPED 2026-08-08 as sprint 007
+      (proposal korg:1077, #1064 + #1070 + #1102), slice 2 of program
+      korg:1078. On Deck collapses a program's queue rows into one (`n of m
+      slices`, expandable); Deconfliction sets aside dependencies korg reports
+      as `sequenced_by` a live program, since Operations already draws that
+      order. #1102 rode along: the roll-up's disclosure is the board's first
+      client state, so `vite.config.ts` gained a `client` vitest project
+      (jsdom + `@testing-library/svelte`) beside `server`. Record:
+      `sprints/007-program-rollup.md`.
 - [x] Deploy from the store — SHIPPED 2026-08-06 as sprint 005 (proposal
       korg:1024, #1014), slice 4 of program korg:1026. `just publish` →
       `artifacts/kfdc/<version>/`, `just deploy [version]` installs that
