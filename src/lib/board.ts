@@ -95,12 +95,37 @@ export interface ProgramRow {
 	slices: ProgramSlice[];
 }
 
+// One unmet `depends_on` holding up a live row (korg #978). Deterministic —
+// unfinished is derived per-kind from korg's vocabulary, one hop, archived
+// blockers excluded.
+export interface BlockedRow {
+	// The active/queue row that cannot proceed.
+	proposal: number;
+	// `proposal` when the row itself carries the edge, `covered` when one of
+	// its covered work items does.
+	via: 'proposal' | 'covered';
+	// The node carrying the edge — the row itself, or a covered work item.
+	dependent: number;
+	dependent_wi_number: number | null;
+	blocker: number;
+	blocker_kind: string;
+	blocker_wi_number: number | null;
+	blocker_title: string;
+	blocker_project: string | null;
+	blocker_status: string;
+	// The live program whose ordered slices already express this dependency,
+	// or null. kfdc #1070's answer: Operations already draws that as sequence,
+	// so Deconfliction does not draw it a second time.
+	sequenced_by: number | null;
+}
+
 export interface Board {
 	generated: string;
 	active: ProposalRow[];
 	queue: ProposalRow[];
 	proposals_omitted: { done: number; declined: number; archived: number };
 	proposal_edges: ProposalEdge[];
+	blocked: BlockedRow[];
 	programs: ProgramRow[];
 	programs_omitted: { done: number; archived: number };
 	awaiting: AwaitingRow[];
@@ -148,6 +173,73 @@ export function splashing(r: ProposalRow): boolean {
 // stands (Array.sort is stable).
 export function fireMissionOrder(active: ProposalRow[]): ProposalRow[] {
 	return [...active].sort((a, b) => Number(splashing(b)) - Number(splashing(a)));
+}
+
+// A proposal is finished when korg would stop counting it as remaining work.
+// Mirrors korg's terminal set for the kind — `closed` is a work-item status
+// and has no proposal spelling.
+const PROPOSAL_FINISHED = new Set(['done', 'declined']);
+
+// A program collapses into one On Deck row once it contributes this many
+// queue rows (kfdc #1064). Below it there is no row inflation to fix, and the
+// slice's own title says more than the program's does.
+const ROLLUP_MIN = 2;
+
+// On Deck renders a queue row per proposal, except where a program already
+// declares the order: those slices collapse into one row naming the program
+// (kfdc #1064 — "up to 9 rows w/o really adding more information for me").
+export type OnDeckRow =
+	| { kind: 'proposal'; row: ProposalRow }
+	| {
+			kind: 'program';
+			program: ProgramRow;
+			// Borrowed from the first collapsed slice: the roll-up sits exactly
+			// where korg put that slice, so no rank string is parsed or invented
+			// and the panel cannot disagree with korg's order.
+			rank: string;
+			pinned: boolean;
+			// The collapsed queue rows, in korg's order — what expanding reveals.
+			slices: ProposalRow[];
+			// Slices still to close, over the program's whole length: the counter
+			// #1064 asked for. Counts active slices too, which are showing in Fire
+			// Missions rather than here.
+			remaining: number;
+			total: number;
+	  };
+
+export function onDeckRows(queue: ProposalRow[], programs: ProgramRow[]): OnDeckRow[] {
+	// A proposal belongs to at most one program (korg's `includes` edge).
+	const owner = new Map<number, ProgramRow>();
+	for (const p of programs) for (const s of p.slices) owner.set(s.node_id, p);
+
+	const contributed = new Map<number, ProposalRow[]>();
+	for (const r of queue) {
+		const p = owner.get(r.node_id);
+		if (p) contributed.set(p.node_id, [...(contributed.get(p.node_id) ?? []), r]);
+	}
+
+	const rows: OnDeckRow[] = [];
+	const placed = new Set<number>();
+	for (const r of queue) {
+		const p = owner.get(r.node_id);
+		const slices = p ? (contributed.get(p.node_id) ?? []) : [];
+		if (!p || slices.length < ROLLUP_MIN) {
+			rows.push({ kind: 'proposal', row: r });
+			continue;
+		}
+		if (placed.has(p.node_id)) continue;
+		placed.add(p.node_id);
+		rows.push({
+			kind: 'program',
+			program: p,
+			rank: r.rank,
+			pinned: slices.some((s) => s.pinned),
+			slices,
+			remaining: p.slices.filter((s) => !PROPOSAL_FINISHED.has(s.status)).length,
+			total: p.slice_count
+		});
+	}
+	return rows;
 }
 
 // Ages are computed against the board's `generated` (Postgres's clock, the

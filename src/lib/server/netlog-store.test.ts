@@ -31,6 +31,7 @@ const board = (generated: string, over: Partial<Board> = {}): Board => ({
 	queue: [],
 	proposals_omitted: { done: 100, declined: 0, archived: 0 },
 	proposal_edges: [],
+	blocked: [],
 	programs: [],
 	programs_omitted: { done: 0, archived: 0 },
 	awaiting: [],

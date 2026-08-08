@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Board, ProposalEdge, ProposalRow } from './board';
+import type { Board, BlockedRow, ProposalEdge, ProposalRow } from './board';
 import { deconfliction, parseSynopsis } from './curator';
 
 const MARK = '⟦curator⟧';
@@ -33,12 +33,28 @@ const edge = (over: Partial<ProposalEdge> = {}): ProposalEdge => ({
 	...over
 });
 
+const blocked = (over: Partial<BlockedRow> = {}): BlockedRow => ({
+	proposal: 1,
+	via: 'proposal',
+	dependent: 1,
+	dependent_wi_number: null,
+	blocker: 2,
+	blocker_kind: 'sprint_proposal',
+	blocker_wi_number: null,
+	blocker_title: 'two',
+	blocker_project: 'kfdc',
+	blocker_status: 'proposed',
+	sequenced_by: null,
+	...over
+});
+
 const board = (over: Partial<Board> = {}): Board => ({
 	generated: '2026-08-06T01:00:00Z',
 	active: [],
 	queue: [],
 	proposals_omitted: { done: 0, declined: 0, archived: 0 },
 	proposal_edges: [],
+	blocked: [],
 	programs: [],
 	programs_omitted: { done: 0, archived: 0 },
 	awaiting: [],
@@ -128,7 +144,7 @@ describe('deconfliction', () => {
 				edge({ left: 1, right: 99, label: 'depends_on' }) // endpoint not on the board
 			]
 		});
-		const cards = deconfliction(b);
+		const { cards } = deconfliction(b);
 		expect(cards).toHaveLength(1);
 		expect(cards[0].kind).toBe('after');
 		// #1027: chips read left-to-right in execution order — 1 depends_on 2,
@@ -144,7 +160,7 @@ describe('deconfliction', () => {
 			active: [row({ node_id: 1, title: 'one' }), row({ node_id: 2, title: 'two' })],
 			proposal_edges: [edge({ left: 1, right: 2, label: 'collides-with', directed: false })]
 		});
-		expect(deconfliction(b)[0].chips.map((c) => c.node_id)).toEqual([1, 2]);
+		expect(deconfliction(b).cards[0].chips.map((c) => c.node_id)).toEqual([1, 2]);
 	});
 
 	it('attaches prose and provenance from either endpoint synopsis', () => {
@@ -154,7 +170,7 @@ describe('deconfliction', () => {
 			queue: [row({ node_id: 2, status: 'proposed' })],
 			proposal_edges: [edge({ left: 2, right: 1, label: 'collides-with', directed: false })]
 		});
-		const [card] = deconfliction(b);
+		const [card] = deconfliction(b).cards;
 		expect(card.why).toBe('same contract, fold second');
 		expect(card.minedFrom).toBe('comment on korg:1, 2026-08-05');
 	});
@@ -168,10 +184,74 @@ describe('deconfliction', () => {
 				edge({ left: 1, right: 3, label: 'collides-with', created: '2026-08-06T03:00:00Z' })
 			]
 		});
-		expect(deconfliction(b).map((c) => [c.kind, c.created])).toEqual([
+		expect(deconfliction(b).cards.map((c) => [c.kind, c.created])).toEqual([
 			['collides-with', '2026-08-06T03:00:00Z'],
 			['collides-with', '2026-08-06T01:00:00Z'],
 			['after', '2026-08-06T02:00:00Z']
 		]);
+	});
+
+	// kfdc #1070, answered by korg #978's `sequenced_by`: a program already
+	// draws its declared order in Operations, so Deconfliction does not draw
+	// the same fact a second time. kfdc cannot filter what korg did not label.
+	describe('program-sequenced dependencies (#1070)', () => {
+		const twoRows = { active: [row({ node_id: 1 })], queue: [row({ node_id: 2 })] };
+
+		it('sets aside a dependency a live program already sequences', () => {
+			const b = board({
+				...twoRows,
+				proposal_edges: [edge({ left: 1, right: 2, label: 'depends_on' })],
+				blocked: [blocked({ dependent: 1, blocker: 2, sequenced_by: 900 })]
+			});
+			const view = deconfliction(b);
+			expect(view.cards).toEqual([]);
+			expect(view.sequenced.map((c) => c.sequencedBy)).toEqual([900]);
+		});
+
+		it('still draws an unsequenced blocker — that is a real collision', () => {
+			const b = board({
+				...twoRows,
+				proposal_edges: [edge({ left: 1, right: 2, label: 'depends_on' })],
+				blocked: [blocked({ dependent: 1, blocker: 2, sequenced_by: null })]
+			});
+			const view = deconfliction(b);
+			expect(view.cards).toHaveLength(1);
+			expect(view.cards[0].sequencedBy).toBeNull();
+			expect(view.sequenced).toEqual([]);
+		});
+
+		// The key is the edge's own direction: dependent→blocker is left→right.
+		// A reversed match would silently hide the wrong card.
+		it('does not match a blocked entry pointing the other way', () => {
+			const b = board({
+				...twoRows,
+				proposal_edges: [edge({ left: 1, right: 2, label: 'depends_on' })],
+				blocked: [blocked({ dependent: 2, blocker: 1, sequenced_by: 900 })]
+			});
+			expect(deconfliction(b).cards).toHaveLength(1);
+		});
+
+		// A `covered` entry hangs off a work item inside the row, so its
+		// `dependent` is a WI number that must never collide with a proposal id.
+		it('ignores a covered-level entry when matching proposal edges', () => {
+			const b = board({
+				...twoRows,
+				proposal_edges: [edge({ left: 1, right: 2, label: 'depends_on' })],
+				blocked: [blocked({ via: 'covered', dependent: 1, blocker: 2, sequenced_by: 900 })]
+			});
+			expect(deconfliction(b).cards).toHaveLength(1);
+		});
+
+		// A collision is unordered; no program order can express one, so the
+		// suppression must never reach it even if korg reported the same pair.
+		it('never sets aside a collision', () => {
+			const b = board({
+				...twoRows,
+				proposal_edges: [edge({ left: 1, right: 2, label: 'collides-with', directed: false })],
+				blocked: [blocked({ dependent: 1, blocker: 2, sequenced_by: 900 })]
+			});
+			expect(deconfliction(b).cards).toHaveLength(1);
+			expect(deconfliction(b).cards[0].sequencedBy).toBeNull();
+		});
 	});
 });

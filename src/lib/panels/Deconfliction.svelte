@@ -4,7 +4,16 @@
 
 	let { board }: { board: Board } = $props();
 
-	const cards = $derived(deconfliction(board));
+	const view = $derived(deconfliction(board));
+	const cards = $derived(view.cards);
+	// #1070: dependencies a live program already draws as sequence in
+	// Operations. Named, not silently dropped — an empty panel that quietly
+	// hid a blocker would be the failure this panel exists to avoid.
+	const asideOf = $derived(
+		new Set(view.sequenced.map((c) => c.sequencedBy)).size === 1
+			? board.programs.find((p) => p.node_id === view.sequenced[0].sequencedBy)?.title
+			: undefined
+	);
 
 	// Provenance line: prefer the mined-from citation; otherwise say how the
 	// edge got here — a curator edge without prose is still a curator edge,
@@ -42,4 +51,10 @@
 	{:else}
 		<p class="empty">no collisions on the board — fires deconflicted</p>
 	{/each}
+
+	{#if view.sequenced.length > 0}
+		<p class="sequenced-aside">
+			{view.sequenced.length} sequenced by {asideOf ?? 'program'} — drawn in Operations
+		</p>
+	{/if}
 </section>

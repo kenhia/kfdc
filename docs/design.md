@@ -21,6 +21,17 @@ is a deliberate commitment, not an omission.
 - Status is encoded in form + color, never color alone (chips carry text).
 - Data and labels in mono (`ui-monospace`), prose in system sans;
   `tabular-nums` wherever digits align.
+- **Say one thing once.** Where two panels would draw the same fact, one
+  draws it and the other says who did. A program's declared order belongs to
+  Operations; On Deck collapses its queued slices into a single roll-up row
+  (`PROGRAM` tag in `--cyan`, span chips, `n of m slices`), and Deconfliction
+  prints `n sequenced by <program> — drawn in Operations` in place of the
+  cards (kfdc #1064/#1070, sprint 007).
+- **Nothing disappears silently.** A panel that hides rows names what it
+  hid and where it went — the roll-up is expandable (`▸`/`▾`, the board's
+  only interactive control), and the Deconfliction aside is a faint receipt
+  for a card that is not there. An empty panel must never be the result of
+  quiet omission.
 
 ## Tokens
 

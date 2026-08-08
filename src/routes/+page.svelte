@@ -42,7 +42,12 @@
 	<div class="col">
 		<!-- Operations holds the concept's second column; On Deck rides below. -->
 		<Operations programs={board.programs} omitted={board.programs_omitted} />
-		<OnDeck queue={board.queue} omitted={board.proposals_omitted} depth={board.depth} />
+		<OnDeck
+			queue={board.queue}
+			omitted={board.proposals_omitted}
+			depth={board.depth}
+			programs={board.programs}
+		/>
 	</div>
 	<div class="col">
 		<CommandersCall awaiting={board.awaiting} generated={board.generated} />
