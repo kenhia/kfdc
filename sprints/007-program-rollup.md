@@ -97,6 +97,38 @@ by the new `client` project, and the coverage was checked for vacuity rather
 than trusted: breaking `toggle()` so it only ever adds (never collapses) turns
 the expand-then-collapse test red, and reverting it green again.
 
+## Deployed 2026-08-08
+
+`just publish` from merged main (`3772965`, PR #7 squash) → store version
+**`0.5.0-3772965`**, then `just deploy 0.5.0-3772965` on kai. Rollback target
+is **`0.5.0-5b93648`** (sprint 006), still unpacked on the host. No data
+migration in this sprint.
+
+Assertions, with values rather than "OK":
+
+- MainPID `2137587`, `/proc/2137587/cwd` → `0.5.0-3772965` — the running
+  process, not merely a healthy one, is this version.
+- `https://kai.encke-wahoo.ts.net:8100/` → `200`, SSR marker `fire missions`
+  present (over the tailnet, so `tailscale_serve` is exercised).
+- `just versions`: store `latest:`, `here:` top entry and `running:` all
+  `0.5.0-3772965` — three sources, one version.
+- The served stylesheet carries `.prog-roll`, `.prog-slice`,
+  `.sequenced-aside` and `.op-tag`, none of which existed before this sprint.
+
+**Both features verified live against real data**, which the sprint itself
+could not do: a new program — *"Harness portability, then rollout"*
+(claude-cleo + kprojects) — appeared in korg while this sprint was in flight
+and supplies the first genuine instance of each case.
+
+- On Deck: its two queued slices (kprojects 912 at rank 12, claude-cleo 749 at
+  rank 14) render as **one** `prog-roll` row at rank 12 — span chips
+  `claude-cleo kprojects`, `2 of 2 slices`, collapsed, one disclosure button
+  on the page.
+- Deconfliction: that program sequences the `912 → 749` dependency, so korg
+  reports `sequenced_by` and the panel drew no card, printing
+  `1 sequenced by Harness portability, then rollout — drawn in Operations`
+  instead. The doctored-fixture prediction and production agree exactly.
+
 ## Follow-ups
 
 - **Deconfliction could render `blocked` in its own right.** Today it draws
