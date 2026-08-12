@@ -120,19 +120,28 @@ health check passed, version unproven"_ and still **exits 0**. That is a
 reasonable installer default and a bad deploy report. So assert it here, where
 an unexpected non-answer is a failure rather than a footnote:
 
-Run it **on the serving host**, because that is where the process is:
+Run it **on the serving host**, because that is where the process is. The
+version crosses via `env`, not a positional parameter — see the warning below:
 
 ```sh
-ssh "$KFDC_DEPLOY_HOST" bash -s -- "$V" <<'EOF'
-V="$1"
+ssh "$KFDC_DEPLOY_HOST" env WANT="$V" bash -s <<'EOF'
 pid=$(systemctl --user show -p MainPID --value kfdc.service 2>/dev/null || echo 0)
 [ "${pid:-0}" -gt 0 ] || { echo "no MainPID for kfdc.service" >&2; exit 1; }
 [ -r "/proc/$pid/cwd" ] || { echo "cannot read cwd of pid $pid" >&2; exit 1; }
 running=$(basename "$(readlink -f "/proc/$pid/cwd")")
-[ "$running" = "$V" ] || { echo "running $running, expected $V" >&2; exit 1; }
+[ "$running" = "$WANT" ] || { echo "running $running, expected $WANT" >&2; exit 1; }
 echo "pid $pid running $running"
 EOF
 ```
+
+> **A skill body is a template, and `$1` is not inert in it.** This snippet
+> originally read `bash -s -- "$V"` with `V="$1"` inside the heredoc. When the
+> skill is loaded, `$1` is **substituted before you ever see it** — the
+> rendered instruction said `V="deploy"`, so the assertion would have compared
+> the running version against a literal word and failed for a reason nobody
+> would guess. Caught on the sprint-009 deploy, on the deploy this very edit
+> shipped. Avoid positional parameters in skill snippets; pass values through
+> `env`, which nothing rewrites.
 
 The unit's `WorkingDirectory` is the `current` symlink, so the running process's
 cwd resolves to the versioned directory it is actually executing out of — the
