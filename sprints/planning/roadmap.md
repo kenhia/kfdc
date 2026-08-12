@@ -1,219 +1,178 @@
-# Roadmap — get to kfdc
+# kfdc — architecture of record, and how it was built
 
-> This markdown *is* the plan while kfdc is being built. Once Phase 3 lands,
-> the plan moves into korg (programs + proposals) and kfdc becomes the way
-> to see kfdc. Keep it current; detail lives in the sprint records.
+> **The live plan is korg, and the board is how you read it.** This file
+> stopped being the plan on 2026-08-12 (sprint 009, korg #1189). What
+> remains here is the architecture that does not change and the record of
+> what was built, both of which are history — and history does not drift.
+> Plans do, which is why they left.
 
-kfdc answers the question Ken can no longer hold in his head: overall status,
-what's actively being worked (project + synopsis), what's related, what's
-blocked, what's waiting on him — across ~29 active projects. The approved
-concept is `docs/design/kfdc-concept.html` (2026-08-04, populated with real
-korg data).
+**Where to look for what:**
 
-Two-layer architecture, decided up front:
+| Question | Answer |
+|---|---|
+| What's next for kfdc? | The board — <https://kubsdb.encke-wahoo.ts.net:8100> |
+| Why is the board built this way? | Below, and `docs/design.md` |
+| What did sprint N do? | `sprints/NNN-<name>.md` |
+| How does it deploy? | `docs/deploying.md` |
+| The recorded-but-unbuilt ideas? | korg kfdc #1202–#1207 (see below) |
 
-- **Deterministic layer** — the board renders korg reads only: queue by rank,
-  active sprints, coverage, counts, staleness, awaiting-Ken. No LLM in the
-  render path, ever.
+If answering "what's next for kfdc" ever requires opening a file in this
+repo again, the retirement did not hold.
+
+## The two-layer architecture, decided up front
+
+This is the load-bearing decision and it has not moved since 2026-08-04:
+
+- **Deterministic layer** — the board renders korg reads only: queue by
+  rank, active sprints, coverage, counts, staleness, awaiting-Ken. **No LLM
+  in the render path, ever.**
 - **Curator layer** — a headless agent (`claude -p`, kmon's timer pattern)
   that reads proposal/comment prose and writes durable, typed things *back
   into korg*: sequencing edges, mission synopses, report nodes. Agent as
-  curator, never as renderer. Over time proposals record sequencing as typed
-  edges at write time and the curator only catches strays.
+  curator, never as renderer. Over time proposals record sequencing as
+  typed edges at write time and the curator only catches strays.
 
-## Phase 0: korg prerequisites — COMPLETE 2026-08-05
+## Standing constraints
 
-Shipped as korg sprints 043 (971), 044 (972), 045 (973) plus the 825 sprint,
-all in one day. Dogfood done the same day: the first real program is korg
-node 979 ("kfdc Phase 0 - the board substrate", slices 825→971→972→973) and
-the awaiting lane is seeded with live rows (#964 khound call, #841, #842,
-and 979 itself — closes when Ken's user test passes). Board endpoint:
-`GET /api/board` on korg.
+These outlive any particular sprint, and a change that violates one is a
+design change, not an implementation detail:
+
+- **Agents curate korg; the board renders korg.** If a panel needs data
+  korg cannot hold, that is a korg work item, not a side file the board
+  reads.
+- **The FDC vocabulary is deliberate.** Fire missions, on deck,
+  deconfliction, commander's call. Ken is ex-11C. Keep it; keep the
+  density. `docs/design.md` and `docs/design/kfdc-concept.html`.
+- **Two transition feeds that must not converge.** The Net Log is
+  observer-relative and speaks FDC; the Ticker is korg-authoritative and
+  quotes korg verbatim. Measured and argued in sprint 008 — reopen only
+  with a new measurement.
+- **Honesty about absence.** An empty window renders no footer rather than
+  an empty state that would read as a claim about history (sprint 008).
+  Ages are computed against the board's own `generated`, never invented.
+- **kfdc does not build in place.** `just publish` to the store, `just
+  deploy` installs that artifact. `docs/deploying.md`.
+- **The curator runs on kai; the board runs on kubsdb.** kubsdb gets no
+  agent tooling (k-homelab #988).
+
+## What was built
+
+The record. Each phase links its sprints; the sprint records carry the
+detail and the decisions.
+
+### Phase 0: korg prerequisites — COMPLETE 2026-08-05
+
+Shipped as korg sprints 043 (971), 044 (972), 045 (973) plus the 825
+sprint, all in one day. Dogfood done the same day: the first real program is
+korg node 979 ("kfdc Phase 0 - the board substrate", slices
+825→971→972→973). Board endpoint: `GET /api/board` on korg.
 
 - [x] **Single-project proposals enforced, not conventional** — require a
       project on every new proposal; refuse a `covers` edge when the WI's
-      project differs from the proposal's; backfill the 6 mechanically
-      resolvable project-less proposals. (The 2026-07-23 linking-layer review
-      measured exactly one real cross-project `covers` edge — the rest are
-      artifacts.)
-- [x] **korg proposal 825 lands** (proposal membership on rows and rails) —
-      already queued at rank 6.5; it is the substrate for "what's spoken
-      for". Sequencing recorded on 825: after #817's page rewrite; fold with
-      #861's contract revision, whichever lands second.
+      project differs from the proposal's. (The 2026-07-23 linking-layer
+      review measured exactly one real cross-project `covers` edge — the
+      rest were artifacts.)
+- [x] **korg proposal 825 lands** — proposal membership on rows and rails;
+      the substrate for "what's spoken for".
 - [x] **`program` node type** — the multi-project layer. A program `covers`
-      *proposals* (ordered), and occasionally standalone WIs; proposals stay
-      strictly single-project. Replaces the informal markdown "program plan"
-      pattern (project-routing 2026-07-31, infra-cleanup 2026-08).
-- [x] **"Awaiting Ken" expressible** — an edge or flag agents can set and
-      one read can list. Commander's Call renders it.
+      *proposals* (ordered); proposals stay strictly single-project.
+- [x] **"Awaiting Ken" expressible** — a flag agents can set and one read
+      can list. Commander's Call renders it.
 - [x] **Board rollup read** — one call returning active sprints + queue +
       programs + blocked/awaiting, so the board is one request, not a
       17-call crawl.
 
-## Phase 1: walking skeleton — BUILT 2026-08-05, awaiting Ken's user test
+### Phase 1: walking skeleton — BUILT 2026-08-05
 
-Sprint 001 (proposal kfdc:987): all four WIs including the stretch. The
-board is live at **https://kai.encke-wahoo.ts.net:8100** — Fire Missions,
-On Deck (+depth), statline, Commander's Call, rendering production korg.
+Sprint 001 (proposal kfdc:987): all four WIs including the stretch.
 Record: `sprints/001-walking-skeleton.md`.
 
 - [x] SvelteKit + TypeScript scaffold (node adapter); `just check` rewired
-      to real gates (lint, svelte-check, build, test).
-- [x] Fire Missions + On Deck panels rendered deterministically from korg
-      REST via server routes; token in `.env`.
-- [x] Concept CSS applied (tokens in `docs/design.md`); tailscale serve on
-      kai, one ts.net URL.
+      to real gates.
+- [x] Fire Missions + On Deck rendered deterministically from korg REST via
+      server routes; token in `.env`.
+- [x] Concept CSS applied; tailscale serve, one ts.net URL.
 - [x] Stretch #986 taken: Commander's Call from `board.awaiting`.
 
-## Phase 1.5: Net Log — BUILT 2026-08-05 (sprint 002, proposal kfdc:994)
+### Phase 1.5: Net Log — BUILT 2026-08-05
 
-Added 2026-08-05 after the first real loss: sprint-ship + refresh removed a
-fire mission AND a commander's-call row, and nothing said which. The board
-renders state; transitions vanish between glances. Record:
-`sprints/002-net-log.md`.
+Added after the first real loss: sprint-ship + refresh removed a fire
+mission AND a commander's-call row, and nothing said which. The board
+renders state; transitions vanish between glances. Sprint 002 (proposal
+kfdc:994). Record: `sprints/002-net-log.md`.
 
-- [x] #992 Observer: every `fetchBoard` observes (page load, proxy, and a
-      3-min poll from `hooks.server.ts`), diffs against the last digest,
-      appends to JSONL in `~/.local/state/kfdc` (~30d retention, survives
-      redeploys). Viewer state, not work data — korg #977 stays the
-      principled home for work history; lines carry observation time,
-      never invented precision.
-- [x] #993 Strip: full-width under the panels, separator above, one line
-      per change — `FM: complete kfdc 984 - proposal completed` — panel
-      codes FM/CC/OD/OP, ids deep-linked where korg has a page (korg's own
-      AwaitingLane scheme).
+- [x] #992 Observer: every `fetchBoard` observes, diffs against the last
+      digest, appends to JSONL in `~/.local/state/kfdc` (~30d retention,
+      survives redeploys). Viewer state, not work data.
+- [x] #993 Strip: full-width under the panels, one line per change, panel
+      codes FM/CC/OD/OP, ids deep-linked where korg has a page.
 
-## Phase 2: curator — BUILT 2026-08-06 (sprint 003, proposal kfdc:999)
+### Phase 2: curator — BUILT 2026-08-06
 
-Write vocabulary decided with Ken 2026-08-05 (recorded in
-`sprints/003-curator.md`): `depends_on` for mined sequencing,
-new `collides-with` registry label for collisions, one `⟦curator⟧`-marked
-comment per proposal for synopses, `origin: "kfdc-curator"` on every edge.
-The korg substrate slice (label + board `proposal_edges`/`synopsis`) landed
-as korg sprint 046 / proposal korg:1004 inside this sprint window —
-sequencing recorded at write time as kfdc:999 `depends_on` korg:1004, the
-direction of travel's first instance. Curator runs on kai (kmon timer).
+Write vocabulary decided with Ken 2026-08-05: `depends_on` for mined
+sequencing, `collides-with` for collisions, one `⟦curator⟧`-marked comment
+per proposal for synopses, `origin: "kfdc-curator"` on every edge. Sprint
+003 (proposal kfdc:999). Record: `sprints/003-curator.md`.
 
 - [x] #995 Curator prompt in-repo (`curator/prompt.md`, the single source
-      of truth) + `bin/update-fdc` (headless `claude -p`, korg-only tools)
-      + `kfdc-curator.timer` (daily 10:30 UTC). The *timer* was in fact dead
-      from here until sprint 006 (#1040): the unit set no PATH and a systemd
-      user unit inherits none, so `exec claude` exited 127 while both
-      hand-run paths kept working. Only kmon noticed.
-- [x] #996 Two supervised passes against production: 3 sequencing edges +
-      9 synopses, all provenance-stamped; ambiguous references dropped
-      with reasons. Re-run wrote zero edges and zero duplicate/changed
-      synopses (the mechanical idempotence contract); the synopsis-worthy
-      threshold wobbled once (3 rows skipped by pass 1, written by pass
-      2), answered with a never-rephrase rule in the prompt.
+      of truth) + `bin/update-fdc` + `kfdc-curator.timer`. The *timer* was
+      in fact dead from here until sprint 006 (#1040): a systemd user unit
+      inherits no PATH, so `exec claude` exited 127 while both hand-run
+      paths kept working. Only kmon noticed.
+- [x] #996 Two supervised passes against production: 3 sequencing edges + 9
+      synopses, all provenance-stamped. Re-run wrote zero edges and zero
+      duplicate synopses — the mechanical idempotence contract.
 - [x] #997 Deconfliction + Sensor Net panels render `proposal_edges` +
-      `synopsis` + `reports`; Fire Missions cards carry the synopsis line;
-      parser pins the first real body as a test fixture.
-- [x] #998 Stretch taken: `/update-fdc` skill runs the same prompt
-      interactively.
+      `synopsis` + `reports`; parser pins a real body as a test fixture.
+- [x] #998 Stretch: `/update-fdc` runs the same prompt interactively.
 
-## Phase 3: full board — switch over
+### Phase 3: full board, and switch over — COMPLETE 2026-08-12
 
-Scoping decision (2026-08-06, vs the "Deploy from the store" program
-korg:1026): Phase 3 does NOT fold into that program — only the deploy
-machinery overlaps, and its kfdc slice (proposal korg:1024, bundles to the
-store) already owns exactly that part. Phase 3's bullets are independent
-of each other; no "Phase 3 first".
+Filed into korg 2026-08-11 as program **korg:1192**. Sprint 009 closed it.
 
-**Filed into korg 2026-08-11** as program **korg:1192** ("kfdc Phase 3 —
-switch over, and manage kfdc in kfdc"), which is itself the last bullet
-below. The two remaining bullets are its ordered slices — proposal
-korg:1190 (ticker: #1186 decide-first + #1187 + #1183 ride-along) then
-proposal korg:1191 (kubsdb move #1188 + roadmap retirement #1189). No
-`depends_on` edge between them: the order is a preference, and the
-bullets remain independent. From here the live plan is korg; this file is
-the record until #1189 retires it.
-
-- [x] Operations (programs) panel — SHIPPED 2026-08-06 as sprint 004
-      (proposal kfdc:1030: #1029 + QOL ride-alongs #990 SPLASH, #1027
-      arrow), before program korg:1026 runs so its slices tick on the
-      board live. Record: `sprints/004-operations-panel.md`. (Commander's
-      Call shipped early — sprint 001 took the stretch.)
-- [x] Ticker from korg events — SHIPPED 2026-08-11 as sprint 008 (proposal
-      korg:1190, #1186 + #1187 + #1183), slice 1 of program korg:1192.
-      `events` typed end-to-end and rendered in the footer slot the approved
-      concept had drawn for it all along — the Net Log took that slot in
-      sprint 002, having been invented after the concept. #1186 measured the
-      two feeds against live production and kept them separate: only 4 of 20
-      korg events had any Net Log counterpart, and the Net Log's own majority
-      traffic (queue movement, splash, awaiting) is invisible to korg's log by
-      construction. **So the Phase-1.5 promise to enrich Net Log lines is
-      deliberately not kept** — the argument is a comment on korg:1186; reopen
-      it only with a new measurement. The honesty rule landed as specified:
-      the log starts at korg migration 0026 and was not backfilled, so an
-      empty window renders no footer at all rather than an empty state that
-      would read as a claim about history. #1183 rode along — the 3d Cavalry
-      DUI in the masthead, provenance and the AR 670-1 / § 771 caveat in
-      `docs/design.md`. Record: `sprints/008-ticker.md`.
-- [x] Program-ordered work renders once — SHIPPED 2026-08-08 as sprint 007
-      (proposal korg:1077, #1064 + #1070 + #1102), slice 2 of program
-      korg:1078. On Deck collapses a program's queue rows into one (`n of m
-      slices`, expandable); Deconfliction sets aside dependencies korg reports
-      as `sequenced_by` a live program, since Operations already draws that
-      order. #1102 rode along: the roll-up's disclosure is the board's first
-      client state, so `vite.config.ts` gained a `client` vitest project
-      (jsdom + `@testing-library/svelte`) beside `server`. Record:
+- [x] **Operations (programs) panel** — sprint 004 (proposal kfdc:1030:
+      #1029 + ride-alongs #990 SPLASH, #1027 arrow).
+      `sprints/004-operations-panel.md`.
+- [x] **Deploy from the store** — sprint 005 (proposal korg:1024, #1014),
+      slice 4 of program korg:1026. The service runs out of
+      `~/.local/share/kfdc/current`, so it no longer depends on the clone —
+      which is what turned the kubsdb move from a rebuild into a placement
+      change. `sprints/005-deploy-from-store.md`; `docs/deploying.md`.
+      Sprint 006 (#1035) made shipping *invoke* it.
+- [x] **Program-ordered work renders once** — sprint 007 (proposal
+      korg:1077, #1064 + #1070 + #1102), slice 2 of program korg:1078. On
+      Deck collapses a program's queue rows into one; Deconfliction sets
+      aside dependencies korg reports as `sequenced_by` a live program.
       `sprints/007-program-rollup.md`.
-- [x] Deploy from the store — SHIPPED 2026-08-06 as sprint 005 (proposal
-      korg:1024, #1014), slice 4 of program korg:1026. `just publish` →
-      `artifacts/kfdc/<version>/`, `just deploy [version]` installs that
-      artifact and rolling back is naming an older one. The service runs
-      out of `~/.local/share/kfdc/current` with placement in
-      `~/.config/kfdc/kfdc.env`, so it no longer depends on the clone.
-      kai's `:8100` serve entry is declared in k-homelab. Record:
-      `sprints/005-deploy-from-store.md`; how it works:
-      `docs/deploying.md`. Sprint 006 (#1035) made shipping *invoke* it:
-      `.sprint-deploy` names the `deploy-board` skill, so sprint-ship
-      Phase 7 fires instead of skipping silently as it did here.
-- [ ] Production deploy: move kfdc hosting to **kubsdb** — **slice 2,
-      proposal korg:1191** (#1188). Unblocked by
-      sprint 005, and now only a *placement* change: same artifact fetched
-      on kubsdb (bootstrap recipe in `docs/deploying.md`), new serve entry
-      declared for that host, retire kai's unit + :8100 (k-homelab #988's
-      comment carries the fold-then-retire plan). Migrate the Net Log store
-      (`~/.local/state/kfdc`) with it — viewer history must survive the
-      move. kubsdb needs no agent tooling; the curator and transmit runner
-      stay on kai.
-- [~] Retire this roadmap into korg: file the remaining plan as a program,
-      manage kfdc *in* kfdc. Program **korg:1192** filed 2026-08-11 — the
-      substance is done. The tail (#1189, rides in slice 2) cuts this file
-      back to architecture + record, and moves *Later / Ideas* below into
-      kfdc work items verbatim — that text carries recorded design, most of
-      all the Transmit drawer, and summarizing it loses the decisions.
+- [x] **Ticker from korg events** — sprint 008 (proposal korg:1190, #1186 +
+      #1187 + #1183), slice 1 of program korg:1192. #1186 measured the two
+      feeds against live production and kept them separate. **The Phase-1.5
+      promise to enrich Net Log lines is deliberately not kept** — the
+      argument is a comment on korg:1186. `sprints/008-ticker.md`.
+- [x] **Production placement: the board moved to kubsdb** — sprint 009
+      (proposal korg:1191, #1188), slice 2 of program korg:1192. Same
+      published artifact fetched on kubsdb, Net Log store carried across
+      before first start, kai's unit and `:8100` retired,
+      `manifests/{kai,kubsdb}.yml` filed as kenhia/k-homelab#39.
+      `sprints/009-production-placement.md`.
+- [x] **This roadmap retired into korg** — sprint 009 (#1189). The plan is
+      korg rows; this file is architecture and record.
 
-## Later / Ideas
+## Recorded but unbuilt
 
-- kdeskdash tile deep-linking to the board; korg-dash consumes the same
-  rollup read for the Pi panel.
-- Deterministic collision hints (same-contract / same-file heuristics)
-  feeding the curator.
-- Wall mode: auto-refresh, zero chrome, for the widescreen monitor.
-- Expanded mode: korg hosted in an iframe pane right of the board — click a
-  WI/proposal and the pane deep-links to the item in the real korg UI. Keeps
-  kfdc edit-free: the board renders only the rollup; the full node (notes,
-  comments, edit, clear-awaiting) is always real korg in the pane. korg
-  prereqs when picked up: stable per-node deep-link routes (also serves
-  korg-vs resolve-by-ID) and a frame-ancestors policy allowing kfdc's
-  ts.net origin; v1 control is one-way (`iframe.src`), no postMessage.
-  Interim: kfdc + korg as two grouped windows and Alt-Tab. Decided
-  2026-08-05; build after kfdc has some mileage.
-- Session-freshness feed (which sprints have live agent activity).
-- Transmit drawer (Ken, 2026-08-05): collapsed chat strip between the
-  panels and the Net Log — type a one-shot mission, dispatched to headless
-  `claude -p` (Sonnet default, Opus button) via the Phase-2 curator harness
-  on kai, which it reuses (sequence AFTER Phase 2; also survives the
-  Phase-3 kubsdb move, since the runner stays on kai). Wrapper prompt:
-  background one-shot, constrained tools (korg/klams MCP, no shell),
-  outcome written as a korg comment/report on the node acted on — never a
-  side file — so the board and Net Log show the result through the normal
-  path (the Net Log is the read-back). On ambiguity the runner does not
-  guess: it comments its question and sets awaiting — the ask comes back
-  to Ken on the board itself. Click a row → drawer prefills
-  `re: <project> <id>` for zero-alt-tab locality. Endpoint needs a trivial
-  token (tailnet-only but still arbitrary-agent-execution). Does NOT
-  replace korg #981 — register-decision-and-clear stays deterministic.
+*Later / Ideas* lived here until sprint 009. It is now korg work items —
+**unqueued on purpose**, because preservation is not queue-stuffing — each
+carrying its recorded design verbatim rather than a summary of it, since
+the decisions were in the detail:
+
+| | |
+|---|---|
+| #1202 | Transmit drawer — one-shot missions dispatched from the board |
+| #1203 | Expanded mode — korg in an iframe pane right of the board |
+| #1204 | Wall mode — auto-refresh, zero chrome |
+| #1205 | Deterministic collision hints feeding the curator |
+| #1206 | Session-freshness feed |
+| #1207 | kdeskdash deep-link; korg-dash on the same rollup |
+
+Do not re-add them here. They drifted out of a plan document once already,
+which is the whole argument for this file no longer being one.

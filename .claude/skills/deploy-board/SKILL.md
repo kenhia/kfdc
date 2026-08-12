@@ -17,18 +17,24 @@ anything below surprises you.
 
 ## Where this runs
 
-Both commands run on **kai** today, but for different reasons, and the
-distinction is what keeps the Phase-3 move cheap:
+Type both commands **from the clone on kai**. They act on different machines,
+and since sprint 009 those machines are not the same box:
 
-- `just publish` runs **from the clone** (`~/src/tools/kfdc`) — it needs the
-  build toolchain and a commit. It stays on kai.
-- `just deploy` runs **on the serving host** — it needs only `curl`, `tar` and
-  `systemctl`. That is kai now and kubsdb after Phase 3.
+- `just publish` runs **here** — it needs the build toolchain and a commit.
+- `just deploy` acts on the **serving host**, named by `KFDC_DEPLOY_HOST` in
+  `.env` (kubsdb). When that is not this machine, just reaches it over ssh and
+  the remote fetches and checksum-verifies its own `install.sh` — the same
+  bootstrap `docs/deploying.md` writes out. Nothing is copied from the clone.
 
-They are the same box at the moment. That is placement, not a rule. Placement
-lives in `~/.config/kfdc/kfdc.env` (`PORT`, `ORIGIN`) on whichever host serves,
-which is why moving the board changes no file in this repo — including this
-one, except the URL in the verify step.
+So the serving host needs only `curl`, `tar`, `systemctl` and an ssh key — no
+checkout, no toolchain, no agent tooling. Placement lives in
+`~/.config/kfdc/kfdc.env` (`PORT`, `ORIGIN`) on whichever host serves, which
+is why moving the board changed no application code.
+
+**Do not `cd` to the serving host and improvise.** If `just deploy` cannot
+reach it, fix the reachability — an install typed by hand on kubsdb produces
+the same result today and no record of how, which is the habit the store
+exists to end.
 
 ## Publish from clean, committed `main` — never a branch
 
@@ -98,6 +104,14 @@ was published under, repoints `current` by rename(2), restarts, and waits for
 `http://127.0.0.1:$PORT/api/board`. It stops at the first failure rather than
 half-installing.
 
+**This takes about 90 seconds and almost all of it is the restart.** The
+service does not exit on `SIGTERM`, so systemd waits out `TimeoutStopSec`
+and `SIGKILL`s it (measured in sprint 009: `just deploy` = 1m32s, korg
+#1200). Do not read the pause as a hang and do not interrupt it — a deploy
+killed between the symlink repoint and the restart leaves `current` pointing
+at a version the running process is not executing, which is exactly the state
+the cwd assertion below exists to catch.
+
 ## Verify — a probe that cannot answer is a failure
 
 The installer's own version check has one soft edge: if it cannot read the
@@ -106,12 +120,18 @@ health check passed, version unproven"_ and still **exits 0**. That is a
 reasonable installer default and a bad deploy report. So assert it here, where
 an unexpected non-answer is a failure rather than a footnote:
 
+Run it **on the serving host**, because that is where the process is:
+
 ```sh
+ssh "$KFDC_DEPLOY_HOST" bash -s -- "$V" <<'EOF'
+V="$1"
 pid=$(systemctl --user show -p MainPID --value kfdc.service 2>/dev/null || echo 0)
 [ "${pid:-0}" -gt 0 ] || { echo "no MainPID for kfdc.service" >&2; exit 1; }
 [ -r "/proc/$pid/cwd" ] || { echo "cannot read cwd of pid $pid" >&2; exit 1; }
 running=$(basename "$(readlink -f "/proc/$pid/cwd")")
 [ "$running" = "$V" ] || { echo "running $running, expected $V" >&2; exit 1; }
+echo "pid $pid running $running"
+EOF
 ```
 
 The unit's `WorkingDirectory` is the `current` symlink, so the running process's
@@ -125,10 +145,14 @@ half loopback does not exercise:
 
 ```sh
 curl -fsS --max-time 15 -o /dev/null -w '%{http_code}\n' \
-    https://kai.encke-wahoo.ts.net:8100/            # expect 200
-curl -fsS --max-time 15 https://kai.encke-wahoo.ts.net:8100/ \
+    https://kubsdb.encke-wahoo.ts.net:8100/         # expect 200
+curl -fsS --max-time 15 https://kubsdb.encke-wahoo.ts.net:8100/ \
     | grep -qi 'fire missions' || { echo "board did not render" >&2; exit 1; }
 ```
+
+Run this **from kai**, not from kubsdb — the point is to exercise the path a
+viewer takes. (It happens to work from kubsdb too, since tailscaled terminates
+TLS and proxies to the loopback bind, but a same-host check proves less.)
 
 `--max-time` is not decoration. An unreachable serve must fail in 15 seconds
 with a non-zero status, not hang a deploy report. And grep for a panel heading
@@ -179,8 +203,11 @@ with the same assertions above — a rollback is a deploy.
   A board deploy neither updates nor restarts them. If a sprint changed
   `systemd/kfdc-curator.service`, that is `just curator-install`, by hand, on
   kai.
-- **The Net Log store.** `~/.local/state/kfdc/` is viewer history. Deploys
-  never touch it; the Phase-3 host move has to copy it across.
-- **Phase 3 itself.** Moving the board to kubsdb is a bootstrap on that host
-  (`docs/deploying.md`), a new `tailscale_serve` entry, and retiring kai's unit
-  — its own work, not a deploy.
+- **The Net Log store.** `~/.local/state/kfdc/` is viewer history and lives on
+  the serving host. Deploys never touch it. Moving it is a host-move problem,
+  not a deploy problem — sprint 009 copied it kai → kubsdb before first start.
+- **Moving the board to another host.** That is a bootstrap on the new host
+  (`docs/deploying.md`), a `tailscale_serve` entry declared for it in
+  k-homelab, the Net Log store copied across, and the old host's unit and
+  serve entry retired. Sprint 009 did it for kubsdb; the procedure is written
+  down because it will be needed again, not because it is routine.

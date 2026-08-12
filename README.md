@@ -12,11 +12,11 @@ fire missions (active sprints), priorities of fire (the ranked queue),
 deconfliction (sequencing collisions), commander's call (decisions only Ken
 can make).
 
-> Status: **Phase 2 live** — Fire Missions, On Deck, statline, Commander's
-> Call, Net Log, Deconfliction, Sensor Net and Operations render production
-> korg at `https://kai.encke-wahoo.ts.net:8100` (tailnet only; interim host
-> — the production move to kubsdb is Phase 3). The plan onward is
-> [`sprints/planning/roadmap.md`](sprints/planning/roadmap.md); the approved
+> Status: **in production** — Fire Missions, On Deck, statline, Commander's
+> Call, Net Log, Deconfliction, Sensor Net, Operations and the Ticker render
+> production korg at `https://kubsdb.encke-wahoo.ts.net:8100` (tailnet
+> only). Phase 3 closed in sprint 009 with the move off kai, the interim
+> host. The live plan is korg — the board is how you read it; the approved
 > visual concept is
 > [`docs/design/kfdc-concept.html`](docs/design/kfdc-concept.html).
 
