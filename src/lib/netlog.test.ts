@@ -41,6 +41,7 @@ const board = (over: Partial<Board> = {}): Board => ({
 	awaiting: [],
 	depth: [],
 	reports: [],
+	events: [],
 	...over
 });
 

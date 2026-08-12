@@ -206,7 +206,14 @@ export function formatLine(l: NetLogLine): string {
 // Mirrors korg's own AwaitingLane hrefs: a WI is reachable by number, a
 // program has its own page, proposals live on Planning; anything else renders
 // unlinked rather than pointing at a 404 — the deep-link gap is korg's.
-export function lineHref(l: NetLogLine, base: string): string | null {
+//
+// Takes the three fields structurally rather than a whole NetLogLine: the
+// Ticker links by the same rule (#1187), and one rule in one place is how the
+// two feeds are kept from drifting on what a korg URL looks like.
+export function lineHref(
+	l: { kind: string; wi_number: number | null; node_id: number },
+	base: string
+): string | null {
 	if (l.kind === 'workitem' && l.wi_number != null) return `${base}/work-items?wi=${l.wi_number}`;
 	if (l.kind === 'program') return `${base}/programs/${l.node_id}`;
 	if (l.kind === 'sprint_proposal') return `${base}/planning`;

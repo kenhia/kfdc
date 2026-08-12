@@ -119,6 +119,24 @@ export interface BlockedRow {
 	sequenced_by: number | null;
 }
 
+// One recorded status transition from korg's own event log (korg #977) —
+// newest 20, newest first. Deterministic and authoritative: a real timestamp
+// and a real from/to, never `node.updated` standing in for a transition, which
+// is the specific dishonesty #977 existed to end. The log begins at korg
+// migration 0026 and was NOT backfilled, so an empty array means "nothing has
+// moved since the migration", never "nothing ever moved" — see $lib/ticker.
+export interface EventRow {
+	at: string;
+	kind: 'sprint_proposal' | 'workitem';
+	node_id: number;
+	// null for proposals; the number for work items.
+	wi_number: number | null;
+	project: string;
+	title: string;
+	from_status: string;
+	to_status: string;
+}
+
 export interface Board {
 	generated: string;
 	active: ProposalRow[];
@@ -131,6 +149,7 @@ export interface Board {
 	awaiting: AwaitingRow[];
 	depth: DepthRow[];
 	reports: ReportRow[];
+	events: EventRow[];
 }
 
 // Statline per korg's D-3 table: every figure derives from the lists it is

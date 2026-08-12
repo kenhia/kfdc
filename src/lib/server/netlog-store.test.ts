@@ -37,6 +37,7 @@ const board = (generated: string, over: Partial<Board> = {}): Board => ({
 	awaiting: [],
 	depth: [],
 	reports: [],
+	events: [],
 	...over
 });
 

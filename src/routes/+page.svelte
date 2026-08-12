@@ -7,17 +7,36 @@
 	import OnDeck from '$lib/panels/OnDeck.svelte';
 	import Operations from '$lib/panels/Operations.svelte';
 	import SensorNet from '$lib/panels/SensorNet.svelte';
+	import Ticker from '$lib/panels/Ticker.svelte';
+	import { tickerLines } from '$lib/ticker';
 
 	let { data } = $props();
 
 	const board = $derived(data.board);
 	const stats = $derived(statline(board));
+	const ticker = $derived(tickerLines(board));
 	// The board's own assembly time (Postgres's clock) — the reference every
 	// age on the page is computed against.
 	const asOf = $derived(board.generated.slice(0, 16).replace('T', ' ') + 'Z');
 </script>
 
 <header class="masthead">
+	<!--
+	  3d Cavalry Regiment DUI — "the Bug" (kfdc #1183). A unit crest belongs on
+	  the letterhead, and the masthead is this board's letterhead; that is the
+	  placement where it reads as earned rather than applied. Rendered in its own
+	  enamel-and-gold rather than recoloured to the board's palette: it is
+	  heraldry, and it should look like itself. Provenance and the AR 670-1 /
+	  10 U.S.C. § 771 caveat are in docs/design.md.
+	-->
+	<img
+		class="crest"
+		src="/brave-rifles.png"
+		alt="3d Cavalry Regiment distinctive unit insignia — Brave Rifles"
+		title="3d Cavalry Regiment — Brave Rifles"
+		width="128"
+		height="102"
+	/>
 	<div class="wordmark">
 		K<span class="dot">·</span>F<span class="dot">·</span>D<span class="dot">·</span>C
 	</div>
@@ -55,4 +74,7 @@
 	</div>
 </div>
 
+<!-- Two transition feeds, one board (#1186): the Net Log is what THIS board
+     observed, the Ticker is what korg recorded. Different forms on purpose. -->
 <NetLog lines={data.netlog} korgBase={data.korgBase} />
+<Ticker lines={ticker} korgBase={data.korgBase} />

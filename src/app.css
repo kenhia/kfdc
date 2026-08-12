@@ -47,6 +47,21 @@ header.masthead {
 	border-bottom: 2px solid var(--line);
 	margin-bottom: 14px;
 }
+/* The regimental crest (kfdc #1183). Size picked against the asset README's
+   own measurements, not by eye: above its 48px silhouette floor so the scrolls,
+   bugle and 3 actually read, and well below the ~96px where `BRAVE RIFLES`
+   becomes legible — the mark reads as a mark without pretending to be readable
+   text. Served at 128px wide for a crisp 2× on hidpi. `align-self` because the
+   masthead aligns on the baseline, which an image has no useful one of. */
+.crest {
+	align-self: center;
+	height: 56px;
+	width: auto;
+	margin-right: -14px;
+	/* Seated into a night-ops palette rather than sitting on top of it: full
+	   enamel green and gold out-shout every other colour on the board. */
+	opacity: 0.88;
+}
 .wordmark {
 	font-family: var(--mono);
 	font-size: 26px;
@@ -460,6 +475,58 @@ tr.prog-slice:last-child td {
 }
 .netlog-strip a:hover {
 	border-bottom-color: var(--amber);
+}
+
+/* ---------- ticker ---------- */
+/* The concept's footer.ticker, restored (kfdc #1186/#1187): a wrapping run of
+   events rather than a transcript, so korg's whole 20-event window costs a few
+   rows instead of twenty. Quiet by construction — the panels above own colour. */
+footer.ticker {
+	margin-top: 14px;
+	border-top: 2px solid var(--line);
+	padding: 8px 12px 0;
+	display: flex;
+	gap: 22px;
+	flex-wrap: wrap;
+	font-family: var(--mono);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	color: var(--muted);
+}
+/* `flex: none` is load-bearing: an event is one indivisible quotation, so it
+   wraps to the next row whole rather than being shrunk and clipped mid-title
+   at the right edge — which is what flex does by default to a shrinkable item.
+   The title is already capped by TITLE_MAX, so nothing here needs to shrink. */
+footer.ticker .ev {
+	display: inline-flex;
+	flex: none;
+	gap: 6px;
+	white-space: nowrap;
+}
+footer.ticker .t {
+	color: var(--faint);
+}
+footer.ticker .lp {
+	color: var(--cyan);
+}
+footer.ticker .tr {
+	color: var(--faint);
+}
+/* The one accent: a ship. */
+footer.ticker .tr.ship {
+	color: var(--green);
+}
+footer.ticker a {
+	color: var(--ink);
+	text-decoration: none;
+	border-bottom: 1px dotted var(--faint);
+}
+footer.ticker a:hover {
+	border-bottom-color: var(--amber);
+}
+footer.ticker .src-note {
+	margin-left: auto;
+	color: var(--faint);
 }
 
 /* ---------- empty / error ---------- */

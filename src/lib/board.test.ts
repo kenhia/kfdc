@@ -59,6 +59,7 @@ const board = (over: Partial<Board> = {}): Board => ({
 		{ project: 'kfdc', status: 'active', proposals: 1, wi_in_proposal: 4, wi_total: 4 }
 	],
 	reports: [],
+	events: [],
 	...over
 });
 
