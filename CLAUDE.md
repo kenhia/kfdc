@@ -45,10 +45,13 @@ what's blocked, what's waiting on Ken* across every project, reading `korg`
 (the system of record) — plus a headless **curator** agent pass that writes
 summaries and sequencing edges *back into korg* for the board to render.
 
-Status: **Phase 2 live** at `https://kai.encke-wahoo.ts.net:8100` — Fire
-Missions, On Deck, statline, Commander's Call, Net Log, Deconfliction,
-Sensor Net and Operations render production korg (sprints 001–004). kai is
-the interim host; production moves to kubsdb in Phase 3. The plan onward is
+Status: **the board is built** and live at
+`https://kai.encke-wahoo.ts.net:8100` — Fire Missions, On Deck, statline,
+Commander's Call, Net Log, Deconfliction, Sensor Net, Operations and the
+Ticker render production korg (sprints 001–008). Sprint 008 rendered the
+last unrendered thing on `/api/board`, so what remains in Phase 3 is
+placement, not panels: kai is the interim host and production moves to
+kubsdb in slice 2 (proposal korg:1191). The plan onward is
 `sprints/planning/roadmap.md`. Read it before doing anything.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
@@ -56,7 +59,12 @@ the interim host; production moves to kubsdb in Phase 3. The plan onward is
   the current scaffold style, not an omission). One server-only path to
   korg: `src/lib/server/korg.ts`; pure board derivations + types:
   `src/lib/board.ts` (three-part progress per korg #980, statline per D-3,
-  ages against the board's `generated`); panels in `src/lib/panels/`.
+  ages against the board's `generated`), with per-feature derivations beside
+  it in `netlog.ts` / `curator.ts` / `ticker.ts`; panels in
+  `src/lib/panels/`. **Two transition feeds that must not converge**
+  (sprint 008): the Net Log is observer-relative and speaks FDC, the Ticker
+  is korg-authoritative and quotes korg verbatim — `docs/design.md` carries
+  the measurement behind that split.
   `just check` runs the real gates (prettier/eslint, svelte-check, build,
   vitest + harness invariants). vitest has two projects (sprint 007):
   `server` (node) for everything, `client` (jsdom +

@@ -15,7 +15,19 @@ is a deliberate commitment, not an omission.
   Deconfliction (sequencing collisions) · Commander's Call (blocked on Ken) ·
   Operations (multi-project programs) · Sensor Net (health/risk) ·
   Net Log (radio traffic on the fires net — what changed since you last
-  looked, observed times, panel codes FM/CC/OD/OP).
+  looked, observed times, panel codes FM/CC/OD/OP) · Ticker (korg's own
+  transition log, footer strip).
+- **Two transition feeds, and they must not converge** (kfdc #1186,
+  sprint 008). The Net Log is *observer-relative* — what this board saw
+  change, at observation time, in FDC verbs. The Ticker is
+  *korg-authoritative* — what korg recorded, at korg's exact instant, in
+  korg's own words (`proposed→active`, never translated to `firing`). They
+  differ in **form** as well as content, which is how the division of labour
+  reads without being explained: the Net Log is a vertical transcript, the
+  Ticker a horizontal run. Measured, not assumed: on the live window only 4
+  of 20 korg events had any Net Log counterpart, and the Net Log's own
+  majority traffic (queue movement, splash, awaiting) is invisible to korg's
+  log by construction.
 - **Proposed/unbuilt things get dashed borders** (grease-pencil); live data
   gets solid. Never blur that line.
 - Status is encoded in form + color, never color alone (chips carry text).
@@ -56,3 +68,40 @@ letter-spaced, underlined by `--line-soft`.
 done-token stays muted, but splash is the moment Ken should be watching —
 rounds complete, verification is the next event. Contrast on `--ground` is
 ~13.7:1 (the badge sets ground-colored text on a splash field, same ratio).
+
+The Ticker carries exactly **one** accent, `--green` on a proposal reaching
+`done` — a sprint shipping. Measured before it was written that narrowly: the
+obvious rule, accent anything terminal, painted 12 of 20 rows green because
+`resolved→closed` is Ken's routine verification sweep. An accent that fires on
+half the rows is the background, not an accent.
+
+## The regimental crest
+
+The masthead carries the **3d Cavalry Regiment Distinctive Unit Insignia** —
+"the Bug", adopted 1922, Ken's regimental affiliation (kfdc #1183). A unit
+crest belongs on the letterhead, and the masthead is this board's letterhead;
+that is the placement where it reads as earned rather than applied.
+
+- Asset: [`static/brave-rifles.png`](../static/brave-rifles.png), the 128px
+  entry of the native 1.25:1 ladder in the pack at `/gratch/kIcons/kfdc-icons`
+  (whose `README.md` is the authoritative record of provenance, palette and
+  per-size guidance).
+- Source: `File:3d Cavalry Regimental Insignia.png` on Wikimedia Commons.
+  Author United States Army — **public domain** as a work of the U.S. federal
+  government, confirmed via the Commons API rather than inferred. Nothing was
+  redrawn or recoloured.
+- Rendered in its own enamel green and gold rather than retinted to the board
+  palette: it is heraldry, and it should look like itself. Seated at `0.88`
+  opacity so it sits inside a night-ops palette instead of on top of it.
+- Sized at **56px** against the pack's own measurements — above its 48px
+  silhouette floor so the scrolls, bugle and 3 read; well below the ~96px
+  where `BRAVE RIFLES` becomes legible, so the mark never pretends to be
+  readable text. A favicon-sized slot wants a purpose-drawn glyph, not a
+  downscale of this; the pack's README measures why.
+
+> ⚠️ Public domain settles **copyright** only. U.S. Army insignia carry
+> separate limits on *use* under AR 670-1 and 10 U.S.C. § 771. This is a
+> personal, tailnet-only board displaying the wearer's own regimental
+> affiliation, which those rules do not reach — but this repository is public,
+> so the caveat is recorded rather than assumed away. It would matter for
+> merchandise or anything implying Army endorsement.

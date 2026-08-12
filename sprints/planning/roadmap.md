@@ -120,17 +120,36 @@ machinery overlaps, and its kfdc slice (proposal korg:1024, bundles to the
 store) already owns exactly that part. Phase 3's bullets are independent
 of each other; no "Phase 3 first".
 
+**Filed into korg 2026-08-11** as program **korg:1192** ("kfdc Phase 3 —
+switch over, and manage kfdc in kfdc"), which is itself the last bullet
+below. The two remaining bullets are its ordered slices — proposal
+korg:1190 (ticker: #1186 decide-first + #1187 + #1183 ride-along) then
+proposal korg:1191 (kubsdb move #1188 + roadmap retirement #1189). No
+`depends_on` edge between them: the order is a preference, and the
+bullets remain independent. From here the live plan is korg; this file is
+the record until #1189 retires it.
+
 - [x] Operations (programs) panel — SHIPPED 2026-08-06 as sprint 004
       (proposal kfdc:1030: #1029 + QOL ride-alongs #990 SPLASH, #1027
       arrow), before program korg:1026 runs so its slices tick on the
       board live. Record: `sprints/004-operations-panel.md`. (Commander's
       Call shipped early — sprint 001 took the stretch.)
-- [ ] Ticker from korg events/reports — **unblocked 2026-08-08**: korg #977
-      shipped (korg sprint 053), and `/api/board` now carries `events` (the
-      newest 20 status transitions). Untyped and unrendered in kfdc. Note the
-      log starts at korg migration 0026 and was not backfilled, so empty means
-      "nothing has moved since the migration", not "nothing ever moved" — a
-      panel that cannot say the difference should render nothing.
+- [x] Ticker from korg events — SHIPPED 2026-08-11 as sprint 008 (proposal
+      korg:1190, #1186 + #1187 + #1183), slice 1 of program korg:1192.
+      `events` typed end-to-end and rendered in the footer slot the approved
+      concept had drawn for it all along — the Net Log took that slot in
+      sprint 002, having been invented after the concept. #1186 measured the
+      two feeds against live production and kept them separate: only 4 of 20
+      korg events had any Net Log counterpart, and the Net Log's own majority
+      traffic (queue movement, splash, awaiting) is invisible to korg's log by
+      construction. **So the Phase-1.5 promise to enrich Net Log lines is
+      deliberately not kept** — the argument is a comment on korg:1186; reopen
+      it only with a new measurement. The honesty rule landed as specified:
+      the log starts at korg migration 0026 and was not backfilled, so an
+      empty window renders no footer at all rather than an empty state that
+      would read as a claim about history. #1183 rode along — the 3d Cavalry
+      DUI in the masthead, provenance and the AR 670-1 / § 771 caveat in
+      `docs/design.md`. Record: `sprints/008-ticker.md`.
 - [x] Program-ordered work renders once — SHIPPED 2026-08-08 as sprint 007
       (proposal korg:1077, #1064 + #1070 + #1102), slice 2 of program
       korg:1078. On Deck collapses a program's queue rows into one (`n of m
@@ -151,7 +170,8 @@ of each other; no "Phase 3 first".
       `docs/deploying.md`. Sprint 006 (#1035) made shipping *invoke* it:
       `.sprint-deploy` names the `deploy-board` skill, so sprint-ship
       Phase 7 fires instead of skipping silently as it did here.
-- [ ] Production deploy: move kfdc hosting to **kubsdb** — unblocked by
+- [ ] Production deploy: move kfdc hosting to **kubsdb** — **slice 2,
+      proposal korg:1191** (#1188). Unblocked by
       sprint 005, and now only a *placement* change: same artifact fetched
       on kubsdb (bootstrap recipe in `docs/deploying.md`), new serve entry
       declared for that host, retire kai's unit + :8100 (k-homelab #988's
@@ -159,8 +179,12 @@ of each other; no "Phase 3 first".
       (`~/.local/state/kfdc`) with it — viewer history must survive the
       move. kubsdb needs no agent tooling; the curator and transmit runner
       stay on kai.
-- [ ] Retire this roadmap into korg: file the remaining plan as a program,
-      manage kfdc *in* kfdc.
+- [~] Retire this roadmap into korg: file the remaining plan as a program,
+      manage kfdc *in* kfdc. Program **korg:1192** filed 2026-08-11 — the
+      substance is done. The tail (#1189, rides in slice 2) cuts this file
+      back to architecture + record, and moves *Later / Ideas* below into
+      kfdc work items verbatim — that text carries recorded design, most of
+      all the Transmit drawer, and summarizing it loses the decisions.
 
 ## Later / Ideas
 
