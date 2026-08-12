@@ -45,11 +45,12 @@ what's blocked, what's waiting on Ken* across every project, reading `korg`
 (the system of record) — plus a headless **curator** agent pass that writes
 summaries and sequencing edges *back into korg* for the board to render.
 
-Status: **Phase 2 live** at `https://kai.encke-wahoo.ts.net:8100` — Fire
-Missions, On Deck, statline, Commander's Call, Net Log, Deconfliction,
-Sensor Net and Operations render production korg (sprints 001–004). kai is
-the interim host; production moves to kubsdb in Phase 3. The plan onward is
-`sprints/planning/roadmap.md`. Read it before doing anything.
+Status: **built and in production** at
+`https://kubsdb.encke-wahoo.ts.net:8100` — Fire Missions, On Deck, statline,
+Commander's Call, Net Log, Deconfliction, Sensor Net, Operations and the
+Ticker render production korg (sprints 001–008). Sprint 009 closed Phase 3
+by moving the board off kai, its interim host, to kubsdb; kai keeps the
+clone and the curator and serves nothing.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
   `sveltekit()` plugin in `vite.config.ts` — no `svelte.config.js`; that is
@@ -64,8 +65,13 @@ the interim host; production moves to kubsdb in Phase 3. The plan onward is
   [version]` installs *that artifact* on the serving host and naming an
   older version is the rollback. The service runs out of
   `~/.local/share/kfdc/current`, not the clone, with placement (PORT,
-  ORIGIN) in `~/.config/kfdc/kfdc.env` — which is why moving to kubsdb
-  touches no file here. `docs/deploying.md`; doctrine is k-homelab
+  ORIGIN) in `~/.config/kfdc/kfdc.env` — which is why sprint 009's move to
+  kubsdb changed no application code. **The clone and the service are on
+  different machines now**: `KFDC_DEPLOY_HOST` in `.env` names the serving
+  host, and `just deploy` / `just versions` reach it over ssh, where the
+  remote fetches and checksum-verifies its own `install.sh`. Nothing is
+  copied from the clone — a clone-less serving host is the point.
+  `docs/deploying.md`; doctrine is k-homelab
   `docs/deploying.md`. Shipping deploys automatically: `.sprint-deploy`
   names the `deploy-board` skill, which sprint-ship's Phase 7 invokes after
   the merge (sprint 006 — before that the deploy was silently skipped). The
@@ -88,7 +94,16 @@ the interim host; production moves to kubsdb in Phase 3. The plan onward is
   that's a korg work item, not a workaround.
 - korg's production API runs on kubsdb:5674; kfdc reads it via REST through
   SvelteKit server routes (token in `.env`, never in the client).
-- Read first: `sprints/planning/roadmap.md`, `docs/design.md`,
+- **The plan lives in korg, not in this repo** (sprint 009, #1189). "What's
+  next for kfdc" is answered by the board itself —
+  `https://kubsdb.encke-wahoo.ts.net:8100` — or by korg's Planning page, not
+  by a markdown file. `sprints/planning/roadmap.md` is no longer a roadmap:
+  it now holds the two-layer architecture decision, the standing
+  constraints, and the record of what each phase built. Read it for *why*
+  and *what was built*; never for *what's next*. Recorded-but-unbuilt ideas
+  are korg #1202–#1207, unqueued on purpose.
+- Read first: `sprints/planning/roadmap.md` (architecture + record),
+  `docs/design.md`,
   `docs/design/kfdc-concept.html`. Cross-repo: `korg`
   (kai:~/src/tools/korg) owns the data model; `korg-dash`
   (kai:~/src/tools/korg-dash) stays the small-panel summary feed for

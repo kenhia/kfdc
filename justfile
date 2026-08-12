@@ -1,4 +1,5 @@
-# KFDC_STORE_URL / KFDC_STORE_HOST live in .env beside KORG_URL.
+# KFDC_STORE_URL / KFDC_STORE_HOST / KFDC_DEPLOY_HOST live in .env beside
+# KORG_URL.
 set dotenv-load := true
 
 # List available recipes
@@ -78,27 +79,72 @@ publish:
     ssh -n "$KFDC_STORE_HOST" "kpkg artifact $latest_arg kfdc $v $d/* && rm -rf $d"
     echo "published: kfdc $v"
 
-# Deploy the board on THIS host from a published bundle (default: latest).
-# Naming an older version is the rollback — the store is the history, and
-# the last few unpacked versions stay on disk for a symlink-fast one.
+# Deploy the board on the SERVING host from a published bundle (default:
+# latest). Naming an older version is the rollback — the store is the
+# history, and the last few unpacked versions stay on disk for a
+# symlink-fast one.
+#
+# `KFDC_DEPLOY_HOST` names the serving host, because the clone and the
+# service stopped being on the same machine in sprint 009 (kai -> kubsdb).
+# It has no default for the same reason the store variables do not: a
+# guessed host installs the board somewhere nobody is looking and reports
+# success. When it names this machine the installer runs here; otherwise
+# the *documented bootstrap* runs over ssh — the serving host fetches its
+# own install.sh and checksum-verifies it before running it. Nothing is
+# copied from this clone, because a clone-less serving host is the entire
+# point of deploying from the store.
 deploy version="":
     #!/usr/bin/env bash
     set -euo pipefail
     : "${KFDC_STORE_URL:?set KFDC_STORE_URL in .env (e.g. https://kubsdb.encke-wahoo.ts.net:4880)}"
-    args=(--from-store)
-    if [[ -n "{{ version }}" ]]; then args+=(--version "{{ version }}"); fi
-    deploy/install.sh "${args[@]}"
+    : "${KFDC_DEPLOY_HOST:?set KFDC_DEPLOY_HOST in .env (the host that serves the board, e.g. kubsdb)}"
+    if [[ "$KFDC_DEPLOY_HOST" == "$(hostname -s)" ]]; then
+        args=(--from-store)
+        if [[ -n "{{ version }}" ]]; then args+=(--version "{{ version }}"); fi
+        deploy/install.sh "${args[@]}"
+    else
+        echo "==> deploying on $KFDC_DEPLOY_HOST (this clone is not the serving host)"
+        ssh "$KFDC_DEPLOY_HOST" bash -s -- "$KFDC_STORE_URL" "{{ version }}" <<'REMOTE'
+    set -eu
+    store="$1"; want="${2:-}"
+    base="$store/artifacts/kfdc"
+    if [ -z "$want" ]; then
+        want=$(curl -fsS "$base/latest" | tr -d '[:space:]') \
+            || { echo "cannot read $base/latest from $(hostname -s)" >&2; exit 1; }
+    fi
+    work=$(mktemp -d)
+    trap 'rm -rf "$work"' EXIT INT TERM
+    cd "$work"
+    curl -fsS -O "$base/$want/install.sh"
+    curl -fsS "$base/$want/SHA256SUMS" | grep ' install.sh$' | sha256sum -c -
+    KFDC_STORE_URL="$store" sh install.sh --from-store --version "$want"
+    REMOTE
+    fi
 
-# What the store holds, and what this host has unpacked and is running.
+# What the store holds, and what the SERVING host has unpacked and is
+# running. Three views of one version; if they disagree, which one disagrees
+# is the whole diagnostic.
 versions:
     #!/usr/bin/env bash
     set -euo pipefail
     : "${KFDC_STORE_HOST:?set KFDC_STORE_HOST in .env}"
+    : "${KFDC_DEPLOY_HOST:?set KFDC_DEPLOY_HOST in .env}"
     echo "store:"
     ssh -n "$KFDC_STORE_HOST" 'kpkg list' | sed -n 's/^artifacts\/kfdc: /  /p'
+    echo "serving host: $KFDC_DEPLOY_HOST"
+    if [[ "$KFDC_DEPLOY_HOST" == "$(hostname -s)" ]]; then
+        bash -s <<'HERE'
     echo "here:"
     ls -1t ~/.local/share/kfdc/versions 2>/dev/null | sed 's/^/  /' || echo "  (none)"
     echo "running: $(basename "$(readlink -f ~/.local/share/kfdc/current 2>/dev/null)" 2>/dev/null || echo none)"
+    HERE
+    else
+        ssh "$KFDC_DEPLOY_HOST" bash -s <<'HERE'
+    echo "here:"
+    ls -1t ~/.local/share/kfdc/versions 2>/dev/null | sed 's/^/  /' || echo "  (none)"
+    echo "running: $(basename "$(readlink -f ~/.local/share/kfdc/current 2>/dev/null)" 2>/dev/null || echo none)"
+    HERE
+    fi
 
 # Harness invariants — still guard the kproject managed block and design docs
 harness:

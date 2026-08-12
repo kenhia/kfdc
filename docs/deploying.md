@@ -14,15 +14,28 @@ and not repeated here. What follows is what is specific to kfdc.
 
 ```sh
 just publish            # on the dev clone, from a clean tree
-just deploy             # on the serving host — installs `latest`
+just deploy             # installs `latest` on the serving host
 just deploy <version>   # ...or exactly that version. This is the rollback.
-just versions           # what the store holds, what this host has, what it runs
+just versions           # what the store holds, what the serving host has and runs
 ```
 
-`KFDC_STORE_URL` (fetching) and `KFDC_STORE_HOST` (publishing) come from
-`.env`; see `.env.example`. Neither has a default, deliberately — a guessed
-hostname fails later as a confusing curl error instead of here as a
-sentence.
+All four run **from the clone**, on kai. Since sprint 009 that is not the
+machine the board runs on: `KFDC_DEPLOY_HOST` names the serving host
+(kubsdb), and when it is not this machine `just deploy` and `just versions`
+reach it over ssh.
+
+`KFDC_STORE_URL` (fetching), `KFDC_STORE_HOST` (publishing) and
+`KFDC_DEPLOY_HOST` (serving) come from `.env`; see `.env.example`. None has
+a default, deliberately — a guessed store hostname fails later as a
+confusing curl error instead of here as a sentence, and a guessed *deploy*
+host is worse than that: it installs the board somewhere nobody is looking
+and reports success.
+
+What crosses the ssh connection is a command, never a build. The serving
+host fetches its own `install.sh` from the store and checksum-verifies it
+before running it — the same bootstrap written out below, which is why
+adding a host and redeploying one are the same procedure. Nothing is copied
+out of this clone, because a clone-less serving host is the entire point.
 
 ## Shipping a sprint deploys it
 
@@ -135,18 +148,39 @@ curl -fsS "$base/$v/SHA256SUMS" | grep ' install.sh$' | sha256sum -c -
 sh install.sh --from-store --version "$v"
 ```
 
-Then fill in the config it seeds and re-run. This is the whole of the
-Phase-3 move to kubsdb on the kfdc side: same artifact, fetched there, a new
-`tailscale_serve` entry declared for that host, and kai's unit and `:8100`
-retired. The Net Log store (`~/.local/state/kfdc`) has to be copied across
-with it — viewer history must survive the move.
+Then fill in the config it seeds and re-run. `just deploy` runs exactly this
+on a remote serving host, so a bootstrap is not a special mode — it is the
+ordinary deploy, typed by hand because there is no `.env` naming the host
+yet.
+
+This was the whole of the Phase-3 move to kubsdb on the kfdc side, done in
+sprint 009: same artifact fetched there, a new `tailscale_serve` entry
+declared for that host, and kai's unit and `:8100` retired. The Net Log
+store (`~/.local/state/kfdc`) was copied across first — viewer history had
+to survive the move, and the proof is pre-move lines still rendering in the
+strip afterward. Copy it **before first start**: the observer diffs against
+`last-digest.json`, so a host that starts without one records its first
+poll as a wall of spurious transitions.
+
+## Where things run, after sprint 009
+
+| | |
+|---|---|
+| clone, build, `just publish` | kai — needs the toolchain and a commit |
+| the board | **kubsdb**, `https://kubsdb.encke-wahoo.ts.net:8100` |
+| the package store | kubsdb `:4880` |
+| the curator | kai, from the clone |
+
+kai serves nothing. It holds the checkout and runs the curator, and that is
+the whole of its role.
 
 ## What still runs from the clone on kai
 
 The curator. `bin/update-fdc`, `kfdc-curator.timer` and `just curator` need
 the repo (`curator/prompt.md`) and a `claude` binary, and read the clone's
-own `.env`. That is deliberate and stays on kai when the board moves —
-kubsdb needs no agent tooling.
+own `.env`. That is deliberate and stayed on kai when the board moved —
+kubsdb has no agent tooling and is not getting any. The curator talks to
+korg over the network and does not care where the board runs.
 
 Its unit carries an explicit `Environment=PATH=%h/.local/bin:...` and must
 keep it. A systemd **user** unit does not inherit a login shell's PATH, and
