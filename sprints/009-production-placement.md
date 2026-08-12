@@ -183,10 +183,54 @@ Phase 3 complete, no successor filed. The six preserved ideas are
 deliberately not on the board, because unqueued work is memory rather than
 plan. That is the retirement working, not a gap in it.
 
+## Deployed 2026-08-12
+
+**Version:** `0.5.0-2e14fbe` (the squash-merge commit)
+**Rollback target:** `0.5.0-8705758` — `just deploy 0.5.0-8705758`
+**Host:** kubsdb
+
+The first deploy through the path this sprint built, which makes it the
+sprint's own regression test: `just publish` from merged `main` on kai, then
+`just deploy 0.5.0-2e14fbe` reaching kubsdb over ssh, where the host fetched
+and checksum-verified its own `install.sh`. Nothing was copied from the
+clone.
+
+Verified with values, not "OK":
+
+| Assertion | Value |
+|---|---|
+| running process (`/proc/<pid>/cwd`) | pid 1268600 → `0.5.0-2e14fbe` |
+| tailnet HTTP, **from kai** | `200` |
+| SSR marker | `fire missions` present |
+| three views agree | store `latest:` = `here:` top = `running:` = `0.5.0-2e14fbe` |
+
+Because this sprint changed no application code, the smoke test was
+continuity rather than a new behaviour: all eight panels render (Fire
+Missions, On Deck, Commander's Call, Deconfliction, Sensor Net, Operations,
+Net Log, Ticker), the Net Log store is untouched at 247 lines still reaching
+back to `2026-08-05T20:49:10Z`, and 14 pre-move lines render in the strip
+after the deploy. Viewer history has now survived both a host move and a
+redeploy.
+
+`just deploy` again took **1m32s**, all of it the SIGTERM stall — the same
+number measured before the move, on the new host, which is what makes #1200
+a property of the service rather than of either machine.
+
+### Found by deploying
+
+The `deploy-board` skill edit in this sprint used `V="$1"` in its verify
+snippet. **`$1` is expanded when a skill is loaded**, so the rendered
+instruction read `V="deploy"` — an assertion that would compare the running
+version against a literal string and fail confusingly, or silently compare
+against empty. Caught on this very deploy, before it could mislead anyone,
+and fixed in a follow-up: the snippet passes the version through `env`
+instead. Skill bodies are templates, not shell scripts, and `$1` is not
+inert in them.
+
 ## Follow-ups
 
 - **#1200** — kfdc ignores SIGTERM; every deploy waits out the 90s stop
-  timeout and the unit lands `failed`. Measured here.
+  timeout and the unit lands `failed`. Measured here, twice, on two hosts.
 - **k-homelab #1199** — merge kenhia/k-homelab#39. **Awaiting Ken.**
 - **k-homelab #1201** — kubsdb's undeclared `:4870`.
 - **#1202–#1207** — the preserved ideas, unqueued.
