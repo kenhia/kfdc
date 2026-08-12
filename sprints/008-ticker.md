@@ -147,3 +147,53 @@ every fixture accounts for the new contract rather than inheriting `undefined`.
 - `/api/board` also carries a top-level `sources` array that `Board` does not
   type. Out of scope here and not needed by any panel; noted so it is not
   mistaken for an oversight later.
+
+## Deployed 2026-08-12
+
+Published from merged `main` (`8705758`) and installed on kai — **the last kai
+deploy before slice 2 (korg:1191) moves hosting to kubsdb.**
+
+| | |
+|---|---|
+| Version | `0.5.0-8705758` |
+| Rollback target | `0.5.0-3772965` (sprint 007) — `just deploy 0.5.0-3772965` |
+| Store | `latest -> 0.5.0-8705758`; six versions held |
+
+Verified live, with actual values rather than "OK":
+
+- Running version proven from the process, not the health check: `MainPID
+  2478400`, `/proc/2478400/cwd` resolves to `0.5.0-8705758`.
+- Tailnet (not loopback, so `tailscale_serve` is exercised): `200` from
+  `https://kai.encke-wahoo.ts.net:8100/`, and `Fire Missions` present in the
+  body — SSR rendered the board, not an error shell.
+- `just versions`: store `latest`, `here` top entry and `running` all
+  `0.5.0-8705758`.
+
+Sprint-specific smoke test — the deploy skill's health check proves *a* kfdc is
+up, not that this sprint's work is live:
+
+- Ticker footer present, **20 events**, 20 korg deep links, source note
+  `feed: korg transitions · newest 20`, 3 ship accents.
+- Masthead crest present with its alt text.
+- Net Log strip still present — the two feeds coexist, which was #1186's whole
+  point.
+
+The board's own head at deploy time was this ship: `1m 1192 active→holding` and
+`2m kfdc 1190 active→done`. kfdc rendering its own sprint closing is the dogfood
+program korg:1192 was filed to get.
+
+### One defect found by this verification — korg:1197
+
+The `1192 active→holding` line is a **program** transition, and `EventRow` types
+`kind` as `'sprint_proposal' | 'workitem'` with `project: string`. Production
+emits three kinds, and `project` is `null` for a program (correct on korg's
+side — a program's span is derived, so it has no project).
+
+The 20-event window this was typed against contained no program transition, so
+the third kind was invisible to the measurement. Sprint 004's rule — verify
+field by field against the live response — was followed for field *presence* and
+missed on *value domain*. **A sampled enum is not an enum.**
+
+Runtime is unaffected (types do not execute); the line renders and deep-links
+correctly because `lineHref` already handles `program`. Filed XS as korg:1197
+rather than hot-patched, since the deployed board is correct.
