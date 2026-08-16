@@ -775,6 +775,149 @@ footer.ticker .src-note {
 	font-style: italic;
 }
 
+/* ---------- rate of fire (sprint 010) ----------
+   Mirror bars: added grows up, closed grows down — direction carries series
+   identity structurally, color reinforces. Red/green chosen by the validator,
+   not by eye: amber/green fails CVD separation at ΔE 4.7 (floor 6), red/green
+   passes every perceptual check on this surface (sprint record 010). */
+.rof .chart {
+	display: block;
+	margin: 2px 12px 6px;
+	max-width: 100%;
+	height: auto;
+}
+.rof .grid {
+	stroke: var(--line-soft);
+	stroke-width: 1;
+}
+.rof .base {
+	stroke: var(--line);
+	stroke-width: 1;
+}
+.rof .add-dur {
+	fill: var(--red);
+}
+/* Faded = "not (yet) durable": same-day churn on the closed side, and the
+   whole added bar while a day is younger than the durability lag — korg
+   cannot know yet, so the panel does not claim (korg #1318). */
+.rof .add-churn {
+	fill: color-mix(in oklab, var(--red) 42%, var(--panel));
+}
+.rof .out-dur {
+	fill: var(--green);
+}
+.rof .out-churn {
+	fill: color-mix(in oklab, var(--green) 42%, var(--panel));
+}
+.rof .day,
+.rof .tick,
+.rof .strip-t,
+.rof .spark-v {
+	font-family: var(--mono);
+	font-variant-numeric: tabular-nums;
+}
+.rof .day {
+	font-size: 9px;
+	fill: var(--faint);
+	text-anchor: middle;
+}
+.rof .day.today {
+	fill: var(--muted);
+}
+.rof .tick {
+	font-size: 8px;
+	fill: var(--faint);
+}
+.rof .strip-t {
+	font-size: 8px;
+	fill: var(--faint);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+.rof .spark {
+	fill: none;
+	stroke: var(--muted);
+	stroke-width: 2;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+/* The 2px surface ring that keeps the end-dot legible where it meets the line. */
+.rof .spark-dot {
+	fill: var(--ink);
+	stroke: var(--panel);
+	stroke-width: 2;
+}
+.rof .spark-v {
+	font-size: 10.5px;
+	fill: var(--ink);
+}
+.rof .hit {
+	fill: transparent;
+}
+.rof .stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 14px;
+	margin: 0 12px 4px;
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--muted);
+	font-variant-numeric: tabular-nums;
+}
+.rof .stats b {
+	color: var(--ink);
+	font-weight: 600;
+}
+.rof .stats b.ok {
+	color: var(--green);
+}
+.rof .stats b.load {
+	color: var(--red);
+}
+/* Backlog delta wears state: growing is against us, shrinking is ground gained. */
+.rof .stats .delta.up {
+	color: var(--red);
+}
+.rof .stats .delta.down {
+	color: var(--green);
+}
+.rof .legend {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 12px;
+	font-family: var(--mono);
+	font-size: 10px;
+	color: var(--faint);
+}
+.rof .legend .sw {
+	width: 8px;
+	height: 8px;
+	flex: none;
+}
+.rof .legend .sw.load {
+	background: var(--red);
+}
+.rof .legend .sw.ok {
+	background: var(--green);
+}
+.rof .legend .key {
+	margin-left: 4px;
+}
+
+/* Screen-reader-only: the chart's table twin. */
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
 /* Curator's current-state line on a mission card. */
 .mission-card .synopsis {
 	font-family: var(--mono);

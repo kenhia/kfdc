@@ -6,6 +6,7 @@
 	import NetLog from '$lib/panels/NetLog.svelte';
 	import OnDeck from '$lib/panels/OnDeck.svelte';
 	import Operations from '$lib/panels/Operations.svelte';
+	import RateOfFire from '$lib/panels/RateOfFire.svelte';
 	import SensorNet from '$lib/panels/SensorNet.svelte';
 	import Ticker from '$lib/panels/Ticker.svelte';
 	import { tickerLines } from '$lib/ticker';
@@ -71,6 +72,7 @@
 	<div class="col">
 		<CommandersCall awaiting={board.awaiting} generated={board.generated} />
 		<SensorNet reports={board.reports} generated={board.generated} />
+		<RateOfFire flow={data.flow} />
 	</div>
 </div>
 
