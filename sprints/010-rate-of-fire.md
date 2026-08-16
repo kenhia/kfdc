@@ -103,3 +103,23 @@ rollback, not scaffolding.
 - Panel name "Rate of Fire" and the column-3 placement are Ken's to
   revisit; the masthead-adjacent option was declined because the
   durable/churn split is the panel's substance and needs panel-scale room.
+
+## Deployed
+
+2026-08-16, version **0.5.0-7351ecf** (the sprint's squash-merge commit)
+published to the store and installed on kubsdb via `just deploy
+0.5.0-7351ecf`. Rollback target: `0.5.0-2e14fbe` (sprint 009, running
+before this deploy).
+
+Verified live:
+
+- cwd assertion on kubsdb: `pid 633437 running 0.5.0-7351ecf`.
+- Viewer path from kai: `https://kubsdb.encke-wahoo.ts.net:8100/` → 200,
+  `FIRE MISSIONS` marker present (SSR rendered the board, not an error
+  shell).
+- **The sprint's own behaviour**: exactly one `panel rof` on the page, the
+  no-feed marker absent, and the chart's aria-label reads "Work-item flow
+  over 6 days" — the panel is rendering korg's live production series, not
+  a fallback.
+- `just versions`: store `latest`, host `here` top entry, and `running`
+  all report `0.5.0-7351ecf`.
