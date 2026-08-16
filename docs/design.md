@@ -16,7 +16,8 @@ is a deliberate commitment, not an omission.
   Operations (multi-project programs) · Sensor Net (health/risk) ·
   Net Log (radio traffic on the fires net — what changed since you last
   looked, observed times, panel codes FM/CC/OD/OP) · Ticker (korg's own
-  transition log, footer strip).
+  transition log, footer strip) · Rate of Fire (work-item flow — are we
+  gaining or losing ground).
 - **Two transition feeds, and they must not converge** (kfdc #1186,
   sprint 008). The Net Log is *observer-relative* — what this board saw
   change, at observation time, in FDC verbs. The Ticker is
@@ -74,6 +75,17 @@ The Ticker carries exactly **one** accent, `--green` on a proposal reaching
 obvious rule, accent anything terminal, painted 12 of 20 rows green because
 `resolved→closed` is Ken's routine verification sweep. An accent that fires on
 half the rows is the background, not an accent.
+
+Rate of Fire's series colors are validated, not intuited (sprint 010): the
+obvious pair, `--amber` for added vs `--green` for closed, **fails** CVD
+separation on the panel surface (ΔE 4.7 protan; the floor is 6) and the
+normal-vision floor (11.1 < 15). `--red`/`--green` passes every perceptual
+check (deutan 9.3, tritan 25.8, normal 22.9, contrast ≥3:1) and carries the
+board's own state semantics — added is incoming load, closed is ground
+gained — so the pair is legal under "semantic colors are reserved for state".
+Direction (added up, closed down of a shared baseline) is the structural
+identity channel; durable is solid, churn/not-yet-durable is a faded
+`color-mix` step of the same hue.
 
 ## The regimental crest
 
