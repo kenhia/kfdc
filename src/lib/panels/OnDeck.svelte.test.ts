@@ -71,7 +71,11 @@ function render(props: Partial<ComponentProps<typeof OnDeck>> = {}) {
 			[...target.querySelectorAll('td.qtitle')].map((td) =>
 				td.textContent!.replace(/\s+/g, ' ').trim()
 			),
-		roll: () => target.querySelector('button.roll') as HTMLButtonElement
+		roll: () => target.querySelector('button.roll') as HTMLButtonElement,
+		chips: () =>
+			[...target.querySelectorAll('td.qproj')].map((td) =>
+				[...td.querySelectorAll(':scope > .chips > .proj')].map((c) => c.textContent)
+			)
 	};
 }
 
@@ -129,12 +133,65 @@ describe('On Deck program roll-up', () => {
 		unmount(v.app);
 	});
 
+	// #1284. Every project chip sits inside one `.chips` wrapper, whatever the
+	// row type, because that wrapper is the only thing giving the line breaker
+	// somewhere to break: four adjacent inline chips measured 349px of
+	// unbreakable run and pushed the whole table 178px out of its panel. The
+	// assertion is structural (`td.qproj > .chips > .proj`) because the CSS that
+	// fixes the leak selects exactly that shape.
+	it('wraps every row`s project chips in one breakable group', () => {
+		const v = render({ queue: [row(5), row(10), row(12)], programs: [program()] });
+		expect(v.chips()).toEqual([['korg'], ['korg', 'kfdc']]);
+
+		v.roll().click();
+		flushSync();
+		// Revealed slices carry the same shape — a row type that skipped it would
+		// leak the moment a program spanned more than a couple of projects.
+		expect(v.chips()).toEqual([['korg'], ['korg', 'kfdc'], ['korg'], ['korg']]);
+		unmount(v.app);
+	});
+
 	// An unprogrammed queue must render no disclosure at all — the roll-up is
 	// the exception, not the row type.
 	it('renders no roll-up when no program contributes two queue rows', () => {
 		const v = render({ queue: [row(5), row(10)], programs: [program()] });
 		expect(v.target.querySelector('button.roll')).toBeNull();
 		expect(v.titles()).toEqual(['title 5', 'title 10']);
+		unmount(v.app);
+	});
+});
+
+// Wall mode (#1204): an unattended widescreen with nobody at the keyboard. The
+// roll-up is the board's ONLY interactive control, so it is the only thing
+// wall mode has to decide about — and the decision is that an affordance the
+// wall cannot honour should not be drawn.
+describe('On Deck on the wall', () => {
+	it('renders the roll-up as text: collapsed, inert, and no caret', () => {
+		const v = render({ wall: true });
+		expect(v.target.querySelector('button')).toBeNull();
+		expect(v.target.querySelector('span.roll')).not.toBeNull();
+		// Same row, minus the caret. `2 of 3 slices` stays: that is the honest
+		// half — it says there is more behind the row without offering to open
+		// it — and #1064's argument is that the collapsed form is the
+		// informative one anyway, not a compromise.
+		expect(v.titles()).toEqual(['title 5', 'program sequencing on the board 2 of 3 slices']);
+		unmount(v.app);
+	});
+
+	// Withdrawing the control must withdraw the disclosure with it — a wall
+	// stuck open would be showing rows #1064 removed on purpose, forever.
+	it('never reveals slices, because nothing can ask it to', () => {
+		const v = render({ wall: true });
+		expect([...v.target.querySelectorAll('tr.prog-slice')]).toHaveLength(0);
+		unmount(v.app);
+	});
+
+	// The desk board keeps its control. Wall mode is a display MODE over one
+	// board, and the mode is the only thing that decides this.
+	it('leaves the desk board`s disclosure exactly as it was', () => {
+		const v = render({ wall: false });
+		expect(v.roll()).not.toBeNull();
+		expect(v.titles()[1]).toBe('▸ program sequencing on the board 2 of 3 slices');
 		unmount(v.app);
 	});
 });

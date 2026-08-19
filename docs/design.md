@@ -60,6 +60,56 @@ is a deliberate commitment, not an omission.
   only interactive control), and the Deconfliction aside is a faint receipt
   for a card that is not there. An empty panel must never be the result of
   quiet omission.
+- **Nothing renders past its box** (kfdc #1284, sprint 014). Density is
+  spent on information, never on content the panel then clips or spills. The
+  board is a table-heavy layout, and the trap is specific: a cell that cannot
+  shrink makes an auto-layout table exceed its own declared `width` and take
+  every row in the column with it. Two shapes cause it — adjacent inline
+  chips with no whitespace to break on, and a flex item whose
+  `text-overflow: ellipsis` can never fire because `min-width: auto` will not
+  let it shrink. The remedies are a wrapping `.chips` group and
+  `min-width: 0` on the item *plus* `max-width: 0` on the cell; `.aim` and
+  `.slice-t` bound theirs with an em `max-width` instead, which works only
+  where the box is content-sized rather than a table column. **Measure before
+  choosing** — the screenshot shows the symptom, and the row that leaks is
+  usually not the row at fault.
+
+## Wall mode
+
+`/wall` — the same board, on an unattended widescreen (kfdc #1204, sprint
+014). It is a display **mode**, not a second layout: one `Board.svelte`
+renders both, and a panel that behaves differently on the wall takes a
+`wall` prop rather than growing a variant. Anything that needs a different
+*layout* on the wall is a sign the desk board's density was wrong.
+
+- **The wall draws no affordance it cannot honour.** Nobody is at the
+  keyboard, so On Deck's roll-up — the board's only interactive control —
+  renders as text: collapsed, no caret, `n of m slices` kept. That last part
+  is the honest half; it says there is more behind the row without offering
+  to open it, and #1064's argument is that the collapsed form is the
+  informative one anyway. **This is a rule, not a one-off**: any future
+  disclosure (korg+ GP-11's kfo summary bar above On Deck is the next one)
+  needs a text form, not a disabled state.
+- **Chrome here means prose, not data.** kfdc had almost none to drop, which
+  is the point of having built it dense. What goes is the mission tagline —
+  it explains the board to someone meeting it, and the wall has no first
+  meeting. What **stays**: the crest and wordmark (identity matters more to a
+  screen recognised from across a room than to a tab opened on purpose), and
+  every scope claim — `omitted: n done`, `feed: korg transitions · newest 20`
+  — because removing one makes a panel claim more than it knows.
+- **A wall that cannot refresh says so.** The wall polls on the board's one
+  cadence (`POLL_INTERVAL_MS`, imported, never restated — two clocks would
+  disagree about how fresh the board is). When a refresh fails it **keeps the
+  last good board** and prints `NO REFRESH <age>` in the statline beside
+  `asOf`; it does not blank to No Comms. No Comms is right for a cold load —
+  there is nothing to render — but once there is a board on screen, the last
+  thing korg actually said beats an error page nobody is standing there to
+  reload. Silence is the failure mode: a stale queue rendered as if current
+  is exactly the wrong information the wall cannot be scrolled away from.
+- **One client clock, and only there.** Every age kfdc prints is measured
+  against korg's `generated`. The staleness age is not an age of korg's data
+  — it is how long *this browser* has been unable to fetch any, which no korg
+  timestamp can answer.
 
 ## Tokens
 

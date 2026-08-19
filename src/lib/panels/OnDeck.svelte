@@ -6,12 +6,17 @@
 		queue,
 		omitted,
 		depth,
-		programs
+		programs,
+		// Wall mode (#1204): nobody is at the keyboard, so nothing here offers to
+		// be operated. See the roll-up below — this is the only panel that had
+		// anything to withdraw.
+		wall = false
 	}: {
 		queue: Board['queue'];
 		omitted: Board['proposals_omitted'];
 		depth: DepthRow[];
 		programs: ProgramRow[];
+		wall?: boolean;
 	} = $props();
 
 	// #1064: a program's queued slices collapse into one row — the sequence is
@@ -38,6 +43,14 @@
 	const max = $derived(Math.max(1, restSum, ...top.map((d) => d.proposals)));
 </script>
 
+<!-- One body, two wrappers (below): the wall's row must not drift from the
+     desk's by being written twice. -->
+{#snippet rollBody(program: ProgramRow, remaining: number, total: number)}
+	<span class="op-tag">program</span>
+	<span class="roll-t">{program.title}</span>
+	<span class="rem">{remaining} of {total} slices</span>
+{/snippet}
+
 <section class="panel">
 	<div class="panel-head">
 		<h2>On Deck</h2>
@@ -52,7 +65,9 @@
 						<td class="rank"
 							>{#if r.row.pinned}<span class="pin" title="pinned">⚑</span>{/if}{r.row.rank}</td
 						>
-						<td class="qproj"><span class="proj">{r.row.project}</span></td>
+						<td class="qproj"
+							><span class="chips"><span class="proj">{r.row.project}</span></span></td
+						>
 						<td class="qtitle">{r.row.title}</td>
 					</tr>
 				{:else}
@@ -61,28 +76,43 @@
 						<td class="rank"
 							>{#if r.pinned}<span class="pin" title="pinned">⚑</span>{/if}{r.rank}</td
 						>
+						<!-- A program's span is several chips, and #1284 measured four of
+						     them as 349px of unbreakable inline run inside a 716px panel.
+						     The wrapper is what gives the line breaker somewhere to break. -->
 						<td class="qproj"
-							>{#each r.program.span as proj (proj)}<span class="proj">{proj}</span>{/each}</td
+							><span class="chips"
+								>{#each r.program.span as proj (proj)}<span class="proj">{proj}</span>{/each}</span
+							></td
 						>
 						<td class="qtitle">
-							<button
-								class="roll"
-								aria-expanded={open}
-								title="{r.slices.length} queued slices — {open ? 'collapse' : 'expand'}"
-								onclick={() => toggle(r.program.node_id)}
-							>
-								<span class="caret">{open ? '▾' : '▸'}</span>
-								<span class="op-tag">program</span>
-								<span class="roll-t">{r.program.title}</span>
-								<span class="rem">{r.remaining} of {r.total} slices</span>
-							</button>
+							{#if wall}
+								<!-- The board's only interactive control, withdrawn rather than
+								     left dead (#1204). Collapsed is also the informative form:
+								     #1064's whole point is that a declared sequence does not
+								     gain by being re-listed, and `N of M slices` still says
+								     there is more behind the row. A caret nobody can press
+								     would be an affordance the wall cannot honour. -->
+								<span class="roll">{@render rollBody(r.program, r.remaining, r.total)}</span>
+							{:else}
+								<button
+									class="roll"
+									aria-expanded={open}
+									title="{r.slices.length} queued slices — {open ? 'collapse' : 'expand'}"
+									onclick={() => toggle(r.program.node_id)}
+								>
+									<span class="caret">{open ? '▾' : '▸'}</span>
+									{@render rollBody(r.program, r.remaining, r.total)}
+								</button>
+							{/if}
 						</td>
 					</tr>
 					{#if open}
 						{#each r.slices as s (s.node_id)}
 							<tr class="prog-slice">
 								<td class="rank">{s.rank}</td>
-								<td class="qproj"><span class="proj">{s.project}</span></td>
+								<td class="qproj"
+									><span class="chips"><span class="proj">{s.project}</span></span></td
+								>
 								<td class="qtitle">{s.title}</td>
 							</tr>
 						{/each}

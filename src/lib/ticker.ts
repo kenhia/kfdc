@@ -26,7 +26,9 @@ export interface TickerLine {
 	// korg's exact recorded instant, carried through untouched: the one thing
 	// the Net Log's observation time structurally cannot offer.
 	at: string;
-	project: string;
+	// Nullable because korg's `program` events carry no project (#1197); the
+	// panel guards the chip rather than printing an empty one.
+	project: string | null;
 	kind: string;
 	node_id: number;
 	wi_number: number | null;

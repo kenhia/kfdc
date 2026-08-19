@@ -137,11 +137,20 @@ export interface BlockedRow {
 // moved since the migration", never "nothing ever moved" — see $lib/ticker.
 export interface EventRow {
 	at: string;
-	kind: 'sprint_proposal' | 'workitem';
+	// All THREE kinds korg emits (#1197). It declared two until sprint 014,
+	// because the 20-event window this was typed against (2026-08-11) happened
+	// to contain no program transition — a sampled enum is not an enum. The
+	// omission never broke a render, which is the point: TS types do not
+	// execute, so the cost was a compiler that would have endorsed an
+	// exhaustive `switch` missing a live case.
+	kind: 'sprint_proposal' | 'workitem' | 'program';
 	node_id: number;
 	// null for proposals; the number for work items.
 	wi_number: number | null;
-	project: string;
+	// null for a program, by construction and not by accident: a program has no
+	// project, its span is derived from the proposals it includes. Nothing to
+	// file against korg — the consumer was wrong, not the emitter.
+	project: string | null;
 	title: string;
 	from_status: string;
 	to_status: string;
