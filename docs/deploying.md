@@ -31,11 +31,27 @@ confusing curl error instead of here as a sentence, and a guessed *deploy*
 host is worse than that: it installs the board somewhere nobody is looking
 and reports success.
 
-What crosses the ssh connection is a command, never a build. The serving
-host fetches its own `install.sh` from the store and checksum-verifies it
-before running it — the same bootstrap written out below, which is why
-adding a host and redeploying one are the same procedure. Nothing is copied
-out of this clone, because a clone-less serving host is the entire point.
+`just deploy` is a **knarr** call (sprint 013). knarr is the homelab fleet
+deploy runner: it does the resolve → fetch → verify → install → restart →
+confirm sequence once, for every store-native tool, instead of each repo
+re-deriving it in its own shell. kfdc used to be one of those shells;
+`deploy/install.sh` was 250 lines of it.
+
+Note where the store read happens now, because it moved: **knarr fetches and
+verifies the bundle locally, on kai, before it touches the serving host at
+all.** Only then does it upload the verified bytes. Previously the serving
+host fetched its own copy. Two consequences worth knowing:
+
+- The serving host **no longer needs to reach the store** for a deploy. It
+  needs it only for the once-ever bootstrap below, which pulls the unit file
+  and the config template.
+- knarr's exit-code split gets sharper. A store failure is exit `2` and
+  means the host was never touched — now literally true, not merely
+  intended.
+
+Nothing is copied out of this clone. What crosses the connection is a
+verified store artifact, never a build, because a clone-less serving host is
+the entire point.
 
 ## Shipping a sprint deploys it
 
@@ -62,7 +78,7 @@ following the same skill.
 artifacts/kfdc/<version>/kfdc-<version>.tar.gz   # VERSION + build/
 artifacts/kfdc/<version>/kfdc.service
 artifacts/kfdc/<version>/kfdc.env.example
-artifacts/kfdc/<version>/install.sh
+artifacts/kfdc/<version>/bootstrap.sh
 artifacts/kfdc/<version>/SHA256SUMS              # written by kpkg
 ```
 
@@ -74,10 +90,10 @@ compressed.
 
 The other three files are in the bundle so that a host with **no checkout**
 can go from nothing to a running board: the unit file it needs, the config
-template it must fill in, and the installer itself. The unit that shipped
-with a build is recoverable *with* that build — the old build-in-place
-deploy never guaranteed that, because the unit file lived only in
-`~/.config/systemd/user` on kai and in no repo at all.
+template it must fill in, and the bootstrap script that places both. The
+unit that shipped with a build is recoverable *with* that build — the old
+build-in-place deploy never guaranteed that, because the unit file lived
+only in `~/.config/systemd/user` on kai and in no repo at all.
 
 **Version** is `<package.json version>-<short commit>` (e.g.
 `0.5.0-ed6c764`). The minor tracks the sprint. The commit half means a
@@ -104,54 +120,88 @@ symlink repoint plus a restart, and a rollback is the same move backwards.
 The last 3 versions stay unpacked (`--keep N`); older ones are pruned,
 because the store is the real history.
 
-`~/.config/kfdc/kfdc.env` is host state and survives every deploy. On first
-install the installer seeds it from the bundled template and **stops** —
-`PORT` and `ORIGIN` are placement and must be looked at, not inherited from
-whatever host the template was written on. `PORT` must match the
-`tailscale_serve` entry declared for that host in k-homelab
-`manifests/<host>.yml`.
+`~/.config/kfdc/kfdc.env` is host state and survives every deploy — knarr
+never writes config, by rule. `deploy/bootstrap.sh` seeds it from the
+bundled template and **stops**: `PORT` and `ORIGIN` are placement and must
+be looked at, not inherited from whatever host the template was written on.
+`PORT` must match the `tailscale_serve` entry declared for that host in
+k-homelab `manifests/<host>.yml`.
 
 The unit pins `HOST=127.0.0.1` where the env file cannot override it.
 adapter-node's default is `0.0.0.0`, and a wildcard bind fights tailscaled
 for the port and crash-loops with `EADDRINUSE` — the homelab's oldest serve
 gotcha, not a hypothetical.
 
-## What the installer proves before it is finished
+## What a deploy proves before it is finished
 
-In order, and it stops at the first failure:
+knarr stops at the first failure and reports each step in its status
+document — `steps[{name, status, detail, ms}]`, one JSON object on stdout,
+human progress on stderr. `deploy-board` reads that document rather than
+re-probing over ssh.
 
-1. Every file matches `SHA256SUMS` — fetched and verified *before* anything
-   is installed, so a bad unit file cannot leave a new build already in
-   place.
-2. The tarball's `VERSION` stamp equals the version it was published under.
-   The checksum proves the transfer; this proves the *label*. A bundle
-   published under the wrong version would install cleanly and then lie
-   about what the host is running.
-3. `PORT` and `ORIGIN` are set in the config.
-4. `http://127.0.0.1:$PORT/api/board` answers within 20s.
-5. The **running process** is that version. A healthy answer is not proof
-   the restart took — the old process serves just as well. Because the unit's
-   working directory is the symlink, `/proc/<mainpid>/cwd` resolves to the
-   versioned directory the process is actually executing out of, which is
-   the one thing that cannot be stale.
+| step | what it proves |
+|---|---|
+| *(local)* | the artifact matches `SHA256SUMS`. The host is not touched until this passes — a store failure is exit `2`. |
+| *(local)* | the tarball's `VERSION` stamp equals the version it was published under. The checksum proves the **transfer**; this proves the **label**, which a checksum cannot see. Also local, so a mislabelled publish never becomes a half-finished deploy. |
+| `stage` | the verified bytes reached the target. |
+| `backup` | which version the rollback would return to. |
+| `install` | unpacked into `versions/<v>`, `current` repointed by `rename(2)`. |
+| `restart` | the user unit restarted. |
+| `ready` | `http://127.0.0.1:$PORT/api/board` answers (default 20s). |
+| `confirm` | the **running process** is that version. |
+| `cleanup` | old versions pruned past `--keep 3`, best-effort, never fails a deploy. |
+
+`ready` and `confirm` are separate steps on purpose, and the distinction is
+the important one: a healthy HTTP answer proves *a* kfdc is running, and the
+old process serves those just as happily. `confirm` reads `MainPID` and
+resolves `/proc/<pid>/cwd` — and because the unit's `WorkingDirectory` **is**
+the `current` symlink, that resolves to the versioned directory the process
+is actually executing out of, which is the one thing that cannot be stale.
+
+That assertion got stricter in the swap. `install.sh` printed *"could not
+read the service's cwd — health check passed, version unproven"* and still
+exited **0**, which is why `deploy-board` used to re-run it by hand. knarr
+fails the step instead.
+
+`PORT` and `ORIGIN` are no longer checked at deploy time. knarr does not
+read a service's configuration — `deploy/bootstrap.sh` validates them once,
+when it seeds the file.
 
 ## Bootstrapping a host with no checkout
 
-install.sh is checksum-verified before it runs, which `curl | sh` cannot
+**A bootstrap is now a different thing from a deploy, and that is the point.**
+Until sprint 013 they were the same script, so a bootstrap was "the ordinary
+deploy, typed by hand". Since knarr owns deploys and will never write a unit
+file or seed config (knarr D12), what is left is once-ever host state:
+`~/.config/kfdc/kfdc.env` and `~/.config/systemd/user/kfdc.service`.
+
+`bootstrap.sh` is checksum-verified before it runs, which `curl | sh` cannot
 offer:
 
 ```sh
 base="$KFDC_STORE_URL/artifacts/kfdc"
 v=$(curl -fsS "$base/latest")
-curl -fsS -O "$base/$v/install.sh"
-curl -fsS "$base/$v/SHA256SUMS" | grep ' install.sh$' | sha256sum -c -
-sh install.sh --from-store --version "$v"
+curl -fsS -O "$base/$v/bootstrap.sh"
+curl -fsS "$base/$v/SHA256SUMS" | grep ' bootstrap.sh$' | sha256sum -c -
+sh bootstrap.sh --version "$v"
 ```
 
-Then fill in the config it seeds and re-run. `just deploy` runs exactly this
-on a remote serving host, so a bootstrap is not a special mode — it is the
-ordinary deploy, typed by hand because there is no `.env` naming the host
-yet.
+It seeds the config and stops; fill in `PORT` and `ORIGIN` and re-run. Then
+install a version — which is an ordinary deploy, from anywhere knarr and the
+store are reachable:
+
+```sh
+just deploy                     # from the clone on kai, once .env names the host
+knarr deploy kfdc --host <h> --shape directory --user --unit kfdc.service \
+    --expect-file build/index.js \
+    --ready-cmd '. ~/.config/kfdc/kfdc.env; curl -fs -o /dev/null "http://127.0.0.1:$PORT/api/board"'
+```
+
+`bootstrap.sh` **refuses to run** once the unit and config are both in place,
+printing the knarr call instead. A once-ever script that still works on the
+hundredth run quietly becomes the install route, and then the fleet has one
+service that does not deploy through the fleet tool. knarr's own
+`deploy/seed.sh` holds the same line for the same reason.
 
 This was the whole of the Phase-3 move to kubsdb on the kfdc side, done in
 sprint 009: same artifact fetched there, a new `tailscale_serve` entry

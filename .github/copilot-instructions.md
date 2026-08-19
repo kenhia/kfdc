@@ -90,8 +90,14 @@ clone and the curator and serves nothing.
   ORIGIN) in `~/.config/kfdc/kfdc.env` — which is why sprint 009's move to
   kubsdb changed no application code. **The clone and the service are on
   different machines now**: `KFDC_DEPLOY_HOST` in `.env` names the serving
-  host, and `just deploy` / `just versions` reach it over ssh, where the
-  remote fetches and checksum-verifies its own `install.sh`. Nothing is
+  host. Since sprint 013 `just deploy` is **one `knarr` call** — the fleet
+  deploy runner — not a hand-rolled ssh bootstrap; `deploy/install.sh` is
+  gone and `deploy/bootstrap.sh` keeps only what knarr never does (seed
+  config, install the unit), refusing to run once both exist. knarr fetches
+  and verifies the bundle *here* and uploads the verified bytes, so the
+  serving host no longer needs the store for a deploy, and exit 2 literally
+  means the host was never touched. Verification reads knarr's JSON status
+  document — assert the `confirm` **step**, not just `ok: true`. Nothing is
   copied from the clone — a clone-less serving host is the point.
   `docs/deploying.md`; doctrine is k-homelab
   `docs/deploying.md`. Shipping deploys automatically: `.sprint-deploy`
