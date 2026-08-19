@@ -119,13 +119,23 @@ user unit, polls readiness, confirms the running version by its cwd, and
 prunes past `--keep 3`. It stops at the first failure rather than
 half-installing.
 
-**Expect a few seconds, not a pause.** A deploy used to take about 90 seconds
-because kfdc ignored `SIGTERM` and systemd waited out `TimeoutStopSec` before
-`SIGKILL`ing it; that was fixed in sprint 013 (korg #1200) and knarr's own
-work was only ever ~1.3s of the total. **So a deploy that hangs for 90 seconds
-now is news, not normal** — it means something reintroduced a referenced timer
-or handle that keeps the event loop alive. Do not wait it out and call it
-fine.
+**Expect a couple of seconds, not a pause.** A deploy used to take about 90
+seconds because kfdc ignored `SIGTERM` and systemd waited out
+`TimeoutStopSec` before `SIGKILL`ing it; that was fixed in sprint 013 (korg
+#1200), and knarr's own work was only ever ~1.3s of the total. Measured on
+kubsdb the day it landed: **1.91s end to end, `restart` 220ms.** So a deploy
+that hangs for 90 seconds is now news, not normal — it means something
+reintroduced a referenced timer or handle that keeps the event loop alive.
+Do not wait it out and call it fine.
+
+> **The restart time belongs to the version being _stopped_, not the one
+> being installed.** `systemctl restart` stops the old process first. So the
+> deploy that first carries a shutdown fix still pays the old version's
+> stall — sprint 013's own proving deploy took 91.96s with `restart` at
+> 90,286ms, and the very next deploy of the same artifact took 1.91s with
+> `restart` at 220ms. Nothing regressed between them. If you are deploying
+> across a change to shutdown behaviour, time the _second_ deploy before
+> concluding anything.
 
 knarr's exit code is the diagnostic and this skill must not flatten it:
 
