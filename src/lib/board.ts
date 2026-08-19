@@ -83,6 +83,16 @@ export interface ProgramSlice {
 	covered_count: number;
 }
 
+// korg's program lifecycle, in the order it reads (korg-core vocab.rs
+// PROGRAM_STATUSES, `queued` added by #1424). kfdc switches on the literal
+// korg emits and never reconstructs one from the slices: `queued` means no
+// slice has *started*, where started is active-or-done and explicitly not
+// declined, and korg maintains it across three write paths no read-time
+// derivation can see (GP-13's state half). This list is not a second
+// definition of that fact — it is the record of which literals the board has
+// chosen a treatment for, and palette.test.ts holds it to that.
+export const PROGRAM_STATUSES = ['queued', 'active', 'holding', 'done'] as const;
+
 export interface ProgramRow {
 	node_id: number;
 	title: string;

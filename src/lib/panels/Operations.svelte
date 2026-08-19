@@ -4,12 +4,20 @@
 	let { programs, omitted }: { programs: ProgramRow[]; omitted: Board['programs_omitted'] } =
 		$props();
 
-	// Slice chip state: done → checked off, active → in motion, anything else
-	// (proposed) → still ahead. The glyph carries it; color reinforces.
-	function state(s: ProgramSlice): 'done' | 'now' | 'next' {
-		return s.status === 'done' ? 'done' : s.status === 'active' ? 'now' : 'next';
+	// Slice chip state, switched on korg's proposal literal: done → checked
+	// off, active → in motion, declined → dropped, anything else (proposed) →
+	// still ahead. The glyph carries it; color reinforces.
+	//
+	// `declined` used to fall into "still ahead" and sit pending forever, which
+	// also disagreed with board.ts's PROPOSAL_FINISHED — the same korg fact
+	// defined twice in one repo, which is the #1196 shape.
+	function state(s: ProgramSlice): 'done' | 'now' | 'dropped' | 'next' {
+		if (s.status === 'done') return 'done';
+		if (s.status === 'active') return 'now';
+		if (s.status === 'declined') return 'dropped';
+		return 'next';
 	}
-	const MARK = { done: '✓', now: '▶', next: '·' } as const;
+	const MARK = { done: '✓', now: '▶', dropped: '✕', next: '·' } as const;
 </script>
 
 <section class="panel">
@@ -19,11 +27,11 @@
 	</div>
 
 	{#each programs as prog (prog.node_id)}
-		<div
-			class="op"
-			class:holding={prog.status === 'holding'}
-			class:op-done={prog.status === 'done'}
-		>
+		<!-- One card class per korg status literal (#1444). Not a predicate per
+		     state: a predicate leaves every unmatched literal wearing the base
+		     treatment, which is how `queued` arrived from korg 069 and read as
+		     ACTIVE. The base is neutral now, so an unknown literal is quiet. -->
+		<div class="op op-{prog.status}">
 			<div class="row1">
 				<h3>{prog.title}</h3>
 				<span class="status {prog.status}">{prog.status}</span>

@@ -40,6 +40,21 @@ is a deliberate commitment, not an omission.
   (`PROGRAM` tag in `--cyan`, span chips, `n of m slices`), and Deconfliction
   prints `n sequenced by <program> — drawn in Operations` in place of the
   cards (kfdc #1064/#1070, sprint 007).
+- **A status literal with no treatment renders neutral, never the default's.**
+  Every korg status the board paints states its own rule, and the base carries
+  layout only. A predicate per state (`class:holding={…}`) silently makes the
+  base a treatment for every literal nobody matched — which is how korg's
+  `queued` arrived and read as in flight (kfdc #1444, sprint 012). korg owns
+  the vocabulary and grows it between deploys, so the board *will* meet an
+  unrendered literal in production; quiet is the only safe default. Program
+  states: `queued` cyan, `active` amber, `holding` neutral, `done` dim.
+- **A filled chip means something is happening; the outline chip is rest.**
+  `holding` is the board's only unfilled status chip — korg's resting state
+  between slices, and the state a program spends most of its life in. It was
+  red until kfdc #1196, on a semantic korg does not have (awaiting-Ken is a
+  column set by `set_awaiting` and drawn by Commander's Call, never a status),
+  so the alarm was near-permanent and led nowhere. **Red is for an ask, never
+  for a resting state.**
 - **Nothing disappears silently.** A panel that hides rows names what it
   hid and where it went — the roll-up is expandable (`▸`/`▾`, the board's
   only interactive control), and the Deconfliction aside is a faint receipt
@@ -56,10 +71,10 @@ is a deliberate commitment, not an omission.
 | `--ink` | `#e9e3cc` | primary text (manila) |
 | `--muted` / `--faint` | `#a29d85` / `#757060` | secondary / tertiary |
 | `--amber` | `#e2a63d` | active / firing / attention |
-| `--red` | `#e0603f` | blocked / risk / awaiting-Ken |
+| `--red` | `#e0603f` | blocked / risk / awaiting-Ken — an ask, never a resting state |
 | `--green` | `#97ba6b` | done / clear / healthy |
 | `--splash` | `#b6f26b` | fire mission at work-complete — watch for impact |
-| `--cyan` | `#8fb5ba` | project chips / queued info |
+| `--cyan` | `#8fb5ba` | project chips / queued info / the `queued` program state |
 
 Semantic colors (red/green/amber lights) are reserved for state; `--cyan`
 identifies projects everywhere. Panel headers: mono, uppercase,

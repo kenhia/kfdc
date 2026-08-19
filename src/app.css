@@ -184,10 +184,19 @@ section.panel {
 	background: var(--splash);
 	font-weight: 700;
 }
-.status.holding {
+/* Program state, matching the card palette above. `queued` is filled cyan —
+   it is a real state, not an absence. */
+.status.queued {
 	color: var(--ground);
-	background: var(--red);
+	background: var(--cyan);
 	font-weight: 700;
+}
+/* `holding` is the one unfilled chip: an outline reads as resting where a
+   filled one reads as something happening (#1196). */
+.status.holding {
+	color: var(--muted);
+	border: 1px solid var(--line);
+	padding: 1px 6px;
 }
 .status.done {
 	color: var(--ground);
@@ -561,18 +570,48 @@ footer.ticker .src-note {
 /* ---------- operations (sprint 004, concept CSS) — borders gone solid:
    the concept's dashed .op meant "proposed node type"; programs are live
    data now, and live data gets solid (docs/design.md) ---------- */
+/* The base is layout and a NEUTRAL ground — deliberately not a treatment.
+   Every korg program status states its own below, so a literal kfdc has not
+   met (korg owns the vocabulary and can grow it between deploys) reads quiet
+   rather than inheriting whichever state happened to be the default. That
+   inheritance is the whole of #1444: `queued` arrived from korg 069 with no
+   rule and wore amber. */
 .op {
 	margin: 0 12px 12px;
 	padding: 9px 11px 11px;
-	border: 1px solid color-mix(in oklab, var(--amber) 30%, var(--line));
+	border: 1px solid var(--line);
+	background: var(--panel);
+}
+/* ---- the program-state palette: one rule per korg literal (#1444, #1196),
+   read as a table. The ladder is queued → active ⇄ holding → done, and only
+   `active` earns the board's attention colour. ---- */
+
+/* QUEUED — created, no slice started. The cyan already carrying On Deck's
+   depth bars: queued, not running, and not an alarm (Ken's call on korg
+   #1424). */
+.op-queued {
+	border-color: color-mix(in oklab, var(--cyan) 30%, var(--line));
+	background: color-mix(in oklab, var(--cyan) 4%, var(--panel));
+}
+/* ACTIVE — a slice is in flight. Amber, as everywhere else on the board. */
+.op-active {
+	border-color: color-mix(in oklab, var(--amber) 30%, var(--line));
 	background: color-mix(in oklab, var(--amber) 4%, var(--panel));
 }
-/* Holding is a decision waiting on Ken — red, like Commander's Call. */
-.op.holding {
-	border-color: color-mix(in oklab, var(--red) 30%, var(--line));
-	background: color-mix(in oklab, var(--red) 4%, var(--panel));
+/* HOLDING — between slices, and by korg's own vocabulary the state a program
+   spends most of its life in. So: unremarkable, because it is. It restates
+   the neutral base rather than omitting the rule, so the palette stays a
+   table you can read and the base can move without moving holding with it.
+   This was red (#1196) on the belief that holding meant a decision waiting on
+   Ken. It does not — awaiting-Ken is a column set by `set_awaiting` and
+   rendered by Commander's Call, never a status value, so the alarm was
+   near-permanent and led nowhere. */
+.op-holding {
+	border-color: var(--line);
+	background: var(--panel);
 }
-.op.op-done {
+/* DONE — finished, and dimmest of the four. */
+.op-done {
 	border-color: var(--line);
 	background: var(--panel-2);
 }
@@ -639,6 +678,17 @@ footer.ticker .src-note {
 	color: var(--amber);
 }
 .slice.s-next .mark {
+	color: var(--faint);
+}
+/* A declined slice is finished, not pending — struck through so it reads as
+   dropped at a glance, and dim so it does not compete with the live ones.
+   Solid border, deliberately: dashed is reserved for proposed/unbuilt
+   (docs/design.md), and a declined slice is a real korg row. */
+.slice.s-dropped .slice-t {
+	color: var(--faint);
+	text-decoration: line-through;
+}
+.slice.s-dropped .mark {
 	color: var(--faint);
 }
 .slice .slice-t {
