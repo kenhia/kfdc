@@ -87,6 +87,16 @@ Direction (added up, closed down of a shared baseline) is the structural
 identity channel; durable is solid, churn/not-yet-durable is a faded
 `color-mix` step of the same hue.
 
+Its totals line carries a rule the panel exists to enforce (sprint 011):
+**no two figures may imply a comparison they do not support.** Numbers
+covering the whole window go bare; one covering less names its span
+(`durable in 6 oldest 3d of 10`) in `--faint`, loud enough to stop the
+misreading and quiet enough that the figure stays the signal. The
+qualifier is derived, not configured, so it appears and disappears with
+the data. The same rule kills a figure outright when the input for it is
+missing: a wrong delta reads as measurement, an absent one reads as
+absence, and only one of those is honest.
+
 ## The regimental crest
 
 The masthead carries the **3d Cavalry Regiment Distinctive Unit Insignia** —

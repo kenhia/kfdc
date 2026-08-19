@@ -874,6 +874,12 @@ footer.ticker .src-note {
 .rof .stats b.load {
 	color: var(--red);
 }
+/* A figure covering less than the window names its span, quietly — the number
+   is the signal, the qualifier only has to stop it reading as a full-window
+   total beside one that is. */
+.rof .stats .span {
+	color: var(--faint);
+}
 /* Backlog delta wears state: growing is against us, shrinking is ground gained. */
 .rof .stats .delta.up {
 	color: var(--red);
