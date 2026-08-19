@@ -23,7 +23,10 @@
 			<span class="ev">
 				<!-- Age like every other panel; korg's exact instant kept on the title. -->
 				<span class="t" title={l.at}>{l.age}</span>
-				<span class="lp">{l.project}</span>
+				<!-- Guarded because a program event carries no project (#1197): an
+				     unguarded span still costs its 6px flex gap. Same rule, same
+				     reason, as NetLog.svelte. -->
+				{#if l.project}<span class="lp">{l.project}</span>{/if}
 				<!-- href is always an absolute URL into korg's origin, not an app route -->
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 				{#if href}<a {href}>{l.ref}</a>{:else}<span class="lref">{l.ref}</span>{/if}

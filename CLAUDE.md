@@ -72,7 +72,12 @@ Status: **built and in production** at
 Commander's Call, Net Log, Deconfliction, Sensor Net, Operations and the
 Ticker render production korg (sprints 001–008). Sprint 009 closed Phase 3
 by moving the board off kai, its interim host, to kubsdb; kai keeps the
-clone and the curator and serves nothing.
+clone and the curator and serves nothing. Sprint 014 added **wall mode** at
+`/wall` on the same service — unattended widescreen: no chrome, self-
+refreshing on the board's own poll cadence, and it keeps the last good board
+marked `NO REFRESH` through a korg outage rather than blanking to No Comms.
+`docs/design.md` § Wall mode carries the rules, notably that the wall draws
+no affordance it cannot honour.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
   `sveltekit()` plugin in `vite.config.ts` — no `svelte.config.js`; that is
@@ -81,7 +86,11 @@ clone and the curator and serves nothing.
   `src/lib/board.ts` (three-part progress per korg #980, statline per D-3,
   ages against the board's `generated`), with per-feature derivations beside
   it in `netlog.ts` / `curator.ts` / `ticker.ts`; panels in
-  `src/lib/panels/`. **Two transition feeds that must not converge**
+  `src/lib/panels/`. The layout itself is `src/lib/Board.svelte` — **two
+  routes render it**: `/` (desk) and `/wall` (sprint 014). Wall mode is a
+  display MODE, not a second layout, so a panel that differs there takes a
+  `wall` prop; anything wanting a different layout means the desk board's
+  density was wrong. **Two transition feeds that must not converge**
   (sprint 008): the Net Log is observer-relative and speaks FDC, the Ticker
   is korg-authoritative and quotes korg verbatim — `docs/design.md` carries
   the measurement behind that split.
@@ -90,7 +99,13 @@ clone and the curator and serves nothing.
   `server` (node) for everything, `client` (jsdom +
   `@testing-library/svelte`) for `*.svelte.test.ts` component tests — they
   partition on that one pattern, so a component test must carry the
-  `.svelte.test.ts` suffix or it runs in the wrong environment.
+  `.svelte.test.ts` suffix or it runs in the wrong environment. The same
+  suffix carries rune-using `.svelte.ts` modules' tests (`wall.svelte.ts`).
+  Some things kfdc can get wrong are **layout**, which jsdom cannot see:
+  #1284 and #1460 were found and negative-tested with a headless browser run
+  from `.scratch/`, deliberately not a dependency and deliberately not a
+  `just check` gate. The numbers live in the sprint record; the rule they
+  produced lives in `docs/design.md` (*nothing renders past its box*).
 - Deploy: **kfdc does not build in place** (sprint 005). `just publish`
   puts a versioned bundle in the homelab package store; `just deploy
   [version]` installs *that artifact* on the serving host and naming an

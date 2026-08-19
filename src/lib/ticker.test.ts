@@ -86,6 +86,50 @@ describe('tickerLines', () => {
 		expect(tickerLines(board({ events: undefined as unknown as EventRow[] }))).toEqual([]);
 	});
 
+	// The third kind, pinned permanently (#1197). The event below is quoted
+	// verbatim from korg's own record as #1197 filed it — the 2026-08-12T04:24Z
+	// window, the first `program` transition the feed ever carried. Only the
+	// event is verbatim: `generated` is chosen here, because the window's board
+	// stamp was never captured and inventing one as measured would be a lie.
+	//
+	// This test exists so the corpus cannot lose the third kind again. The
+	// omission got in because the sample it was typed against had only two, and
+	// a sample can go back to having only two at any time; a pinned row cannot.
+	it('carries a program transition, which has no project at all', () => {
+		const b = board({
+			generated: '2026-08-12T04:27:03.649972Z',
+			events: [
+				{
+					at: '2026-08-12T04:24:03.649972Z',
+					kind: 'program',
+					node_id: 1192,
+					project: null,
+					title: 'kfdc Phase 3 — switch over, and manage kfdc in kfdc',
+					from_status: 'active',
+					to_status: 'holding',
+					wi_number: null
+				}
+			]
+		});
+		expect(tickerLines(b)).toEqual([
+			{
+				age: '3m',
+				at: '2026-08-12T04:24:03.649972Z',
+				// Carried through as null rather than coerced to '' — the panel needs
+				// to be able to tell "no project" from "a project named nothing".
+				project: null,
+				kind: 'program',
+				node_id: 1192,
+				wi_number: null,
+				// A program is refd by node_id: korg numbers only work items.
+				ref: 1192,
+				transition: 'active→holding',
+				to_status: 'holding',
+				text: 'kfdc Phase 3 — switch over, and man…'
+			}
+		]);
+	});
+
 	// Verbatim from the production board read of 2026-08-11T03:25:23Z — the
 	// first real `events` body this derivation ever met, pinned the way #997
 	// pinned the first real curator body. Its head is this very sprint's own

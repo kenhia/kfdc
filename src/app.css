@@ -97,6 +97,19 @@ header.masthead {
 .statline .warn b {
 	color: var(--red);
 }
+/* Wall mode's one addition to the masthead (#1204). It sits in the statline
+   beside `asOf` because the two are halves of one claim — when korg assembled
+   this, and whether the wall can still ask. Red and boxed: it is the only
+   thing on an unattended board that means "stop trusting the rest of me". */
+.statline .stale {
+	color: var(--red);
+	border: 1px solid color-mix(in oklab, var(--red) 55%, transparent);
+	padding: 0 6px;
+	letter-spacing: 0.08em;
+}
+.statline .stale b {
+	color: var(--red);
+}
 
 /* ---------- grid ---------- */
 .board {
@@ -291,6 +304,18 @@ td.qproj {
 	width: 1%;
 	padding-right: 10px;
 }
+/* #1284, half one. A program row carries one chip per project in its span, and
+   adjacent inline chips offer the line breaker nothing to break on: four of
+   them measured 349px of unbreakable run in a column declared `width: 1%`.
+   An auto-layout table cannot honour its own `width` against a cell that
+   cannot shrink, so it grew to 894px inside a 716px panel and took every
+   other row in the column out of the box with it. Wrapping the chips is the
+   same answer Operations' `.span-chips` already gives; the gap matches it. */
+td.qproj .chips {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 5px;
+}
 td.qtitle {
 	color: var(--ink);
 }
@@ -333,10 +358,28 @@ tr.prog-roll .op-tag {
 	padding: 1px 5px;
 	flex: none;
 }
+/* #1284, half two — and the reason the ellipsis above the roll-up never fired.
+   `min-width` is what LETS a flex item shrink past its content; `max-width: 0`
+   on the cell is what MAKES it, by capping what this row contributes to the
+   column's max-content so the table hands the width back and sizes the cell to
+   what is left. Neither alone is enough — both were measured at 1920/1600/1366/
+   1200 before being written this way. Only the roll-up row is capped: a
+   proposal title wraps and was never the row pushing.
+   `.aim` and `.slice-t` bound their ellipsis with an em `max-width` instead;
+   that works where the box is content-sized, and not here, where the box is a
+   table column. */
+tr.prog-roll td.qtitle {
+	max-width: 0;
+}
 tr.prog-roll .roll-t {
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+/* Wall mode swaps the button for a span (#1204): same row, no affordance. */
+tr.prog-roll span.roll {
+	cursor: default;
 }
 tr.prog-roll .rem {
 	font-family: var(--mono);
@@ -972,6 +1015,16 @@ footer.ticker .src-note {
 	clip: rect(0 0 0 0);
 	white-space: nowrap;
 	border: 0;
+	/* A table ignores `width` below its min-content, so Rate of Fire's
+	   screen-reader table sat here 1475px wide behind the clip — invisible, and
+	   still enough to give the whole DOCUMENT a horizontal scroll at any viewport
+	   under that (found measuring #1284). Clipping paint does not shrink a box:
+	   `clip`, `clip-path`, `overflow: clip` and `contain` were all measured and
+	   all left 1475. `table-layout: fixed` is the one that makes the declared
+	   width binding, and it costs the table nothing it is here for — it stays a
+	   real table, with its caption and rows, for the assistive tech it exists
+	   for. Harmless on the non-table users this utility may pick up later. */
+	table-layout: fixed;
 }
 
 /* Curator's current-state line on a mission card. */

@@ -98,6 +98,31 @@ describe('Ticker', () => {
 		unmount(v.app);
 	});
 
+	// #1197's cosmetic half. A program carries no project, and an unguarded
+	// `<span class="lp">` for it is not merely empty — it is a flex item, so it
+	// still spends the strip's 6px gap on nothing. The assertion is on the span
+	// EXISTING, not on its text: an empty span passes a textContent check and
+	// still costs the gap, which is exactly how this got shipped.
+	it('renders no project chip at all for an event that has no project', () => {
+		const v = render({
+			lines: [line({ kind: 'program', project: null, node_id: 1192, wi_number: null, ref: 1192 })]
+		});
+		expect(v.target.querySelector('.lp')).toBeNull();
+		// The rest of the line is unaffected — and a program still deep-links.
+		expect(v.items()).toEqual(["3m 1192 proposed→active Ticker: render korg's transition lo…"]);
+		expect(v.target.querySelector('.ev a')!.getAttribute('href')).toBe(
+			'https://korg.example/programs/1192'
+		);
+		unmount(v.app);
+	});
+
+	// The guard must not eat a real project — the other half of the same rule.
+	it('renders the project chip whenever korg gave one', () => {
+		const v = render();
+		expect(v.target.querySelector('.lp')!.textContent).toBe('kfdc');
+		unmount(v.app);
+	});
+
 	// A work item with no korg page renders unlinked rather than pointing at a
 	// 404 — lineHref's rule, shared with the Net Log (#1187).
 	it('renders an unlinkable ref as plain text', () => {

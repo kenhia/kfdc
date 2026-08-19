@@ -224,6 +224,13 @@ poll as a wall of spurious transitions.
 kai serves nothing. It holds the checkout and runs the curator, and that is
 the whole of its role.
 
+**The wall is the same service, on a second path**: `/wall` beside `/`
+(sprint 014). Point the monitor's browser at
+`https://kubsdb.encke-wahoo.ts.net:8100/wall` and leave it — it refreshes
+itself on the board's own poll cadence and keeps the last good board, marked
+`NO REFRESH`, through a korg outage. Nothing to deploy, configure or restart
+separately; a kfdc deploy ships both.
+
 ## What still runs from the clone on kai
 
 The curator. `bin/update-fdc`, `kfdc-curator.timer` and `just curator` need
