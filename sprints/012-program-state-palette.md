@@ -86,7 +86,12 @@ A `declined` slice fell into "still ahead" and sat pending forever — and
 **disagreed with `board.ts`**, whose `PROPOSAL_FINISHED` counts `declined`
 as finished for the On Deck remaining count. The same korg fact defined
 twice in one repo, the two definitions already drifted. Now `declined`
-renders as dropped (`✕`, dashed, struck through).
+renders as dropped — `✕`, struck through, faint. **Solid border**: the
+first cut dashed it, which collides with a standing rule in
+`docs/design.md` (dashed is grease-pencil, reserved for proposed/unbuilt;
+live data is solid). A declined slice is a real korg row. Caught in the
+ship's own doc-freshness pass, which is the pass existing for exactly
+that.
 
 Cleared as *not* siblings:
 
@@ -138,6 +143,14 @@ unknown literal rather than fail on it.
   says display only. The colour was eyeballed instead from a preview
   rendered out of the real panel markup against the real `app.css`, all
   four states side by side.
+
+## Docs
+
+`docs/design.md` gains the two rules this sprint established — a status
+literal with no treatment renders neutral rather than the default's
+meaning, and a filled chip means something is happening while the outline
+chip is rest — plus the `--red`/`--cyan` role rows they touch. Red is for
+an ask, never for a resting state.
 
 ## Plan amendment
 

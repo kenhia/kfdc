@@ -681,10 +681,9 @@ footer.ticker .src-note {
 	color: var(--faint);
 }
 /* A declined slice is finished, not pending — struck through so it reads as
-   dropped at a glance, and dim so it does not compete with the live ones. */
-.slice.s-dropped {
-	border-style: dashed;
-}
+   dropped at a glance, and dim so it does not compete with the live ones.
+   Solid border, deliberately: dashed is reserved for proposed/unbuilt
+   (docs/design.md), and a declined slice is a real korg row. */
 .slice.s-dropped .slice-t {
 	color: var(--faint);
 	text-decoration: line-through;
