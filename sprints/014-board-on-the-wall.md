@@ -187,3 +187,60 @@ the scripts are recorded here instead.
 - Nothing blocking. The measurement scripts live in `.scratch/` and are not
   committed; re-deriving them is a few minutes against `docs/design.md`'s
   no-leak rule, which is where the knowledge went.
+
+## Deployed
+
+**2026-08-19** — `0.5.0-fc88d05`, published from merged `main` (`fc88d05`) and
+installed on **kubsdb** through knarr.
+
+```
+resolved  0.5.0-fc88d05
+sha256    7dc8e2abd2d539084d94219a3c3ec661d28b0b19ba8bdc308cdd8a18b247edff
+host      kubsdb  (user scope, shape directory)
+total     1856ms
+  stage    ok  388ms  uploaded to /tmp/knarr-kfdc-0.5.0-fc88d05.tar.gz
+  backup   ok  187ms  current -> 0.5.0-e5f2162
+  install  ok  207ms  unpacked versions/0.5.0-fc88d05; current -> 0.5.0-fc88d05
+  restart  ok  221ms  restarted kfdc.service (user scope)
+  ready    ok  255ms  ready after 1 attempt(s)
+  confirm  ok  210ms  0.5.0-fc88d05
+  cleanup  ok    0ms  pruned 1 old version(s): 0.5.0-acb917d
+```
+
+1.90s wall clock, `restart` 220ms — sprint 013's SIGTERM fix still holding at
+the same numbers it was measured at.
+
+**Rollback target: `0.5.0-e5f2162`** (sprint 013), still unpacked on the host.
+`just deploy 0.5.0-e5f2162` is the whole rollback.
+
+Three views agree: store `latest:`, the host's top `here:` entry, and
+`running:` are all `0.5.0-fc88d05`.
+
+### Verified live, against what this sprint changed
+
+Not just "the service is up" — the deploy's own `confirm` step covers that.
+
+| | |
+|---|---|
+| `/` and `/wall` over the tailnet | 200, SSR renders (`FIRE MISSIONS` present) |
+| **#1204** chrome | mission line: 0 on `/wall`, 1 on `/` |
+| **#1204** title | exactly one `<title>`, `K·F·D·C — wall` |
+| `/api/wall` | 200, `{board, flow, netlog, korgBase}`, 20 Net Log lines |
+| **#1204** refresh + staleness | faked clock against **production**: +3m current · +6m korg unreachable → `NO REFRESH 3m`, all 8 panels still up · +9m → `6m` · +12m korg back → clears |
+| **#1284** | zero panel overflow at 1920 / 1600 / 1366 / 1200, on both routes |
+| **#1460** | `scrollWidth === clientWidth` at all four widths (was 1475 at a 1366 viewport) |
+| **#1197** | the live window carries **3 `program` events with `project: null`**, rendering 3 `/programs/1453` deep-links and **zero** empty `<span class="lp">` — before this sprint each would have spent a 6px flex gap on nothing |
+
+**One thing not exercised live**: no program currently contributes two queued
+rows, so On Deck has no roll-up on production and wall mode's inert roll-up
+could not be observed there. It is gated by component tests
+(`OnDeck.svelte.test.ts`) and by the measurement in this record; worth an eye
+next time a program is queued.
+
+### Small thing noticed, not acted on
+
+`package.json` is still `0.5.0` and the `justfile` says "the minor tracks the
+sprint (0.5.0 = sprint 005)". Sprints 006–014 all published as `0.5.0-<sha>`,
+so that sentence is stale rather than violated — the commit half is what
+identifies a version, exactly as the same comment goes on to say. Left alone
+during a deploy; it is a comment fix, not a version bump.
