@@ -159,3 +159,35 @@ sprint proved out: where korg emits a literal the consumer has no
 treatment for, render neutral — never another state's. Same argument as
 GP-13's numeric consumer half (render nothing rather than a substitute
 you derived), one register over.
+
+## Deployed
+
+**2026-08-19**, `0.5.0-acb917d` (merge `acb917d`) on kubsdb, `:8100`.
+Rollback target: `0.5.0-4805647` (`just deploy 0.5.0-4805647`).
+
+Assertions, with values rather than "OK":
+
+| check | value |
+| --- | --- |
+| service cwd on kubsdb | `pid 1315016 running 0.5.0-acb917d` |
+| tailnet HTTP | `200` on `https://kubsdb.encke-wahoo.ts.net:8100/` |
+| SSR rendered | `fire missions` marker present, 64978 bytes |
+| three views agree | store `latest:` = `here:` top = `running:` = `0.5.0-acb917d` |
+
+Smoke-tested against **what this sprint changed**, not just service health:
+
+- program 1447 renders `class="op op-holding"` with the outline
+  `status holding` chip. The red is gone in production, and the program the
+  board stopped alarming about is this sprint's own.
+- the old predicate markup (`class="op holding"`) appears zero times.
+- the served stylesheet carries all four rules — `.op-queued` (cyan),
+  `.op-active` (amber), `.op-holding` (neutral), `.op-done` (dim) — so the
+  `queued` treatment is live and merely has nothing to apply to yet.
+
+**The aim's last clause is still unverified**, deliberately: *"done when a
+freshly created program reads as queued rather than ACTIVE on the board."*
+There is no `queued` program in the corpus — every historical one is `done`
+and 1447 has started. The mechanism is deployed and provable; the live
+sighting waits on the next program anyone creates. Program 1447 is therefore
+left `holding` with an awaiting-Ken marker rather than closed on an
+inference — which is the same distinction this sprint spent itself on.
