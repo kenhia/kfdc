@@ -11,6 +11,11 @@ serving host. What you verified is what the host runs, because it is the same
 bytes fetched — not the same commit rebuilt. There is deliberately no
 "install from this checkout" mode.
 
+Since sprint 013, `just deploy` is a **knarr** call — the homelab fleet deploy
+runner — not a hand-rolled ssh bootstrap. That changes this skill's verify
+step from "re-probe the host four ways and hope" to "read the status document
+knarr already returned". Read the Verify section before improvising.
+
 Doctrine is k-homelab `docs/deploying.md`; the kfdc-specific half is
 `docs/deploying.md` here, which this skill does not restate. Read it if
 anything below surprises you.
@@ -22,14 +27,18 @@ and since sprint 009 those machines are not the same box:
 
 - `just publish` runs **here** — it needs the build toolchain and a commit.
 - `just deploy` acts on the **serving host**, named by `KFDC_DEPLOY_HOST` in
-  `.env` (kubsdb). When that is not this machine, just reaches it over ssh and
-  the remote fetches and checksum-verifies its own `install.sh` — the same
-  bootstrap `docs/deploying.md` writes out. Nothing is copied from the clone.
+  `.env` (kubsdb). It runs `knarr deploy kfdc --host "$KFDC_DEPLOY_HOST"`,
+  which fetches and verifies the bundle **here** and then uploads the verified
+  bytes. Nothing is copied from the clone; what crosses is a store artifact.
 
-So the serving host needs only `curl`, `tar`, `systemctl` and an ssh key — no
-checkout, no toolchain, no agent tooling. Placement lives in
-`~/.config/kfdc/kfdc.env` (`PORT`, `ORIGIN`) on whichever host serves, which
-is why moving the board changed no application code.
+So the serving host needs only `tar`, `systemctl` and an ssh key — no
+checkout, no toolchain, no agent tooling, and since sprint 013 not even store
+reachability for a deploy (only for the once-ever bootstrap). Placement lives
+in `~/.config/kfdc/kfdc.env` (`PORT`, `ORIGIN`) on whichever host serves,
+which is why moving the board changed no application code.
+
+`knarr` must be on `PATH` here. `just deploy` refuses with the fix if it is
+not; do not work around it with a `go build`.
 
 **Do not `cd` to the serving host and improvise.** If `just deploy` cannot
 reach it, fix the reachability — an install typed by hand on kubsdb produces
@@ -94,59 +103,90 @@ V=0.5.0-<sha>           # exactly what publish printed
 
 ### 3. Install on the serving host
 
+knarr writes **exactly one JSON status document** to stdout and human-readable
+progress to stderr, so redirect stdout and you get both — progress live, the
+document kept to assert on:
+
 ```sh
-just deploy "$V"
+STATUS=$(mktemp)
+just deploy "$V" > "$STATUS"
 ```
 
-The installer fetches, checks every file against `SHA256SUMS` **before**
-installing anything, asserts the tarball's `VERSION` stamp equals the version it
-was published under, repoints `current` by rename(2), restarts, and waits for
-`http://127.0.0.1:$PORT/api/board`. It stops at the first failure rather than
+knarr fetches, checks every file against `SHA256SUMS` and asserts the
+tarball's `VERSION` stamp **before the host is touched at all**, then uploads,
+unpacks into `versions/<v>`, repoints `current` by rename(2), restarts the
+user unit, polls readiness, confirms the running version by its cwd, and
+prunes past `--keep 3`. It stops at the first failure rather than
 half-installing.
 
-**This takes about 90 seconds and almost all of it is the restart.** The
-service does not exit on `SIGTERM`, so systemd waits out `TimeoutStopSec`
-and `SIGKILL`s it (measured in sprint 009: `just deploy` = 1m32s, korg
-#1200). Do not read the pause as a hang and do not interrupt it — a deploy
-killed between the symlink repoint and the restart leaves `current` pointing
-at a version the running process is not executing, which is exactly the state
-the cwd assertion below exists to catch.
+**Expect a few seconds, not a pause.** A deploy used to take about 90 seconds
+because kfdc ignored `SIGTERM` and systemd waited out `TimeoutStopSec` before
+`SIGKILL`ing it; that was fixed in sprint 013 (korg #1200) and knarr's own
+work was only ever ~1.3s of the total. **So a deploy that hangs for 90 seconds
+now is news, not normal** — it means something reintroduced a referenced timer
+or handle that keeps the event loop alive. Do not wait it out and call it
+fine.
 
-## Verify — a probe that cannot answer is a failure
+knarr's exit code is the diagnostic and this skill must not flatten it:
 
-The installer's own version check has one soft edge: if it cannot read the
-service's `/proc/<pid>/cwd` it prints _"could not read the service's cwd —
-health check passed, version unproven"_ and still **exits 0**. That is a
-reasonable installer default and a bad deploy report. So assert it here, where
-an unexpected non-answer is a failure rather than a footnote:
+| exit | meaning                                                      |
+| ---- | ------------------------------------------------------------ |
+| `0`  | deployed and confirmed                                       |
+| `1`  | usage                                                        |
+| `2`  | store failure — **the host was never touched**               |
+| `3`  | a deploy step failed; the previous version is still in place |
+| `4`  | installed but running the wrong version                      |
 
-Run it **on the serving host**, because that is where the process is. The
-version crosses via `env`, not a positional parameter — see the warning below:
+## Verify — read the status document, do not re-probe
+
+Until sprint 013 this section hand-rolled four ssh probes, because
+`install.sh`'s exit code did not carry enough: its version check printed
+_"could not read the service's cwd — health check passed, version unproven"_
+and still **exited 0**. knarr fails that step instead and returns a structured
+document, so the assertions become reads rather than re-runs.
+
+**`ok: true` is not version proof.** It proves the steps ran. Check the steps.
 
 ```sh
-ssh "$KFDC_DEPLOY_HOST" env WANT="$V" bash -s <<'EOF'
-pid=$(systemctl --user show -p MainPID --value kfdc.service 2>/dev/null || echo 0)
-[ "${pid:-0}" -gt 0 ] || { echo "no MainPID for kfdc.service" >&2; exit 1; }
-[ -r "/proc/$pid/cwd" ] || { echo "cannot read cwd of pid $pid" >&2; exit 1; }
-running=$(basename "$(readlink -f "/proc/$pid/cwd")")
-[ "$running" = "$WANT" ] || { echo "running $running, expected $WANT" >&2; exit 1; }
-echo "pid $pid running $running"
-EOF
+export WANT="$V"
+jq -e '
+  .ok == true
+  and .resolved_version == env.WANT
+  and ([.steps[] | select(.status != "ok" and .status != "skipped")] | length == 0)
+  and ([.steps[] | select(.name == "confirm" and .status == "ok")] | length == 1)
+' "$STATUS" >/dev/null \
+  || { echo "status document did not assert clean — read it, do not re-run" >&2; exit 1; }
+
+jq -r '"resolved  \(.resolved_version)",
+       "sha256    \(.sha256)",
+       "host      \(.host)  (\(.scope) scope, shape \(.shape))",
+       "total     \(.ms)ms",
+       (.steps[] | "  \(.name)  \(.status)  \(.ms)ms  \(.detail // "")")' "$STATUS"
 ```
 
-> **A skill body is a template, and `$1` is not inert in it.** This snippet
-> originally read `bash -s -- "$V"` with `V="$1"` inside the heredoc. When the
-> skill is loaded, `$1` is **substituted before you ever see it** — the
-> rendered instruction said `V="deploy"`, so the assertion would have compared
-> the running version against a literal word and failed for a reason nobody
-> would guess. Caught on the sprint-009 deploy, on the deploy this very edit
-> shipped. Avoid positional parameters in skill snippets; pass values through
-> `env`, which nothing rewrites.
+`WANT` is exported so the filter can read it as `env.WANT` — see the warning
+below for why the version does not get interpolated into the snippet.
 
-The unit's `WorkingDirectory` is the `current` symlink, so the running process's
-cwd resolves to the versioned directory it is actually executing out of — the
-one thing that cannot be stale. A healthy HTTP answer proves _a_ kfdc is
-running; this proves it is **this** one.
+The step that matters most is **`confirm`**. It reads the unit's `MainPID` and
+resolves `/proc/<pid>/cwd`; because the unit's `WorkingDirectory` **is** the
+`current` symlink, that resolves to the versioned directory the process is
+actually executing out of — the one thing that cannot be stale. `ready` is a
+_separate_ step precisely so an HTTP 200 can never be mistaken for it: a
+healthy answer proves _a_ kfdc is running, and the old process serves those
+just as happily.
+
+A `skipped` step is only acceptable for `stage`/`install` on a `--dry-run`. In
+a real deploy, treat anything that is not `ok` as a failed deploy and say which
+step it was — that is the whole value of the document over an exit code.
+
+> **A skill body is a template, and `$1` is not inert in it.** What this
+> replaced ran `ssh … bash -s -- "$V"` with `V="$1"` inside a heredoc. When the
+> skill is loaded, `$1` is **substituted before you ever see it** — the rendered
+> instruction said `V="deploy"`, so the assertion compared the running version
+> against a literal word and would have failed for a reason nobody would guess.
+> Caught on the sprint-009 deploy, on the deploy that very edit shipped. Avoid
+> positional parameters in skill snippets; pass values through the environment,
+> which nothing rewrites. That is why the filter above reads `env.WANT`.
 
 Then confirm the board is actually reachable and rendering the way a viewer
 sees it — over the tailnet, not over loopback, because `tailscale_serve` is the
@@ -179,10 +219,15 @@ distinction is the whole diagnostic.
 
 ### Report
 
-One block: version published, install result, the four assertions above with
-their actual values (not "OK"), and the rollback target you captured in step 1.
-If any assertion was skipped, say which and why — an unproven version reported
-as a clean deploy is the failure this section exists to prevent.
+One block: version published, the status document's own numbers (resolved
+version, sha256, per-step timings — actual values, not "OK"), the tailnet
+render check, the three-way `just versions` agreement, and the rollback target
+captured in step 1. If any assertion was skipped, say which and why — an
+unproven version reported as a clean deploy is the failure this section exists
+to prevent.
+
+Report the **total deploy time** too. It is the one number that says whether
+the thing sprint 013 bought is still bought.
 
 ## Rollback
 
@@ -202,10 +247,13 @@ with the same assertions above — a rollback is a deploy.
 
 ## What this skill does not do
 
-- **Host config.** `~/.config/kfdc/kfdc.env` (`PORT`, `ORIGIN`) is host state,
-  seeded once from the bundle's template and never overwritten by a deploy.
-  `PORT` must match the `tailscale_serve` entry declared for that host in
-  k-homelab `manifests/<host>.yml`.
+- **Host config, and the unit.** `~/.config/kfdc/kfdc.env` (`PORT`, `ORIGIN`)
+  and `~/.config/systemd/user/kfdc.service` are host state. knarr will never
+  write either — it ships artifacts, restarts services and verifies versions,
+  and nothing else (knarr D12). Both are `deploy/bootstrap.sh`, once per host,
+  ever; it refuses to run once they are in place. `PORT` must match the
+  `tailscale_serve` entry declared for that host in k-homelab
+  `manifests/<host>.yml`.
 - **The curator.** `bin/update-fdc`, `just curator` and `kfdc-curator.timer`
   run from the **clone on kai** and are not part of the bundle. They need
   `curator/prompt.md` and a `claude` binary; the serving host needs neither.
