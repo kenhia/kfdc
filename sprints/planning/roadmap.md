@@ -51,7 +51,11 @@ design change, not an implementation detail:
   an empty state that would read as a claim about history (sprint 008).
   Ages are computed against the board's own `generated`, never invented.
 - **kfdc does not build in place.** `just publish` to the store, `just
-  deploy` installs that artifact. `docs/deploying.md`.
+  deploy` installs that artifact. `docs/deploying.md`. Since sprint 013
+  `just deploy` is a **knarr** call, so the deploy mechanism is the fleet's,
+  not kfdc's — changing it is a knarr work item. What stays kfdc's is
+  `deploy/bootstrap.sh`: the once-per-host config and unit, which knarr will
+  never write.
 - **The curator runs on kai; the board runs on kubsdb.** kubsdb gets no
   agent tooling (k-homelab #988).
 
