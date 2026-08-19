@@ -121,3 +121,36 @@ derived from the marks.
   mid-sprint. Both sides were verified live, which is a better outcome
   than either alone: the no-baseline path is not a hypothetical branch
   here, it was observed serving the board.
+
+## Deployed
+
+2026-08-19, version **0.5.0-4805647** (the sprint's squash-merge commit)
+published to the store and installed on kubsdb via `just deploy
+0.5.0-4805647`. Rollback target: `0.5.0-7351ecf` (sprint 010, running
+before this deploy).
+
+Verified live:
+
+- cwd assertion on kubsdb: `pid 1280372 running 0.5.0-4805647`.
+- Viewer path from kai: `https://kubsdb.encke-wahoo.ts.net:8100/` → 200,
+  `FIRE MISSIONS` marker present (SSR rendered the board, not an error
+  shell).
+- `just versions`: store `latest`, host `here` top entry, and `running`
+  all report `0.5.0-4805647`.
+
+**The sprint's own behaviour**, captured on the deployed board either side
+of the install:
+
+    before  in 170  out 165  durable out 45  durable in 6                  backlog 158  -4/10d
+    after   in 170  out 165  durable out 45  durable in 6 oldest 3d of 10  backlog 158  +5/10d
+
+The `before` line is the sign-flip this sprint predicted, observed in
+production rather than argued from a fixture: `170 − 165 = +5`, and the
+board said `-4`. Both bugs were visible in that one line — the wrong
+delta, and a `durable in 6` covering three days sitting bare beside a
+`durable out 45` covering ten.
+
+Reconciled against korg's live flow at deploy time: `backlog_before` 153,
+last backlog 158, so the delta must be `+5`, and `170 − 165` is `+5` —
+they agree. Durability lag 7 over a 10-day window leaves 3 knowable days,
+which is the span the label names.
