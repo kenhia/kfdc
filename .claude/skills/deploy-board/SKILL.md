@@ -189,14 +189,22 @@ A `skipped` step is only acceptable for `stage`/`install` on a `--dry-run`. In
 a real deploy, treat anything that is not `ok` as a failed deploy and say which
 step it was — that is the whole value of the document over an exit code.
 
-> **A skill body is a template, and `$1` is not inert in it.** What this
-> replaced ran `ssh … bash -s -- "$V"` with `V="$1"` inside a heredoc. When the
-> skill is loaded, `$1` is **substituted before you ever see it** — the rendered
-> instruction said `V="deploy"`, so the assertion compared the running version
-> against a literal word and would have failed for a reason nobody would guess.
-> Caught on the sprint-009 deploy, on the deploy that very edit shipped. Avoid
-> positional parameters in skill snippets; pass values through the environment,
-> which nothing rewrites. That is why the filter above reads `env.WANT`.
+> **A skill body is a template, and positional parameters are not inert in
+> it.** What this replaced ran `ssh … bash -s -- "$V"` and assigned `V` from
+> the first positional parameter inside the heredoc. When a skill loads, that
+> token is **substituted with the skill's own invocation arguments before you
+> ever see it** — the rendered instruction read `V="deploy"`, so the assertion
+> compared the running version against a literal word and would have failed
+> for a reason nobody would guess. Caught on the sprint-009 deploy, on the
+> deploy that very edit shipped.
+>
+> **This paragraph used to demonstrate the bug by containing one.** On the
+> sprint-013 ship the skill was invoked with arguments, and the token in this
+> warning was replaced by the word `Phase` from them — the lesson quietly
+> rewrote itself into nonsense. Hence the prose. Never write a positional
+> parameter into a skill body, not even to warn about them; pass values
+> through the environment, which nothing rewrites. That is why the filter
+> above reads `env.WANT`.
 
 Then confirm the board is actually reachable and rendering the way a viewer
 sees it — over the tailnet, not over loopback, because `tailscale_serve` is the

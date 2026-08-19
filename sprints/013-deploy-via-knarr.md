@@ -189,5 +189,49 @@ Verified live, all from kai:
 Rollback target throughout: `0.5.0-acb917d`, still unpacked on the host, so a
 rollback is a symlink repoint.
 
-`/sprint-ship` Phase 7 will republish and redeploy from merged `main`, which
-is what keeps every store version's commit an ancestor of `origin/main`.
+### Shipped, 2026-08-19
+
+Merged as `e5f2162` (PR #17), then republished and redeployed from merged
+`main` — which is what keeps every store version's commit an ancestor of
+`origin/main`. **`0.5.0-e5f2162`**, `latest` moved to it.
+
+**1.90s end to end**, `restart` 220ms — the third consecutive deploy through
+knarr and the second one stopping a fixed process, so the number is now
+repeatable rather than a single reading.
+
+| step | ms |
+| --- | --- |
+| `stage` | 382 |
+| `backup` | 199 (rollback: `0.5.0-294cdf5`) |
+| `install` | 213 |
+| `restart` | **220** |
+| `ready` | 259 (1 attempt) |
+| `confirm` | 193 → `0.5.0-e5f2162` |
+| `cleanup` | 0 (pruned `0.5.0-4805647`) |
+
+Verified live, from kai:
+
+- status document asserts clean; sha256 `2777529a…c166491`, 517,663 bytes
+- HTTP 200 over the tailnet with the SSR marker present
+- three views agree — store `latest`, host's top unpacked, and `running:` all
+  `0.5.0-e5f2162`
+- unit `active` / `Result=success` / `NRestarts=0`, MainPID cwd →
+  `0.5.0-e5f2162`
+
+**The shipped artifact was checked for the fix itself, not just for a
+successful deploy.** `build/` contains `process.once("sveltekit:shutdown"`
+and `poller.unref()` — distinct from adapter-node's own two
+`process.emit('sveltekit:shutdown')` calls, which is the confusion that
+would make a naive grep report a false positive.
+
+Rollback targets, both still unpacked on the host: `0.5.0-294cdf5` (this
+sprint's branch build) and `0.5.0-acb917d` (pre-sprint).
+
+### One more thing this ship caught
+
+Invoking `deploy-board` with arguments **rewrote the skill's own warning
+about positional parameters**, because that warning contained one — the token
+was replaced by a word from the invocation and the lesson turned into
+nonsense. Same class of bug sprint 009 hit in the assertion itself, now
+recurring in the prose warning about it. Rewritten to name the hazard in
+words; the skill body is now free of positional tokens entirely.
