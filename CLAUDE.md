@@ -131,8 +131,10 @@ clone and the curator and serves nothing.
   by a markdown file. `sprints/planning/roadmap.md` is no longer a roadmap:
   it now holds the two-layer architecture decision, the standing
   constraints, and the record of what each phase built. Read it for *why*
-  and *what was built*; never for *what's next*. Recorded-but-unbuilt ideas
-  are korg #1202–#1207, unqueued on purpose.
+  and *what was built*; never for *what's next*. The recorded-but-unbuilt
+  ideas were korg #1202–#1207; the 2026-08-19 sweep queued #1204 and #1205
+  and left #1202, #1203, #1206 and #1207 unqueued, each with a comment
+  saying why. Don't re-derive those reasons — read the comment.
 - Read first: `sprints/planning/roadmap.md` (architecture + record),
   `docs/design.md`,
   `docs/design/kfdc-concept.html`. Cross-repo: `korg`
