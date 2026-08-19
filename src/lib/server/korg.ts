@@ -30,8 +30,8 @@ export async function fetchBoard(fetchFn: typeof fetch = fetch): Promise<Board> 
 }
 
 // korg #1318's flow series, the Rate of Fire panel's feed. No `days`
-// parameter on purpose: the window is korg's call (6 at launch, 10 after
-// 2026-08-18), and not naming it here is what lets the widening land with no
+// parameter on purpose: the window is korg's call (6 at launch, 10 since
+// 2026-08-18), and not naming it here is what let the widening land with no
 // kfdc edit. Returns null on ANY failure rather than throwing — production
 // korg predates the endpoint until 059-backlog-flow deploys, and one panel
 // losing its feed must never take down the board (netlog.observe doctrine).

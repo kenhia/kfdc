@@ -118,14 +118,25 @@
 			<span>in <b>{r.totals.added}</b></span>
 			<span>out <b>{r.totals.closed}</b></span>
 			<span>durable out <b class="ok">{r.totals.closedDurable}</b></span>
+			<!-- durable out covers the window; durable in covers only the days old
+			     enough to know. Unequal spans get said out loud rather than left to
+			     read as a matched pair (#1434). -->
 			{#if r.totals.addedDurableKnown !== null}
-				<span>durable in <b class="load">{r.totals.addedDurableKnown}</b></span>
+				<span
+					>durable in <b class="load">{r.totals.addedDurableKnown}</b
+					>{#if r.totals.addedDurableDays < r.bars.length}<span class="span"
+							>&nbsp;oldest {r.totals.addedDurableDays}d of {r.bars.length}</span
+						>{/if}</span
+				>
 			{/if}
+			<!-- No baseline from korg, no delta: an absent figure beats a wrong one. -->
 			<span
 				>backlog <b>{r.backlogNow}</b>
-				<span class="delta" class:up={r.backlogDelta > 0} class:down={r.backlogDelta < 0}
-					>{r.backlogDelta > 0 ? '+' : ''}{r.backlogDelta}/{r.bars.length}d</span
-				></span
+				{#if r.backlogDelta !== null}
+					<span class="delta" class:up={r.backlogDelta > 0} class:down={r.backlogDelta < 0}
+						>{r.backlogDelta > 0 ? '+' : ''}{r.backlogDelta}/{r.bars.length}d</span
+					>
+				{/if}</span
 			>
 		</div>
 		<div class="legend">

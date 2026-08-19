@@ -1,8 +1,8 @@
 // Types and pure derivation for korg's work-item flow series
 // (GET /api/work-items/flow?days=N, korg #1318) — the Rate of Fire panel's
 // substrate. Contract: korg docs/api.md; the series length is korg's call
-// (6 at launch, widening to 10 after 2026-08-18) and everything here derives
-// from `days.length` so the widening needs no edit on this side (#1319).
+// (6 at launch, 10 since 2026-08-18) and everything here derives from
+// `days.length` so the widening needs no edit on this side (#1319).
 
 export interface WorkItemFlowDay {
 	// YYYY-MM-DD in the series' own timezone.
@@ -18,6 +18,12 @@ export interface WorkItemFlowDay {
 export interface WorkItemFlowSeries {
 	// Oldest first, ending today.
 	days: WorkItemFlowDay[];
+	// Open count at the end of the day *before* days[0] — the window delta's
+	// baseline (korg #1432). It rides the envelope because no row inside the
+	// window can be it: every row's `backlog` is that day's end. `null` when the
+	// window starts at `horizon` and no prior day can be answered for; absent
+	// from a korg predating the field. Optional here so both read alike.
+	backlog_before?: number | null;
 	// Where korg's transition log begins; a window reaching past it is clamped
 	// by korg, never zero-filled.
 	horizon: string;
@@ -63,10 +69,18 @@ export interface RateOfFire {
 		// Durable arrivals summed over the days old enough to know, or null
 		// while the whole window sits inside the lag (the 6-day launch state).
 		addedDurableKnown: number | null;
+		// How many of the window's days that sum actually covers — the oldest
+		// `addedDurableDays` of `bars.length`. It sits beside a `closedDurable`
+		// that always covers the whole window, so unless the two are equal the
+		// panel must name the span rather than let them read as a pair (#1434).
+		addedDurableDays: number;
 	};
 	backlogNow: number;
-	// Over the window: last day minus first day.
-	backlogDelta: number;
+	// Movement over exactly the days `totals` covers, measured from korg's
+	// `backlog_before`. Null when korg supplies no baseline — differencing the
+	// series ends instead spans one day less than the sums do under the same
+	// label, and that fallback is the bug this replaced (korg #1432, GP-13).
+	backlogDelta: number | null;
 }
 
 export function rateOfFire(s: WorkItemFlowSeries | null | undefined): RateOfFire | null {
@@ -107,9 +121,11 @@ export function rateOfFire(s: WorkItemFlowSeries | null | undefined): RateOfFire
 			added: bars.reduce((t, b) => t + b.added, 0),
 			closed: bars.reduce((t, b) => t + b.closed, 0),
 			closedDurable: bars.reduce((t, b) => t + b.closedDurable, 0),
-			addedDurableKnown: known.length ? known.reduce((t, b) => t + b.addedDurable, 0) : null
+			addedDurableKnown: known.length ? known.reduce((t, b) => t + b.addedDurable, 0) : null,
+			addedDurableDays: known.length
 		},
 		backlogNow: bars[n - 1].backlog,
-		backlogDelta: bars[n - 1].backlog - bars[0].backlog
+		backlogDelta:
+			typeof s.backlog_before === 'number' ? bars[n - 1].backlog - s.backlog_before : null
 	};
 }
