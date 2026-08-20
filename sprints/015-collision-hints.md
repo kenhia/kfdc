@@ -167,3 +167,39 @@ queue, not a working part of a small one.
   for hints rejected and why, and tune from there.
 - korg inlines only the newest 10 comments per proposal; the runner says so
   in the block when it bit, rather than letting a partial read look whole.
+
+## Deployed
+
+**2026-08-20** — `0.5.0-5fedecb` on kubsdb, published from merged `main`
+(`5fedecb`) and installed through knarr. Rollback target: `0.5.0-fc88d05`
+(sprint 014), still unpacked on the host.
+
+**The bundle carries none of this sprint's work, and that is correct.** Nothing
+under `src/` or `systemd/` changed — the payload is curator-side, and the
+curator runs from the clone on kai, not from the bundle. The board version moved
+so that what the store holds keeps naming a commit on `main`; its behaviour did
+not.
+
+knarr status document, asserted on the `confirm` step rather than `ok: true`:
+sha256 `98d20b8f…`, resolved `0.5.0-5fedecb`, **1850ms total** — stage 386ms,
+backup 191ms, install 214ms, restart 222ms, ready 255ms, confirm 199ms, cleanup
+0ms (pruned `0.5.0-294cdf5`). In line with the post-sprint-013 norm; no sign of
+the shutdown stall returning.
+
+Verified live:
+
+- `https://kubsdb.encke-wahoo.ts.net:8100/` → 200, and SSR rendered the board
+  (matched *fire missions*, so not an error shell). Checked from kai over the
+  tailnet, which is the path a viewer takes.
+- `/wall` → 200; sprint 014's mode still serves.
+- `just versions` — store `latest`, host top entry and `running:` all
+  `0.5.0-5fedecb`.
+
+Verified for the work this sprint actually shipped, which the deploy does not
+cover:
+
+- `just hints` runs from the clone at merged `main` against production korg —
+  3 live proposals, `none`, suppression counts all zero.
+- `kfdc-curator.timer` is enabled and active, `ExecStart` is the clone's
+  `bin/update-fdc`, and the installed unit still matches `systemd/` — so the
+  timer picks up the hints block on its next run with no `just curator-install`.
