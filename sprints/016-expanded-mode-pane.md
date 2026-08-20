@@ -262,3 +262,60 @@ Check the failure, not the exit code.
 - `AwaitingRow` and `RelatedRef` still do not carry korg's `url` field
   (noted in korg sprint 070). kfdc does not need it — `/n/:id` covers every
   case — but GP-16 points that way if a second consumer lands.
+
+## Deployed
+
+**2026-08-20**, to **kubsdb** — `https://kubsdb.encke-wahoo.ts.net:8100`.
+
+Three deploys, because Phase 7's smoke test found the Escape bug and the
+first fix for it did not work. That is the ordering doing its job: each
+version was published from merged `main`, so every store artifact names a
+commit that is an ancestor of `origin/main`.
+
+| version | commit | what |
+|---|---|---|
+| `0.5.0-61af6f3` | PR #20 | the sprint. Escape measured dead in production. |
+| `0.5.0-8b602c4` | PR #21 | reclaim focus on frame `load` — **did not work**, too early. |
+| **`0.5.0-eadc974`** | PR #22 | **running.** Promise withdrawn; the pane promises the ✕. |
+
+- sha256 `50756d8daf8e8a143a7aee73ff79c6b5cede0ae2be939f9e7177268198cb5cee`
+- knarr **1884ms** end to end — `stage` 396ms, `backup` 190ms, `install` 212ms,
+  `restart` 220ms, `ready` 262ms, **`confirm` 206ms → `0.5.0-eadc974`**, `cleanup` 0ms
+- **Rollback target: `0.5.0-8b602c4`**, still unpacked on the host. The
+  last version without the pane at all is `0.5.0-5fedecb` (sprint 015),
+  which the host has now pruned — it is in the store.
+- Three-way agreement: store `latest`, host `here:` top entry and `running:`
+  all `0.5.0-eadc974`.
+- Tailnet render check from kai: HTTP 200, `Fire Missions` present in the SSR
+  response.
+
+### Verified live — the sprint's own behaviour, not just the service
+
+```
+refs linking into korg      : 53
+  via /n/<id>               : 53
+  legacy /work-items?wi=    : 0
+  legacy bare /planning     : 0
+clicked ref                 : …:5674/n/1233
+pane opened                 : true
+frame resolved to           : …:5674/work-items/1233
+korg rendered in the pane   : "korg Today Cards Work Items Planning … #1233 Ex"
+board still 3 cols          : 3
+horizontal overflow         : 0px
+close button title          : "close"
+X closes the pane           : true
+Esc closes w/ board focused : true
+/wall pane after clicking   : false
+/wall ref navigated instead : true
+page errors                 : none
+```
+
+The third line is the fix that mattered most: **53 of 53 refs go through
+korg's resolver and none through the map that emitted a URL korg never
+served.** The middle block is program korg:1471's done-criterion satisfied
+verbatim — *clicking a WI on the board at :8100 renders that node in real
+korg in the pane*.
+
+`.scratch/verify-016-prod.mjs` is the check; it is deliberately not a
+`just check` gate, for the same reason the layout checks are not — it needs
+a browser and a deployed board.
