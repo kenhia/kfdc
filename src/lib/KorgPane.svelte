@@ -3,31 +3,16 @@
 
 	const pane = usePane();
 
-	// The close button, so the pane can keep keyboard focus on the BOARD's side
-	// of the frame boundary — see `holdFocus` below.
-	let closeBtn = $state<HTMLButtonElement | null>(null);
-
-	// Escape only reaches this handler while focus is in the board's document.
-	// A cross-origin frame's keystrokes are korg's and nothing here can see
-	// them, which is a browser boundary, not a choice — `holdFocus` is what
-	// keeps the common case on this side of it.
+	// Escape reaches this handler only while focus is in the BOARD's document.
+	// Once korg's frame has it, the keystrokes are korg's and nothing here can
+	// see them — a cross-origin boundary, not a choice, and `postMessage` (the
+	// one thing that could cross it) is forbidden by korg+ GP-17.
+	//
+	// So it stays, unadvertised. It works deterministically whenever the board
+	// holds focus, and the ✕ is the affordance the pane actually promises.
+	// docs/design.md § Expanded mode carries the measurement behind that split.
 	function onkeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && pane.open) pane.close();
-	}
-
-	// Chromium focuses a freshly loaded iframe. Measured against production on
-	// the sprint-016 deploy: `document.activeElement` became `IFRAME.pane-frame`
-	// about a second after the pane opened, and from that moment the window saw
-	// ZERO keydowns — so the header's `close (Esc)` was an affordance the board
-	// could not honour, which is the one thing docs/design.md forbids outright.
-	//
-	// So focus is taken back once, on load. The trade is deliberate: while you
-	// are *reading* the node, Escape closes the pane; the moment you click into
-	// korg to *work*, focus is korg's and so is Escape. Nothing is stolen from a
-	// user who is typing, because a user who just clicked a ref on the board is
-	// not typing yet. The ✕ is the unconditional affordance either way.
-	function holdFocus() {
-		closeBtn?.focus();
 	}
 </script>
 
@@ -44,12 +29,8 @@
 			     href is korg's origin, not an app route. -->
 			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 			<a class="pane-out" href={pane.href} target="_blank" rel="noreferrer">open in korg ↗</a>
-			<button
-				bind:this={closeBtn}
-				class="pane-x"
-				title="close (Esc)"
-				aria-label="close pane"
-				onclick={() => pane.close()}>✕</button
+			<button class="pane-x" title="close" aria-label="close pane" onclick={() => pane.close()}
+				>✕</button
 			>
 		</div>
 		<!--
@@ -68,8 +49,7 @@
 		  decides who may paint korg, and it is not an access-control list.
 		-->
 		{#key pane.node}
-			<iframe class="pane-frame" title="korg — node {pane.node}" src={pane.href} onload={holdFocus}
-			></iframe>
+			<iframe class="pane-frame" title="korg — node {pane.node}" src={pane.href}></iframe>
 		{/key}
 	</aside>
 {/if}

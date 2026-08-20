@@ -198,10 +198,35 @@ keystrokes are korg's. The header said `close (Esc)`; the board could not
 honour it. That is the one thing `docs/design.md` forbids outright, and it was
 live for the length of one deploy.
 
-The pane now takes focus back once, on the frame's `load`, and the gate that
-would have caught it is `KorgPane.svelte.test.ts` — negative-tested by
-deleting `onload={holdFocus}` and watching *takes keyboard focus back from the
-frame when it loads* fail.
+**The first fix did not work, and measuring it is what settled the design.**
+Reclaiming focus on the frame's `load` was too early — korg grabs it back
+shortly after, and the redeploy failed the same assertion. So the reclaim was
+measured at four delays against production:
+
+| reclaim focus at | focus after 1.2s | Escape works |
+|---|---|---|
+| load + 0ms | `IFRAME` | no |
+| load + 50ms | `BUTTON` | **yes** |
+| load + 250ms | `BUTTON` | **yes** |
+| load + 1000ms | `BUTTON` | **yes** |
+
+A reliable Escape *is* available, then — at the price of a timing race whose
+failure mode is Escape silently dying, invisible to every gate `just check`
+runs. That is the same bug class this section is about, so the price was
+judged too high for a control the ✕ already covers.
+
+**The promise is withdrawn instead**, which is the rule the repo already had:
+the board draws no affordance it cannot honour, exactly as On Deck's roll-up
+renders a caret nobody can press as text. The button says `close`. The Escape
+handler stays — it works deterministically whenever the board holds focus —
+but it is not advertised. `postMessage`, the only thing that could cross the
+frame boundary properly, is forbidden by GP-17.
+
+The gate is `KorgPane.svelte.test.ts`, negative-tested by restoring
+`title="close (Esc)"` and watching *promises only what it can honour* fail
+with `expected 'close (Esc)' to be 'close'`. The measurement is in
+`docs/design.md` so a later sprint can argue with the decision rather than
+re-derive it.
 
 **The lesson is about the first attempt at that gate, not the bug.** Removing
 `onload` with a `sed` pattern written against the pre-prettier indentation

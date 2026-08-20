@@ -156,17 +156,25 @@ the board, deep-linked to that node.
   layout): 3840→1200, pane closed and open, zero overflow; reverted to the
   old viewport media queries the pane-open board keeps three columns and
   spills 12px at 1920/1600/1366.
-- **Escape closes the pane, and the board has to fight for that.** Chromium
-  focuses a freshly loaded iframe, and a cross-origin frame's keystrokes are
-  korg's — the window sees none of them. Measured on the sprint-016 deploy:
-  `document.activeElement` became `IFRAME.pane-frame` about a second after the
-  pane opened, and from that moment the header's `close (Esc)` was an
-  affordance the board could not honour. So the pane takes focus back once, on
-  the frame's `load`. The trade is deliberate: while you are *reading* the
-  node, Escape closes it; the moment you click into korg to *work*, focus is
-  korg's and so is Escape. Nothing is taken from a user who is typing, because
-  a user who just clicked a ref is not typing yet — and the ✕ is the
-  unconditional affordance either way.
+- **The pane promises the ✕, not Escape.** Chromium hands focus to a
+  cross-origin frame shortly after it loads, and that frame's keystrokes are
+  korg's — the board's window sees none of them. `close (Esc)` shipped on the
+  sprint-016 deploy and was measured false in production within the hour:
+  `document.activeElement` became `IFRAME.pane-frame` and the window recorded
+  **zero** keydowns from that moment. The Escape handler stays, because it works
+  deterministically whenever the board holds focus, but it is **not advertised**
+  — an affordance the board cannot honour must not be drawn, exactly as On Deck's
+  roll-up renders a caret nobody can press as text instead.
+
+  Measured, so a later sprint can argue with it rather than re-derive it:
+  reclaiming focus on the frame's `load` is **too early** (focus is back in the
+  frame within 1.2s and Escape is dead), while reclaiming at load+50ms holds,
+  and so does load+250ms and load+1000ms. So a reliable Escape is available —
+  at the price of a timing race whose failure mode is Escape silently dying,
+  invisible to every gate `just check` runs. That price was judged too high for
+  a control the ✕ already covers. `postMessage`, the only thing that could cross
+  the boundary properly, is forbidden by GP-17.
+
 - **korg must admit the origin, and only production is admitted.** korg
   serves `frame-ancestors` from `KORG_FRAME_ANCESTORS`, whose one entry is
   `https://kubsdb.encke-wahoo.ts.net:8100`. Verified live in both directions:
