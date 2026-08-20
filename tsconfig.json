@@ -11,10 +11,26 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "bundler"
-	}
+	},
+	// `include` is overridden, not extended, because svelte-kit's generated
+	// config lists only `src/` and the typecheck gate must also reach
+	// `curator/` — the curator's own side, deliberately not under `src/lib`
+	// (that is the board's library, and collision derivation must not look
+	// like the board deriving collisions — GP-1). Verified by planting a type
+	// error in curator/hints.ts and watching `npm run check` fail; before this
+	// block it passed with 0 errors. Paths are relative to THIS file, so the
+	// four `.svelte-kit` entries restate what the generated config includes.
+	"include": [
+		".svelte-kit/ambient.d.ts",
+		".svelte-kit/env.d.ts",
+		".svelte-kit/non-ambient.d.ts",
+		".svelte-kit/types/**/$types.d.ts",
+		"vite.config.ts",
+		"src/**/*.js",
+		"src/**/*.ts",
+		"src/**/*.svelte",
+		"curator/**/*.ts"
+	]
 	// Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
 	// except $lib which is handled by https://svelte.dev/docs/kit/configuration#files
-	//
-	// To make changes to top-level options such as include and exclude, we recommend extending
-	// the generated config; see https://svelte.dev/docs/kit/configuration#typescript
 }

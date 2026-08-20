@@ -144,6 +144,20 @@ no affordance it cannot honour.
   prompt. The read side is `src/lib/curator.ts` (format is a contract:
   both sides move together). If a panel needs data korg can't hold,
   that's a korg work item, not a workaround.
+  Since sprint 015 the curator's input has a second, **deterministic** half:
+  `bin/collision-hints` (pure logic `curator/hints.ts`, I/O
+  `curator/hints-run.ts`) finds live proposals naming the same file,
+  endpoint or contract symbol and appends candidates to the prompt on stdin —
+  because the curator's locked-down tool surface means it cannot run a script.
+  It reads korg and writes nothing: the curator still decides and still
+  writes every edge, so this is not a second writer. An **absent** block means
+  the hint pass did not run; a block saying `none` means it ran and found
+  nothing — `bin/update-fdc` and the prompt both depend on that distinction.
+  `curator/` is deliberately not under `src/lib` (that is the board's
+  library, and collision derivation there would read as the board deriving
+  collisions), so `tsconfig.json` overrides svelte-kit's generated `include`
+  and `vite.config.ts` adds `curator/**` to the `server` test project — both
+  gates reach it, and both were negative-tested.
 - korg's production API runs on kubsdb:5674; kfdc reads it via REST through
   SvelteKit server routes (token in `.env`, never in the client).
 - **The plan lives in korg, not in this repo** (sprint 009, #1189). "What's

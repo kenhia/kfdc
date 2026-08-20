@@ -25,6 +25,12 @@ format:
 curator:
     bin/update-fdc
 
+# The deterministic collision candidates that pass would be handed (sprint
+# 015). Reads korg, writes nothing — printing them is how you see what the
+# curator saw without spending a pass.
+hints:
+    bin/collision-hints
+
 # Install + enable the daily curator timer (kmon pattern; units in systemd/)
 curator-install:
     mkdir -p ~/.config/systemd/user
@@ -170,6 +176,8 @@ harness:
     @test -f docs/design.md
     @test -f docs/design/kfdc-concept.html
     @test -x deploy/bootstrap.sh
+    @test -x bin/update-fdc
+    @test -x bin/collision-hints
     @test -f systemd/kfdc.service
     @test -f .sprint-deploy
     @for s in $(grep -vE '^[[:space:]]*(#|$)' .sprint-deploy); do test -f ".claude/skills/$s/SKILL.md" || { echo "harness: .sprint-deploy names '$s' but .claude/skills/$s/SKILL.md is missing" >&2; exit 1; }; done

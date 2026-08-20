@@ -7,11 +7,21 @@
 # config, no shell, no filesystem tools. Safe to re-run: a pass that finds
 # nothing new writes nothing (see the prompt's idempotence contract).
 #
+# That locked-down tool surface is exactly why the deterministic collision
+# hints (sprint 015) are produced HERE and appended to the prompt on stdin:
+# the curator cannot run a script, so the hints reach it as input. If
+# bin/collision-hints fails, its stderr shows and NOTHING is appended — the
+# pass then runs precisely as it did before hints existed. An absent block
+# means the hint pass did not run; a block saying "none" means it ran and
+# found nothing. The prompt depends on that distinction.
+#
 # Hand-run:      bin/update-fdc            (or `just curator`)
 # Timer:         systemd/kfdc-curator.timer (kmon pattern; `just curator-install`)
 # Model:         KFDC_CURATOR_MODEL overrides (default claude-sonnet-5)
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+hints="$("$ROOT/bin/collision-hints")" || hints=""
 
 exec claude -p \
   --model "${KFDC_CURATOR_MODEL:-claude-sonnet-5}" \
@@ -19,4 +29,7 @@ exec claude -p \
   --strict-mcp-config \
   --allowed-tools "mcp__korg" \
   --disallowed-tools "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task" \
-  < "$ROOT/curator/prompt.md"
+  < <(
+    cat "$ROOT/curator/prompt.md"
+    if [[ -n "$hints" ]]; then printf '\n---\n\n%s\n' "$hints"; fi
+  )

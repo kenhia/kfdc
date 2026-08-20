@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# kfdc deterministic collision hints — candidates for the curator to verify.
+#
+# Prints the hint block `bin/update-fdc` appends to curator/prompt.md on
+# stdin. Reads korg over REST and writes nothing anywhere: the curator is
+# still the only writer of a `collides-with` edge (GP-1).
+#
+# Node runs the TypeScript directly (type stripping, node >= 23.6) — this pass
+# is not part of the board bundle and has no build step of its own.
+#
+# Hand-run:  bin/collision-hints        (KORG_URL overrides the production korg)
+# Exit 1 with nothing on stdout if korg cannot be read — the curator pass then
+# proceeds with no hints block, exactly as it did before this existed.
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+exec node "$ROOT/curator/hints-run.ts" "$@"
