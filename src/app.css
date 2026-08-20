@@ -36,6 +36,18 @@ body {
 	background: var(--amber-dim);
 	color: var(--ground);
 }
+/* Every ref on the board is a link into korg since #1203 (see $lib/NodeRef).
+   They were `<span>`s until then, so the default is INHERIT: a ref keeps the
+   exact colour and weight of the chip it used to be, and announces itself on
+   hover only. A link that repainted itself would have recoloured six panels to
+   advertise a feature. */
+a {
+	color: inherit;
+	text-decoration: none;
+}
+a:hover {
+	color: var(--amber);
+}
 
 /* ---------- header ---------- */
 header.masthead {
@@ -111,18 +123,117 @@ header.masthead {
 	color: var(--red);
 }
 
+/* ---------- deck: board + korg pane ---------- */
+/* Expanded mode (#1203). The pane is REAL korg in an iframe, not a panel, so it
+   lives outside the board grid and takes its own share of the width. Closed,
+   `.deck-main` is the full content width and the board renders exactly as it
+   did before this sprint. */
+.deck {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+}
+.deck-main {
+	flex: 1 1 auto;
+	/* Without this a flex item refuses to shrink below its content's intrinsic
+	   width, which for a board full of nowrap chips means the pane gets pushed
+	   off the screen instead of the board getting narrower. */
+	min-width: 0;
+	/* The board's column count keys off THIS box rather than the viewport (see
+	   the container queries below) — the whole reason the pane can take a third
+	   of the screen without any panel overflowing. */
+	container-type: inline-size;
+	container-name: deck;
+}
+.korg-pane {
+	/* Wide enough for korg's own pages to be usable, capped so the board never
+	   becomes the sidebar of its own dashboard. */
+	flex: 0 0 clamp(420px, 38%, 900px);
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-self: flex-start;
+	/* Sticky: the board below the fold is long, and a pane that scrolled away
+	   with it would make every ref a round trip back to the top. */
+	position: sticky;
+	top: 12px;
+	height: calc(100vh - 24px);
+	background: var(--panel);
+	border: 1px solid var(--line);
+}
+.pane-head {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	padding: 6px 8px 6px 10px;
+	border-bottom: 1px solid var(--line);
+	background: var(--panel-2);
+}
+.pane-id {
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--amber);
+	letter-spacing: 0.06em;
+}
+.pane-sub {
+	font-size: 11px;
+	color: var(--faint);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.pane-out {
+	margin-left: auto;
+	font-family: var(--mono);
+	font-size: 10.5px;
+	color: var(--muted);
+	white-space: nowrap;
+}
+.pane-x {
+	background: none;
+	border: 0;
+	color: var(--muted);
+	font-size: 13px;
+	line-height: 1;
+	padding: 2px 4px;
+	cursor: pointer;
+}
+.pane-x:hover {
+	color: var(--red);
+}
+.pane-frame {
+	flex: 1 1 auto;
+	width: 100%;
+	border: 0;
+	/* korg paints its own ground; this is only what shows during the load. */
+	background: var(--panel-2);
+}
+/* The pane is a workstation control and the wall is not a workstation, so it
+   never renders there — Board.svelte hands the wall a disabled pane rather than
+   hiding an enabled one, and this is only the belt to that braces. */
+@media (max-width: 900px) {
+	.korg-pane {
+		display: none;
+	}
+}
+
 /* ---------- grid ---------- */
 .board {
 	display: grid;
 	gap: 14px;
 	grid-template-columns: minmax(300px, 1.15fr) minmax(340px, 1.35fr) minmax(280px, 1fr);
 }
-@media (max-width: 1200px) {
+/* Container queries, not viewport ones (#1203). The thresholds are the old
+   1200px / 760px viewport breakpoints less the body's 36px of side padding, so
+   a board with no pane open sheds its columns at exactly the widths it always
+   did; with the pane open it now sheds them on its OWN width instead of
+   overflowing a box the viewport says is still wide. */
+@container deck (max-width: 1164px) {
 	.board {
 		grid-template-columns: 1fr 1fr;
 	}
 }
-@media (max-width: 760px) {
+@container deck (max-width: 724px) {
 	.board {
 		grid-template-columns: 1fr;
 	}

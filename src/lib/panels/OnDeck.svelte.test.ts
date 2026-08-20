@@ -4,6 +4,7 @@
 // and is deliberately not re-asserted through the DOM.
 import { flushSync, mount, unmount, type ComponentProps } from 'svelte';
 import { describe, expect, it } from 'vitest';
+import { PaneState, paneContext } from '$lib/pane.svelte';
 import type { ProgramRow, ProgramSlice, ProposalRow } from '$lib/board';
 import OnDeck from './OnDeck.svelte';
 
@@ -54,6 +55,7 @@ function render(props: Partial<ComponentProps<typeof OnDeck>> = {}) {
 	const target = document.body.appendChild(document.createElement('div'));
 	const app = mount(OnDeck, {
 		target,
+		context: paneContext(new PaneState('https://korg.example')),
 		props: {
 			queue: [row(5), row(10), row(12)],
 			omitted: { done: 1, declined: 0, archived: 0 },

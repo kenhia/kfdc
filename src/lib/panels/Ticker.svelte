@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { shipped, tickerHref, type TickerLine } from '$lib/ticker';
+	import NodeRef from '$lib/NodeRef.svelte';
+	import { shipped, type TickerLine } from '$lib/ticker';
 
-	let { lines, korgBase }: { lines: TickerLine[]; korgBase: string } = $props();
+	let { lines }: { lines: TickerLine[] } = $props();
 </script>
 
 <!--
@@ -19,7 +20,6 @@
 {#if lines.length}
 	<footer class="ticker">
 		{#each lines as l, i (i)}
-			{@const href = tickerHref(l, korgBase)}
 			<span class="ev">
 				<!-- Age like every other panel; korg's exact instant kept on the title. -->
 				<span class="t" title={l.at}>{l.age}</span>
@@ -27,9 +27,9 @@
 				     unguarded span still costs its 6px flex gap. Same rule, same
 				     reason, as NetLog.svelte. -->
 				{#if l.project}<span class="lp">{l.project}</span>{/if}
-				<!-- href is always an absolute URL into korg's origin, not an app route -->
-				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-				{#if href}<a {href}>{l.ref}</a>{:else}<span class="lref">{l.ref}</span>{/if}
+				<!-- Every kind links (#1203). The printed ref stays korg's human number;
+				     the link is by node id, which is what korg's resolver takes. -->
+				<NodeRef nodeId={l.node_id}>{l.ref}</NodeRef>
 				<span class="tr" class:ship={shipped(l)}>{l.transition}</span>
 				<span class="tx">{l.text}</span>
 			</span>

@@ -77,7 +77,19 @@ clone and the curator and serves nothing. Sprint 014 added **wall mode** at
 refreshing on the board's own poll cadence, and it keeps the last good board
 marked `NO REFRESH` through a korg outage rather than blanking to No Comms.
 `docs/design.md` § Wall mode carries the rules, notably that the wall draws
-no affordance it cannot honour.
+no affordance it cannot honour. Sprint 016 added **expanded mode** on `/`:
+clicking any ref opens *real korg* in an iframe pane beside the board
+(korg's `/n/:node_id` plus its `frame-ancestors` allowlist, korg sprint
+070). That is what makes kfdc edit-free by construction rather than by
+discipline — the board renders the rollup and **delegates** the node, so
+there is no gap for an edit surface to grow into (korg+ GP-1/GP-18). Refs
+are real `<a href>`s first and the pane takes only the plain left-click; the
+wall gets a *disabled* pane, so its refs stay ordinary links. **Every korg
+URL is built by `src/lib/korglink.ts` and takes no `kind`** — a
+consumer-side kind→path map is forbidden (GP-16), and the one kfdc kept
+until sprint 016 emitted a URL korg never served. The pane cannot render
+under `npm run dev`: 127.0.0.1 is not on korg's allowlist, which is correct
+default-closed behaviour, not a bug. `docs/design.md` § Expanded mode.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
   `sveltekit()` plugin in `vite.config.ts` — no `svelte.config.js`; that is

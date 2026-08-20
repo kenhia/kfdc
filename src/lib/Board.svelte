@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { statline } from '$lib/board';
+	import KorgPane from '$lib/KorgPane.svelte';
+	import { PaneState, providePane } from '$lib/pane.svelte';
 	import type { BoardPayload } from '$lib/payload';
 	import CommandersCall from '$lib/panels/CommandersCall.svelte';
 	import Deconfliction from '$lib/panels/Deconfliction.svelte';
@@ -29,6 +31,17 @@
 		// corner.
 		stale = null
 	}: BoardPayload & { wall?: boolean; stale?: string | null } = $props();
+
+	// Expanded mode (#1203): one pane per board, published to every ref on the
+	// page through context. Disabled on the wall — refs there stay the plain
+	// links they always were, because a pane nobody can close is an affordance
+	// the wall cannot honour (docs/design.md § Wall mode).
+	//
+	// `korgBase` is read once. It comes from the service's KORG_URL and cannot
+	// change without a restart, which reloads the page; a board tracking a moving
+	// korg origin would have lost its data feed long before its links mattered.
+	// svelte-ignore state_referenced_locally
+	const pane = providePane(new PaneState(korgBase, !wall));
 
 	const stats = $derived(statline(board));
 	const ticker = $derived(tickerLines(board));
@@ -86,30 +99,42 @@
 	</div>
 </header>
 
-<div class="board">
-	<div class="col">
-		<FireMissions active={board.active} />
-		<Deconfliction {board} />
-	</div>
-	<div class="col">
-		<!-- Operations holds the concept's second column; On Deck rides below. -->
-		<Operations programs={board.programs} omitted={board.programs_omitted} />
-		<OnDeck
-			queue={board.queue}
-			omitted={board.proposals_omitted}
-			depth={board.depth}
-			programs={board.programs}
-			{wall}
-		/>
-	</div>
-	<div class="col">
-		<CommandersCall awaiting={board.awaiting} generated={board.generated} />
-		<SensorNet reports={board.reports} generated={board.generated} />
-		<RateOfFire {flow} />
-	</div>
-</div>
+<!-- The deck: the board, and beside it the korg pane when one is open (#1203).
+     The pane is not a panel — it is real korg, so it sits OUTSIDE the board grid
+     and takes its own share of the width. `.deck-main` is a container, and the
+     board's column count keys off ITS width rather than the viewport's, so a
+     narrowed board sheds a column instead of overflowing one (docs/design.md —
+     nothing renders past its box). -->
+<div class="deck" class:paned={pane.open}>
+	<div class="deck-main">
+		<div class="board">
+			<div class="col">
+				<FireMissions active={board.active} />
+				<Deconfliction {board} />
+			</div>
+			<div class="col">
+				<!-- Operations holds the concept's second column; On Deck rides below. -->
+				<Operations programs={board.programs} omitted={board.programs_omitted} />
+				<OnDeck
+					queue={board.queue}
+					omitted={board.proposals_omitted}
+					depth={board.depth}
+					programs={board.programs}
+					{wall}
+				/>
+			</div>
+			<div class="col">
+				<CommandersCall awaiting={board.awaiting} generated={board.generated} />
+				<SensorNet reports={board.reports} generated={board.generated} />
+				<RateOfFire {flow} />
+			</div>
+		</div>
 
-<!-- Two transition feeds, one board (#1186): the Net Log is what THIS board
-     observed, the Ticker is what korg recorded. Different forms on purpose. -->
-<NetLog lines={netlog} {korgBase} />
-<Ticker lines={ticker} {korgBase} />
+		<!-- Two transition feeds, one board (#1186): the Net Log is what THIS board
+		     observed, the Ticker is what korg recorded. Different forms on purpose. -->
+		<NetLog lines={netlog} />
+		<Ticker lines={ticker} />
+	</div>
+
+	<KorgPane />
+</div>

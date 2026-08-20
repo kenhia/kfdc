@@ -6,6 +6,7 @@
 // that across three write paths a read-time derivation cannot see.
 import { mount, unmount, type ComponentProps } from 'svelte';
 import { describe, expect, it } from 'vitest';
+import { PaneState, paneContext } from '$lib/pane.svelte';
 import { PROGRAM_STATUSES, type ProgramRow, type ProgramSlice } from '$lib/board';
 import Operations from './Operations.svelte';
 
@@ -37,6 +38,7 @@ function render(props: Partial<ComponentProps<typeof Operations>> = {}) {
 	const target = document.body.appendChild(document.createElement('div'));
 	const app = mount(Operations, {
 		target,
+		context: paneContext(new PaneState('https://korg.example')),
 		props: { programs: [program()], omitted: { done: 0, archived: 0 }, ...props }
 	});
 	const card = () => target.querySelector('div.op') as HTMLElement;

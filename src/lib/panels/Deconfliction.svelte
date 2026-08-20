@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Board } from '$lib/board';
 	import { deconfliction } from '$lib/curator';
+	import NodeRef from '$lib/NodeRef.svelte';
 
 	let { board }: { board: Board } = $props();
 
@@ -37,12 +38,12 @@
 	{#each cards as c (`${c.kind}:${c.chips[0].node_id}:${c.chips[1].node_id}`)}
 		<div class="conflict" class:seq={c.kind === 'after'}>
 			<div class="row1">
-				<span class="node-chip" title={c.chips[0].title}
-					>{c.chips[0].project} {c.chips[0].node_id}</span
+				<NodeRef nodeId={c.chips[0].node_id} class="node-chip" title={c.chips[0].title}
+					>{c.chips[0].project} {c.chips[0].node_id}</NodeRef
 				>
 				<span class="vs">{c.kind === 'collides-with' ? '⟂ SAME CONTRACT ⟂' : '→'}</span>
-				<span class="node-chip" title={c.chips[1].title}
-					>{c.chips[1].project} {c.chips[1].node_id}</span
+				<NodeRef nodeId={c.chips[1].node_id} class="node-chip" title={c.chips[1].title}
+					>{c.chips[1].project} {c.chips[1].node_id}</NodeRef
 				>
 			</div>
 			{#if c.why}<p>{c.why}</p>{/if}
