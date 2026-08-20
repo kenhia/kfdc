@@ -1,11 +1,9 @@
-// The pane's two behaviours a pure state test cannot reach: Escape closing it,
-// and taking keyboard focus back from the iframe once it loads.
+// The pane's behaviours a pure state test cannot reach: what closes it, and
+// what the header is willing to promise.
 //
-// The focus one is not decoration. Production measurement on the sprint-016
-// deploy: Chromium moved `document.activeElement` to `IFRAME.pane-frame` about
-// a second after the pane opened, and the window then saw ZERO keydowns — so
-// the header's `close (Esc)` was an affordance the board could not honour.
-import { flushSync, mount, unmount } from 'svelte';
+// The promise matters here. `close (Esc)` shipped on the sprint-016 deploy and
+// was measured false in production within the hour — see the title test below.
+import { mount, unmount } from 'svelte';
 import { describe, expect, it } from 'vitest';
 import KorgPane from './KorgPane.svelte';
 import { PaneState, paneContext } from './pane.svelte';
@@ -13,10 +11,6 @@ import { PaneState, paneContext } from './pane.svelte';
 function render(pane: PaneState) {
 	const target = document.body.appendChild(document.createElement('div'));
 	const app = mount(KorgPane, { target, context: paneContext(pane) });
-	// `bind:this` lands in an effect, and effects flush asynchronously. In a
-	// browser the frame's load event arrives long after mount, so this only
-	// stands in for the time the real thing has anyway.
-	flushSync();
 	return {
 		target,
 		app,
@@ -48,7 +42,9 @@ describe('KorgPane', () => {
 		unmount(v.app);
 	});
 
-	it('closes on Escape', () => {
+	// True whenever the board holds focus, which is all jsdom can model and all
+	// the board ever claims — see the title test below for the other half.
+	it('closes on Escape while the board has focus', () => {
 		const pane = new PaneState('https://korg.example');
 		pane.show(1203);
 		const v = render(pane);
@@ -57,24 +53,29 @@ describe('KorgPane', () => {
 		unmount(v.app);
 	});
 
-	// The fix for the production failure above. Without it Escape is dead from
-	// the moment the frame finishes loading, which is most of the pane's life.
-	it('takes keyboard focus back from the frame when it loads', () => {
+	// THE regression guard for what the sprint-016 deploy got wrong. The button
+	// said `close (Esc)` and the board could not honour it: Chromium hands focus
+	// to korg's frame shortly after it loads, and a cross-origin frame's
+	// keystrokes are korg's — the window saw ZERO keydowns from that moment on.
+	//
+	// The reclaim that would win is a timing race (measured: too early at
+	// load+0ms, holds from load+50ms out past 1000ms), and its failure mode is
+	// Escape silently dying — invisible to every gate in `just check`. So the
+	// promise is withdrawn instead, per docs/design.md's rule that the board
+	// draws no affordance it cannot honour. The ✕ is what the pane promises.
+	//
+	// If a later sprint takes the race on, this test is the thing to argue with.
+	it('promises only what it can honour, so the title never mentions Esc', () => {
 		const pane = new PaneState('https://korg.example');
 		pane.show(1203);
 		const v = render(pane);
-
-		// Stand in for Chromium focusing the freshly loaded frame.
-		v.frame().dispatchEvent(new Event('load'));
-		expect(document.activeElement).toBe(v.closeBtn());
-
-		// And the consequence that actually matters: Escape still reaches us.
-		esc();
-		expect(pane.open).toBe(false);
+		expect(v.closeBtn().title).toBe('close');
+		expect(v.closeBtn().title).not.toMatch(/esc/i);
+		expect(v.target.textContent).not.toMatch(/esc/i);
 		unmount(v.app);
 	});
 
-	it('closes on the ✕, which is the unconditional affordance', () => {
+	it('closes on the ✕, which is the affordance it does promise', () => {
 		const pane = new PaneState('https://korg.example');
 		pane.show(1203);
 		const v = render(pane);
