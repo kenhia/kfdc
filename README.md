@@ -21,10 +21,18 @@ can make).
 > host. The live plan is korg — the board is how you read it; the approved
 > visual concept is
 > [`docs/design/kfdc-concept.html`](docs/design/kfdc-concept.html).
+>
+> Two display modes on one layout: `/` is the desk board, and `/wall` is
+> unattended widescreen — no chrome, self-refreshing, and it holds the last
+> good board through a korg outage rather than blanking. On the desk board,
+> clicking any ref opens **real korg** in a pane beside it; the board renders
+> the rollup and delegates the node, which is what keeps kfdc edit-free by
+> construction. The gear right of the statline sets that pane's width.
+> [`docs/design.md`](docs/design.md) carries the rules for both.
 
 Related: `korg-dash` remains the small-panel summary feed for the kdeskdash
-desk display; kfdc is the full-screen board. They should share korg's rollup
-read once it exists.
+desk display; kfdc is the full-screen board. Both read korg's `GET /api/board`
+rollup — kfdc does not replace korg-dash.
 
 ## Development
 
