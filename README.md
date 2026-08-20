@@ -6,7 +6,9 @@ what's blocked, what's waiting on Ken* across every active project.
 
 kfdc reads [`korg`](https://github.com/kenhia/korg) (the system of record for
 work) and renders it deterministically; a headless curator agent writes
-summaries and sequencing edges back into korg for the board to pick up.
+summaries and sequencing edges back into korg for the board to pick up, with a
+deterministic pass (`just hints`) handing it collision candidates that prose
+never mentioned.
 Agents curate korg; the board renders korg. The FDC framing is literal:
 fire missions (active sprints), priorities of fire (the ranked queue),
 deconfliction (sequencing collisions), commander's call (decisions only Ken

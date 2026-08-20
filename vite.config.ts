@@ -22,7 +22,10 @@ export default defineConfig({
 				test: {
 					name: 'server',
 					environment: 'node',
-					include: ['src/**/*.{test,spec}.{js,ts}'],
+					// `curator/` is not the board's library and must not become it
+					// (GP-1): it is the curator's own side, and its pure logic is
+					// tested here beside the board's.
+					include: ['src/**/*.{test,spec}.{js,ts}', 'curator/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
 			},
