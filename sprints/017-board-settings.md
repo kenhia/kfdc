@@ -169,3 +169,53 @@ of untrusted stored value, a storage that throws on every call),
   a #1284 spill; the probe now excludes it so the signal stays clean.
 - `box-sizing: border-box` is scoped to `.korg-pane`. If the board ever wants it
   globally, that is its own sprint with its own measurements.
+
+## Deployed
+
+**2026-08-20** — `0.5.0-efd1cd0` (commit `efd1cd0`, PR #23), published to the
+homelab store and installed on **kubsdb** by `knarr`. Rollback target:
+`0.5.0-eadc974` (sprint 016's deploy, still unpacked on the host).
+
+```
+sha256   e2c5915e565eb0799de6855a6a6969883f078061e36962d41ba27073bf81405e
+total    1870ms
+  stage    ok  391ms    backup   ok  194ms    install  ok  205ms
+  restart  ok  227ms    ready    ok  259ms    confirm  ok  195ms  → 0.5.0-efd1cd0
+  cleanup  ok    0ms    pruned 0.5.0-61af6f3
+```
+
+1.87s end to end with `restart` at 227ms — in line with sprint 013's 1.91s/220ms
+benchmark, so nothing has reintroduced a handle that keeps the event loop alive.
+Store `latest:`, the host's `here:` top entry and `running:` all read
+`0.5.0-efd1cd0`.
+
+### Verified live
+
+Tailnet render check from kai: `200`, Fire Missions present. `mast-btn` on `/`,
+**zero occurrences on `/wall`** — the wall rule holds in production, not just in
+jsdom.
+
+Then the loop the sprint deliberately deferred to here, because `npm run dev`
+cannot run it: on this origin the pane really loads korg (`frameLoaded: true`,
+**zero CSP console errors**), which is the state sprint 016's Escape promise
+died in. Headless Chromium at 3440, against the deployed board:
+
+| | pane | `.deck-main` | cols | overflow |
+|---|---|---|---|---|
+| unset (the shipped default) | **1294** | 2096 | 3 | 0 |
+| 1500px typed → stored 44.1% | **1501** | 1889 | 3 | 0 |
+| after a full reload | **1501** | 1889 | 3 | 0 |
+
+- The headline fix is live: 1294px unset, where the same board served 900px this
+  morning.
+- The popover took focus (`document.activeElement` = `.setting-i`), and
+  **Escape closed the popover and left the pane open** — the containment the
+  unit test asserts, confirmed with a cross-origin korg frame actually loaded.
+- The readout said `renders 1501px` and the pane measured 1501px. Exact, which
+  is what `box-sizing: border-box` bought.
+
+One honest wrinkle worth writing down: typing `1500` yields `1501`. The stored
+percent is rounded to one decimal (44.1% of 3404 = 1501.16), so a typed pixel
+value can land ±1px. That is inherent to storing a proportion rather than the
+pixels, which is the trade #1489 asked for — and the readout never claims
+otherwise, because it prints the resolved width rather than the typed one.
