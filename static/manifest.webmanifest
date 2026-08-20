@@ -1,0 +1,14 @@
+{
+	"id": "/",
+	"name": "KFDC — Homelab Fire Direction",
+	"short_name": "KFDC",
+	"description": "The homelab overseer board — what's firing, what's on deck, what's blocked, what's waiting on Ken.",
+	"start_url": "/",
+	"display": "standalone",
+	"theme_color": "#15170f",
+	"background_color": "#15170f",
+	"icons": [
+		{ "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+		{ "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+	]
+}

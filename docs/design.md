@@ -118,6 +118,53 @@ renders both, and a panel that behaves differently on the wall takes a
   — it is how long *this browser* has been unable to fetch any, which no korg
   timestamp can answer.
 
+## Staying current — the board refreshes, it does not reload
+
+Both routes hold their payload in one `$lib/feed.svelte.ts` `BoardFeed` and
+replace it from `/api/page`. The wall does it on a timer (#1204, sprint 014);
+the desk does it when Ken asks (#1496, sprint 018). It is one mechanism because
+the guarantee is one guarantee, and the desk earned its half the moment it
+stopped reloading.
+
+- **A failed refresh keeps the last good board, on both routes.** No Comms is
+  right for a cold load — there is nothing to render. Once there *is* a board,
+  the last thing korg actually said beats an error page: on the wall because
+  nobody is standing there to reload it, on the desk because a blip would
+  otherwise throw away a board Ken was reading and the korg pane with it. The
+  `NO REFRESH <age>` marker in the statline is the same marker on both.
+- **A refresh that hangs is the worst failure, not the mildest**, so it is
+  bounded (`REFRESH_TIMEOUT_MS`, 30s). `fetch` has no default timeout, and a
+  socket that never answers leaves `misses` at zero forever — the board goes
+  stale carrying *no* staleness marker, which is exactly the silence wall mode
+  exists to prevent. The bound sits well inside the 3-minute poll so a hung
+  refresh always resolves before the next is due.
+- **The desk does not poll.** Somebody is at the keyboard. A board that
+  re-sorted itself under the row being read would be the desk's version of the
+  wall's problem — right data, wrong moment.
+- **`Ctrl+R` and `F5` are claimed; `Ctrl+Shift+R` is not.** The reflex Ken
+  already has becomes the in-place refresh, and a real hard reload stays one
+  keystroke away for when the *app* is what needs re-fetching. Measured in a
+  real browser: on the desk both are `defaultPrevented` and each fires exactly
+  one `GET /api/page`; `Ctrl+Shift+R` and `Shift+F5` are left unclaimed and
+  fire none; the wall claims nothing at all. (Whether Chromium then suppresses
+  its own reload is not observable headlessly — there is no browser UI to
+  service the shortcut, and a first pass that thought it had measured it was
+  reading an artifact. The control that exposed it: the wall, which arms
+  nothing, "survived" identically.)
+- **This hotkey may be advertised where `close (Esc)` may not.** Both die the
+  same way — focus inside korg's cross-origin frame, and the board's window
+  sees no keydown at all. The difference is what happens next: Escape's failure
+  mode was *nothing*, while Ctrl+R's is a real browser reload, which refreshes
+  the board and restores the pane from sessionStorage. It degrades to the thing
+  it replaced. *The board draws no affordance it cannot honour* is satisfied by
+  a fallback, not only by a guarantee.
+- **One name for the endpoint, in one place.** `payload.fetchPayload` is the
+  only thing that spells `/api/page`, the same instinct as `korglink.nodeHref`
+  (GP-16) turned on kfdc's own surface. It shipped as `/api/wall` and was never
+  wall-specific — its own header said "the page payload" from day one — and a
+  name that says *wall* on the desk board's only data path is a name that has
+  stopped being true. Same reason `WallFeed` became `BoardFeed`.
+
 ## Expanded mode — the korg pane
 
 `/` only (kfdc #1203, sprint 016; slice 2 of program korg:1471). Clicking any
@@ -144,6 +191,44 @@ the board, deep-linked to that node.
   on the unfiltered list. Because korg now has a page for every kind, no ref
   degrades to plain text any more — kfdc #993's don't-fake-URLs rule stands,
   it simply has nothing left to catch.
+- **The pane's capability surface is a knob, and it is not the channel GP-17
+  forbids** (kfdc #1497, sprint 018). A cross-origin frame holds a
+  Permissions-Policy feature only if the embedder delegates it with `allow`, and
+  `clipboard-write` defaults to an allowlist of `self` — so korg's Copy Sprint
+  Command failed in the pane and nowhere else, with a permissions-policy error
+  that reads like korg's bug and is kfdc's. kfdc serves no `Permissions-Policy`
+  header of its own, so the delegation was always ours to give. **The next
+  report of "X does not work in the pane" goes to the `allow` list first**,
+  rather than back to first principles about whether the pane is the right
+  shape. Delegating a capability lets korg do its own job inside the frame; a
+  `postMessage` handler would let the two round-trip state, and only the second
+  is the road to a second korg UI. `clipboard-read` is deliberately *not*
+  delegated: korg's image paste reads `ClipboardEvent.clipboardData`, the
+  reader's own gesture, which needs no permission.
+- **The pane survives a refresh because it is never unmounted.** That is a
+  consequence of the desk refreshing in place, not a feature that was built —
+  and it is strictly better than restoring, because the iframe keeps *exactly*
+  what it was showing, including wherever Ken navigated to inside korg.
+- **sessionStorage is the floor, not the mechanism.** Two reload paths can
+  never be intercepted: the installed app window's own refresh control (browser
+  chrome) and Ctrl+R while focus is inside korg's frame. So the open node is
+  written to `kfdc.pane.v1` and reopened from an **effect** on mount — not from
+  the constructor, because the server renders the pane closed and an `{#if}`
+  that differs between the SSR'd HTML and the first client render is a
+  hydration mismatch. Per-tab and dying with the window, so the board never
+  resurrects a pane in a window opened days later; cleared on close, so a pane
+  deliberately dismissed stays dismissed; hardened-parsed, so a corrupt value
+  opens nothing rather than throwing. It restores only the node **kfdc** set —
+  wherever Ken navigated to inside korg is cross-origin and unknowable, and
+  `postMessage` is forbidden (GP-17). **That stays a gap.** The in-app refresh
+  is the answer with full fidelity; this is the floor under the paths it cannot
+  reach.
+- **Storing which node was open does not breach GP-1.** The plan's 2026-08-20
+  test is *would korg changing make the stored value wrong?* — and what is
+  stored is which surface the reader last had open, named there as the
+  consumer's own display chrome. Not one field of the node: the pane fetches
+  live korg either way, and a node since archived simply renders korg's own
+  answer for it.
 - **The wall has no pane.** It is a display mode, not a workstation. Refs
   there stay the plain links they always were — the wall withdraws the pane,
   not the address — and `Board.svelte` hands the wall a *disabled* pane so no
@@ -288,6 +373,46 @@ qualifier is derived, not configured, so it appears and disappears with
 the data. The same rule kills a figure outright when the input for it is
 missing: a wrong delta reads as measurement, an absent one reads as
 absence, and only one of those is honest.
+
+## The installed app
+
+kfdc is installed as an Edge web app on the desk, so the taskbar is a surface
+the board has to dress (kfdc #1494, sprint 018). Before this it showed a
+generated **K** tile: the tab was always right, but the *install* path was
+starved — an SVG favicon and no manifest at all, so Chromium synthesised a
+monogram from the title.
+
+- **The mark is the reticle**, `src/lib/assets/favicon.svg`, rasterised to
+  `static/` at 32 / 128 / 192 / 512 and committed. Four static files, not a
+  build step; a one-off headless-Chromium pass renders the *actual* SVG, so
+  what ships is the same mark the tab draws rather than a re-drawing of it.
+  Colours land exact (`#15170f` ground, `#e2a63d` ring, `#e9e3cc` centre).
+- **The crest is not a candidate**, and this is the second time that has been
+  written down. The Brave Rifles mark has a silhouette floor far above icon
+  size (see below, and sprint 008). Sprint 008 left *no purpose-drawn 16px
+  glyph* open; the reticle answers the installed-app slot at 192/512, where it
+  is plainly legible, without reopening the 16px question.
+- **Head declarations split by job.** The manifest and the raster icons live in
+  `src/app.html`, where `%sveltekit.assets%` paths stay static and un-hashed —
+  an icon imported through Vite is served from a hashed `/_app/immutable/…` URL,
+  fine for a tab and useless as a shortcut icon. The SVG `<link rel="icon">`
+  stays in `+layout.svelte`, where a route can still override it, carrying
+  `type="image/svg+xml"` and `sizes="any"` so Chromium prefers it for the tab.
+  The install path is unaffected either way: it reads the manifest's `icons`,
+  and those are PNG only.
+- **Maskable as drawn.** The reticle sits on a full-bleed `#15170f` square, so
+  the same files serve `any` and `maskable` and nothing is letterboxed. The ring
+  (outer radius 10.25 of 32) is comfortably inside the 40% safe circle; only the
+  outer ~2 units of each tick tip fall outside it, so the most aggressive
+  circular mask shortens the ticks and never touches the ring or the centre.
+- **The gate is a real one.** `src/app-icons.test.ts` reads the manifest, reads
+  each PNG's own IHDR, and holds the two to each other — because what goes wrong
+  here fails *silently*: Chromium skips an icon it cannot use and falls back to
+  the monogram, no test imports these files, and the build copies `static/`
+  without looking inside it.
+- **Edge caches the shortcut icon at install time.** A correct fix reads as a
+  failed one until the app is uninstalled and reinstalled. That belongs in the
+  deploy notes, every time.
 
 ## The regimental crest
 

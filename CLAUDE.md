@@ -100,7 +100,25 @@ the viewport. The pane's upper bound is a **floor under the board**
 pinned the pane on a 3440px screen and would have silently discarded any
 setting, which is the bug wearing a settings dialog. Nothing stored means no
 `--pane-w` at all, so app.css keeps the single default. No gear on `/wall`.
-`docs/design.md` § Expanded mode.
+`docs/design.md` § Expanded mode. Sprint 018 stopped the desk **reloading**:
+both routes now hold their payload in one `BoardFeed`
+(`src/lib/feed.svelte.ts`) and replace it from `/api/page` — the desk on a ↻
+beside the gear and on `Ctrl+R`/`F5`, the wall on its timer. `Ctrl+Shift+R`
+is deliberately never claimed. The korg pane surviving is a **consequence of
+not unmounting**, not a feature: the iframe keeps exactly what it was
+showing, which no restore can match. `sessionStorage` (`kfdc.pane.v1`,
+restored from an *effect*, never the constructor — the server renders the
+pane closed and an `{#if}` that differs is a hydration mismatch) is only the
+floor under the two reload paths no page can intercept, and it restores only
+the node kfdc set. Also sprint 018: the pane's **capability surface is a
+knob** — `allow="clipboard-write"` on the iframe, which is delegation, not
+the `postMessage` channel GP-17 forbids; the next "X doesn't work in the
+pane" goes to that list first. And the installed app finally gets the
+reticle instead of a generated "K" (`static/manifest.webmanifest` + committed
+32/128/192/512 rasters, declared in `src/app.html` so the paths stay
+un-hashed) — **Edge caches the shortcut icon at install time, so seeing it
+takes an uninstall/reinstall**. `docs/design.md` §§ Staying current, Expanded
+mode, The installed app.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
   `sveltekit()` plugin in `vite.config.ts` — no `svelte.config.js`; that is
@@ -123,11 +141,15 @@ setting, which is the bug wearing a settings dialog. Nothing stored means no
   `@testing-library/svelte`) for `*.svelte.test.ts` component tests — they
   partition on that one pattern, so a component test must carry the
   `.svelte.test.ts` suffix or it runs in the wrong environment. The same
-  suffix carries rune-using `.svelte.ts` modules' tests (`wall.svelte.ts`).
+  suffix carries rune-using `.svelte.ts` modules' tests (`feed.svelte.ts`).
   Some things kfdc can get wrong are **layout**, which jsdom cannot see:
   #1284 and #1460 were found and negative-tested with a headless browser run
   from `.scratch/`, deliberately not a dependency and deliberately not a
-  `just check` gate. The numbers live in the sprint record; the rule they
+  `just check` gate. Sprint 018 added the other half of that lesson: a
+  headless run can **measure an artifact** — its first hotkey pass concluded
+  Ctrl+R was intercepted when headless Chromium simply has no browser UI to
+  service a reload, which the wall (arming nothing) exposed by "surviving"
+  identically. Always run the negative control. The numbers live in the sprint record; the rule they
   produced lives in `docs/design.md` (*nothing renders past its box*).
 - Deploy: **kfdc does not build in place** (sprint 005). `just publish`
   puts a versioned bundle in the homelab package store; `just deploy

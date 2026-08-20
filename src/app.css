@@ -146,6 +146,22 @@ header.masthead {
 	color: var(--amber);
 	border-color: var(--line);
 }
+/* The desk's in-place refresh (#1496, sprint 018). It borrows `.mast-btn`
+   rather than inventing a look: two glyphs side by side in one statline have to
+   be the same kind of thing, or the masthead has started becoming a toolbar.
+   It is NOT a `.mast-control` — that wrapper is the popover shell, and this
+   opens nothing — so it needs its own centring in the statline's flex row. */
+.mast-refresh {
+	align-self: center;
+}
+/* A slow korg should look slow rather than dead. Dimmed rather than spun: the
+   board has no animation anywhere and one moving thing on a dense static page
+   pulls the eye off the data it is there to serve. */
+.mast-btn[aria-busy='true'] {
+	color: var(--faint);
+	cursor: default;
+}
+
 .mast-pop {
 	position: absolute;
 	right: 0;

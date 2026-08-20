@@ -42,6 +42,24 @@
 		  other fix and is unavailable to us: korg is cross-origin, which is the
 		  whole reason the CSP allowlist (GP-17) exists.
 
+		  `allow` is the pane's CAPABILITY surface, and it is a knob rather than a
+		  question of principle (#1497). A cross-origin frame holds a
+		  Permissions-Policy feature only if the embedder delegates it — the default
+		  allowlist for `clipboard-write` is `self` — so korg's Copy Sprint Command
+		  failed here and nowhere else. kfdc serves no `Permissions-Policy` header of
+		  its own, so the delegation is ours to give; bare (no allowlist) means "this
+		  feature, for the frame's own origin", which is exactly the intent.
+
+		  This is NOT the channel GP-17 forbids. Delegating a capability lets korg do
+		  its own job inside the frame; a `postMessage` handler would let the two
+		  round-trip state, which is the thing that becomes a second korg UI. The next
+		  report of "X does not work in the pane" goes to this list first.
+
+		  `clipboard-read` is deliberately not delegated: korg's image paste reads
+		  `ClipboardEvent.clipboardData`, the reader's own gesture, which needs no
+		  permission. The async read API is a different capability and the pane has no
+		  reason to hold it.
+
 		  Sandboxing is deliberately NOT set. korg needs its own scripts, forms and
 		  same-origin storage to be the real editor this pane exists to provide,
 		  and a sandbox tight enough to be worth anything would break exactly that.
@@ -49,7 +67,12 @@
 		  decides who may paint korg, and it is not an access-control list.
 		-->
 		{#key pane.node}
-			<iframe class="pane-frame" title="korg — node {pane.node}" src={pane.href}></iframe>
+			<iframe
+				class="pane-frame"
+				title="korg — node {pane.node}"
+				src={pane.href}
+				allow="clipboard-write"
+			></iframe>
 		{/key}
 	</aside>
 {/if}
