@@ -89,7 +89,18 @@ URL is built by `src/lib/korglink.ts` and takes no `kind`** — a
 consumer-side kind→path map is forbidden (GP-16), and the one kfdc kept
 until sprint 016 emitted a URL korg never served. The pane cannot render
 under `npm run dev`: 127.0.0.1 is not on korg's allowlist, which is correct
-default-closed behaviour, not a bug. `docs/design.md` § Expanded mode.
+default-closed behaviour, not a bug. Sprint 017 gave the pane its width back
+and kfdc its **first client-side preference**: a gear right of the statline
+(`src/lib/MastheadControl.svelte`, a reusable slot — #1202's drawer supplies
+contents and nothing else) opening a settings popover whose one setting is
+pane width. **px in, percent stored** in `localStorage`
+(`src/lib/settings.svelte.ts`); the percent is of `.deck`'s content box, not
+the viewport. The pane's upper bound is a **floor under the board**
+(`calc(100% - 640px - 14px)`), never a cap on the pane — 016's fixed `900px`
+pinned the pane on a 3440px screen and would have silently discarded any
+setting, which is the bug wearing a settings dialog. Nothing stored means no
+`--pane-w` at all, so app.css keeps the single default. No gear on `/wall`.
+`docs/design.md` § Expanded mode.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
   `sveltekit()` plugin in `vite.config.ts` — no `svelte.config.js`; that is

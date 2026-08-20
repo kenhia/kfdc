@@ -123,6 +123,118 @@ header.masthead {
 	color: var(--red);
 }
 
+/* Masthead controls (#1489). A SLOT, not a one-off: the settings gear is the
+   first thing to live here and #1202's transmit drawer is the next, so the
+   button and the popover shell belong to $lib/MastheadControl rather than to
+   the settings popover that happens to be their only user today. Desk only —
+   Board.svelte renders none of this on the wall. */
+.mast-control {
+	position: relative;
+	align-self: center;
+}
+.mast-btn {
+	background: none;
+	border: 1px solid transparent;
+	color: var(--muted);
+	font-size: 14px;
+	line-height: 1;
+	padding: 2px 5px;
+	cursor: pointer;
+}
+.mast-btn:hover,
+.mast-btn[aria-expanded='true'] {
+	color: var(--amber);
+	border-color: var(--line);
+}
+.mast-pop {
+	position: absolute;
+	right: 0;
+	top: calc(100% + 6px);
+	/* Above the korg pane, which is `position: sticky` and therefore paints
+	   after this in tree order unless it is told otherwise. */
+	z-index: 20;
+	/* Enough for the readout to stay on one line at the widths this board is
+	   used at — measured, .scratch/017-layout.mjs. A fact split across two lines
+	   reads as two facts. */
+	min-width: 296px;
+	background: var(--panel);
+	border: 1px solid var(--line);
+	box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
+	padding: 8px 10px 10px;
+	text-align: left;
+}
+/* It takes focus on open — that is what makes Escape work at all here — but a
+   focus ring around the whole panel would read as a selection rather than a
+   dialog. The controls inside keep theirs. */
+.mast-pop:focus {
+	outline: none;
+}
+.settings-h {
+	font-family: var(--mono);
+	font-size: 10.5px;
+	letter-spacing: 0.16em;
+	color: var(--faint);
+	border-bottom: 1px solid var(--line-soft);
+	padding-bottom: 5px;
+	margin-bottom: 8px;
+}
+/* One row per setting, and the row is the unit: a second setting is another
+   `.setting`, not a redesign. */
+.setting {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 4px 8px;
+}
+.setting-l {
+	font-size: 12px;
+	color: var(--ink);
+}
+.setting-i {
+	width: 74px;
+	margin-left: auto;
+	background: var(--ground);
+	border: 1px solid var(--line);
+	color: var(--ink);
+	font-family: var(--mono);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	padding: 2px 4px;
+}
+.setting-u {
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--faint);
+}
+/* The honest half of a px box whose value CSS may bound: what is stored, and
+   what the pane will actually render at. */
+.setting-n {
+	flex-basis: 100%;
+	font-family: var(--mono);
+	font-size: 10.5px;
+	color: var(--faint);
+	font-variant-numeric: tabular-nums;
+}
+.setting-n b {
+	color: var(--muted);
+	font-weight: 600;
+}
+.setting-reset {
+	margin-top: 9px;
+	background: none;
+	border: 1px solid var(--line);
+	color: var(--muted);
+	font-family: var(--mono);
+	font-size: 10.5px;
+	letter-spacing: 0.06em;
+	padding: 2px 6px;
+	cursor: pointer;
+}
+.setting-reset:hover {
+	color: var(--amber);
+	border-color: var(--amber-dim);
+}
+
 /* ---------- deck: board + korg pane ---------- */
 /* Expanded mode (#1203). The pane is REAL korg in an iframe, not a panel, so it
    lives outside the board grid and takes its own share of the width. Closed,
@@ -146,9 +258,31 @@ header.masthead {
 	container-name: deck;
 }
 .korg-pane {
-	/* Wide enough for korg's own pages to be usable, capped so the board never
-	   becomes the sidebar of its own dashboard. */
-	flex: 0 0 clamp(420px, 38%, 900px);
+	/* Wide enough for korg's own pages to be usable; bounded above by a FLOOR
+	   under the board rather than a ceiling on the pane (#1489, sprint 017).
+	   The old `900px` cap's problem was its kind, not its value: one number
+	   cannot serve a laptop and a 34" ultrawide, and on a 3440px screen it
+	   pinned the pane at 900px so the intended 38% never once applied — which
+	   is the cramped-korg / stretched-board report #1489 opened with. What the
+	   cap was really protecting survives as `calc(100% - 640px - 14px)`: the
+	   board never becomes the sidebar of its own dashboard, at any width.
+
+	   `--pane-w` is the reader's stored preference, set on `.deck` by
+	   Board.svelte and absent until they set one — so a browser that never
+	   opens the settings popover renders from the `38%` here and nothing else.
+	   `100%` is `.deck`'s content box, which is also the basis the stored
+	   percent is measured against. $lib/settings.svelte.ts mirrors this clamp
+	   so the popover's px readout can tell the truth; CSS owns the
+	   enforcement, because it has to hold at any window size with no JS. */
+	flex: 0 0 clamp(420px, var(--pane-w, 38%), calc(100% - 640px - 14px));
+	/* The board has no global border-box rule, so without this the flex-basis
+	   above sizes the CONTENT box and the pane's 1px borders land outside it —
+	   a reader who asks for 1400px gets 1402px on screen. Measured, not
+	   assumed (.scratch/017-layout.mjs). Two pixels is small; a settings box
+	   whose number is not the number is not, and the popover's readout claims
+	   to be the truth. Scoped to the pane rather than made global: retrofitting
+	   border-box across a mature layout is a different sprint. */
+	box-sizing: border-box;
 	min-width: 0;
 	display: flex;
 	flex-direction: column;

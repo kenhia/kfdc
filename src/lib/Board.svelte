@@ -1,8 +1,12 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { statline } from '$lib/board';
 	import KorgPane from '$lib/KorgPane.svelte';
+	import MastheadControl from '$lib/MastheadControl.svelte';
 	import { PaneState, providePane } from '$lib/pane.svelte';
 	import type { BoardPayload } from '$lib/payload';
+	import SettingsPopover from '$lib/SettingsPopover.svelte';
+	import { BoardSettings } from '$lib/settings.svelte';
 	import CommandersCall from '$lib/panels/CommandersCall.svelte';
 	import Deconfliction from '$lib/panels/Deconfliction.svelte';
 	import FireMissions from '$lib/panels/FireMissions.svelte';
@@ -42,6 +46,23 @@
 	// korg origin would have lost its data feed long before its links mattered.
 	// svelte-ignore state_referenced_locally
 	const pane = providePane(new PaneState(korgBase, !wall));
+
+	// Board settings (#1489), kfdc's first client-side preference. No store on
+	// the server (nothing to read) and none on the wall — the wall renders no
+	// gear, so a preference set at the desk must not follow the board onto an
+	// unattended screen where nobody can change it back.
+	// svelte-ignore state_referenced_locally
+	const settings = new BoardSettings(browser && !wall ? window.localStorage : null);
+
+	// `.deck`'s content box — the box a `flex-basis: %` resolves against, and so
+	// the only honest basis for converting the pixels Ken types into the percent
+	// kfdc stores. Measured on demand rather than bound: `bind:clientWidth` costs
+	// a ResizeObserver running for the life of the board, and the one moment this
+	// number is wanted is when the popover opens. It cannot go stale while the
+	// popover is up either — setting the pane width resizes `.deck-main`, never
+	// `.deck`. Zero before layout, which every consumer guards.
+	let deck = $state<HTMLDivElement | null>(null);
+	const deckWidth = () => deck?.clientWidth ?? 0;
 
 	const stats = $derived(statline(board));
 	const ticker = $derived(tickerLines(board));
@@ -96,6 +117,14 @@
 			     nobody is standing there to scroll away from. -->
 			<span class="stale"><b>NO REFRESH</b> {stale}</span>
 		{/if}
+		{#if !wall}
+			<!-- Right of the time/date, where #1489 asked for it. Desk only: a
+			     settings gear on an unattended screen is exactly the affordance
+			     the wall's rule forbids. -->
+			<MastheadControl label="⚙" title="board settings" name="board settings">
+				<SettingsPopover {settings} {deckWidth} />
+			</MastheadControl>
+		{/if}
 	</div>
 </header>
 
@@ -105,7 +134,7 @@
      board's column count keys off ITS width rather than the viewport's, so a
      narrowed board sheds a column instead of overflowing one (docs/design.md —
      nothing renders past its box). -->
-<div class="deck" class:paned={pane.open}>
+<div class="deck" class:paned={pane.open} style={settings.deckStyle} bind:this={deck}>
 	<div class="deck-main">
 		<div class="board">
 			<div class="col">
