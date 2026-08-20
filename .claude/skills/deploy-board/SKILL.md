@@ -157,22 +157,41 @@ document, so the assertions become reads rather than re-runs.
 
 **`ok: true` is not version proof.** It proves the steps ran. Check the steps.
 
+**The document is a multi-host envelope.** `steps` lives under `hosts[]`, not
+at the top level — `.steps` there is `null`, and jq's message for that
+(`Cannot iterate over null`) names neither the field nor the fix. This snippet
+read the top level until the sprint-018 deploy, where it errored and had to be
+corrected in flight. Assert across **every** host with `all(.hosts[]; …)`
+rather than `.hosts[0]`: kfdc deploys to one host today, and a filter that
+silently checks only the first is a filter that passes a half-failed fleet
+deploy the day that changes.
+
 ```sh
 export WANT="$V"
 jq -e '
   .ok == true
   and .resolved_version == env.WANT
-  and ([.steps[] | select(.status != "ok" and .status != "skipped")] | length == 0)
-  and ([.steps[] | select(.name == "confirm" and .status == "ok")] | length == 1)
+  and (.hosts | length > 0)
+  and all(.hosts[];
+        .ok == true
+        and .resolved_version == env.WANT
+        and ([.steps[] | select(.status != "ok" and .status != "skipped")] | length == 0)
+        and ([.steps[] | select(.name == "confirm" and .status == "ok" and .detail == env.WANT)] | length == 1)
+      )
 ' "$STATUS" >/dev/null \
   || { echo "status document did not assert clean — read it, do not re-run" >&2; exit 1; }
 
 jq -r '"resolved  \(.resolved_version)",
        "sha256    \(.sha256)",
-       "host      \(.host)  (\(.scope) scope, shape \(.shape))",
        "total     \(.ms)ms",
-       (.steps[] | "  \(.name)  \(.status)  \(.ms)ms  \(.detail // "")")' "$STATUS"
+       (.hosts[] | "host      \(.host)  (\(.scope) scope, shape \(.shape), \(.ms)ms)",
+                   (.steps[] | "  \(.name)  \(.status)  \(.ms)ms  \(.detail // "")"))' "$STATUS"
 ```
+
+`confirm`'s `detail` is the version string, so comparing it to `WANT` makes the
+step prove the thing its name claims. A `confirm` that is merely `ok` says a cwd
+was readable; one whose detail equals the version says it was the **right**
+one.
 
 `WANT` is exported so the filter can read it as `env.WANT` — see the warning
 below for why the version does not get interpolated into the snippet.

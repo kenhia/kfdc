@@ -191,3 +191,74 @@ which surface a reader had open.
 `writeText` *rejects* rather than being absent — is in korg's own queue and not
 this bundle. `covers` is single-project by design, and after #1497 the primary
 path works anyway.
+
+## Deployed
+
+**2026-08-20 · `0.5.0-6da12b4`** on kubsdb (`https://kubsdb.encke-wahoo.ts.net:8100`).
+Rollback target: `0.5.0-efd1cd0` (sprint 017) — still unpacked on the host, so
+`just deploy 0.5.0-efd1cd0` is the whole rollback.
+
+Published from merged `main` at `6da12b4`; `latest` moved. sha256
+`fe1a4e7898bb592993af3a8ec7205d174b79e2ef5c6941d2a64128a00a194e9b`, 568021 bytes.
+
+**1.886s end to end**, `restart` 224ms — in line with sprint 013's measured
+1.91s/220ms, so the shutdown fix is still holding. Every knarr step `ok`:
+stage 395ms · backup 191ms · install 203ms · restart 224ms · ready 253ms ·
+**confirm 197ms → `0.5.0-6da12b4`** · cleanup 0ms (pruned `0.5.0-8b602c4`).
+Three-way agreement: store `latest`, host top entry and `running:` all
+`0.5.0-6da12b4`.
+
+### Verified live
+
+Over the tailnet from kai, which is the path a viewer takes:
+
+- Board 200, SSR rendered (`Fire Missions` present); `/wall` 200.
+- `/manifest.webmanifest` 200 as `application/manifest+json`, with the name,
+  short_name, display, theme_color and both `any maskable` icons intact;
+  `/favicon-192.png`, `/favicon-512.png`, `/favicon.png` all 200.
+- `/api/page` 200; **`/api/wall` 404** — the rename landed and nothing else
+  was still asking for the old name.
+- The masthead draws `refresh the board` and `board settings` on `/`, and
+  **neither on `/wall`**.
+
+**#1497's acceptance, which only this host could run.** kubsdb:8100 is on
+korg's `frame-ancestors` allowlist and 127.0.0.1 is not, so the delegation's
+*effect* was unprovable until now. korg painted in the pane; then, with browser
+permission granted for both read and write so that Permissions-Policy was the
+only variable left:
+
+| probe | result |
+|---|---|
+| `writeText` in the korg frame | **ALLOWED** — and `kfdc-1497-probe` actually reached the clipboard |
+| `readText` in the korg frame | **REFUSED** — *"blocked because of a permissions policy"* |
+
+The negative control is what makes this proof rather than coincidence: the
+withheld capability still fails with exactly the error #1494's sibling WI
+quoted, so the `allow` attribute is doing the work and is doing it narrowly.
+A first pass had reported `writeText` refused with *"Write permission denied"*
+— a different gate (the browser's, in a headless context with no user
+activation), not this one; worth knowing, because the two failures read alike
+and only one is kfdc's.
+
+Then Ken's literal journey: open the pane, navigate **inside** korg to
+Planning, press the copy affordance → clipboard held **`/start-sprint
+korg:1477`**, no error toast, zero permissions-policy violations logged.
+
+### Still owed by Ken, and it is the acceptance criterion for #1494
+
+**Uninstall and reinstall the Edge web app.** Edge caches an installed app's
+shortcut icon at install time and will not repaint an existing install, so the
+taskbar will keep showing the old "K" until it is reinstalled — a correct fix
+reading as a failed one. Everything the install path fetches is confirmed live
+above; what remains is the cache.
+
+### Fixed in flight: the deploy skill's own verify filter
+
+`deploy-board`'s documented `jq` assertion read `.steps[]` at the top level of
+knarr's status document. It is a multi-host envelope — `steps` lives under
+`hosts[]` — so the filter died on `Cannot iterate over null`, a message naming
+neither the field nor the fix. Corrected in the skill, and made stricter than
+it was: it now asserts across **every** host rather than the first, and
+requires `confirm`'s `detail` to equal the deployed version, so the step proves
+what its name claims. The hazard was not the error — an error is loud — but the
+obvious "fix" of deleting the assertion that was in the way.
