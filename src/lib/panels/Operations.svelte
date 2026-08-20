@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { progress, type Board, type ProgramRow, type ProgramSlice } from '$lib/board';
+	import NodeRef from '$lib/NodeRef.svelte';
 
 	let { programs, omitted }: { programs: ProgramRow[]; omitted: Board['programs_omitted'] } =
 		$props();
@@ -33,7 +34,7 @@
 		     ACTIVE. The base is neutral now, so an unknown literal is quiet. -->
 		<div class="op op-{prog.status}">
 			<div class="row1">
-				<h3>{prog.title}</h3>
+				<h3><NodeRef nodeId={prog.node_id} title="korg:{prog.node_id}">{prog.title}</NodeRef></h3>
 				<span class="status {prog.status}">{prog.status}</span>
 				<span class="span-chips">
 					{#each prog.span as proj (proj)}<span class="proj">{proj}</span>{/each}
@@ -47,7 +48,7 @@
 					{@const st = state(s)}
 					{@const p = progress(s)}
 					{#if i > 0}<span class="arrow">→</span>{/if}
-					<span class="slice s-{st}" title={s.title}>
+					<NodeRef nodeId={s.node_id} class="slice s-{st}" title={s.title}>
 						<span class="mark">{MARK[st]}</span>
 						<span class="proj">{s.project}</span>
 						<span class="slice-t">{s.title}</span>
@@ -55,7 +56,7 @@
 							>{p.complete}/{p.total}{#if p.verified > 0}
 								<span class="ver">{p.verified}✓</span>{/if}</span
 						>
-					</span>
+					</NodeRef>
 				{/each}
 			</div>
 		</div>

@@ -3,6 +3,7 @@
 // and is deliberately not re-asserted through the DOM.
 import { mount, unmount, type ComponentProps } from 'svelte';
 import { describe, expect, it } from 'vitest';
+import { PaneState, paneContext } from '$lib/pane.svelte';
 import type { TickerLine } from '$lib/ticker';
 import Ticker from './Ticker.svelte';
 
@@ -20,11 +21,14 @@ const line = (over: Partial<TickerLine> = {}): TickerLine => ({
 	...over
 });
 
+// korg's origin reaches every ref through the pane context now (#1203) rather
+// than as a `korgBase` prop threaded to the two feeds that happened to need it.
 function render(props: Partial<ComponentProps<typeof Ticker>> = {}) {
 	const target = document.body.appendChild(document.createElement('div'));
 	const app = mount(Ticker, {
 		target,
-		props: { lines: [line()], korgBase: 'https://korg.example', ...props }
+		context: paneContext(new PaneState('https://korg.example')),
+		props: { lines: [line()], ...props }
 	});
 	return {
 		target,
@@ -55,7 +59,7 @@ describe('Ticker', () => {
 			"3m kfdc 1190 proposed→active Ticker: render korg's transition lo…"
 		]);
 		const a = v.target.querySelector('.ev a') as HTMLAnchorElement;
-		expect(a.getAttribute('href')).toBe('https://korg.example/planning');
+		expect(a.getAttribute('href')).toBe('https://korg.example/n/1190');
 		unmount(v.app);
 	});
 
@@ -111,7 +115,7 @@ describe('Ticker', () => {
 		// The rest of the line is unaffected — and a program still deep-links.
 		expect(v.items()).toEqual(["3m 1192 proposed→active Ticker: render korg's transition lo…"]);
 		expect(v.target.querySelector('.ev a')!.getAttribute('href')).toBe(
-			'https://korg.example/programs/1192'
+			'https://korg.example/n/1192'
 		);
 		unmount(v.app);
 	});
@@ -123,12 +127,15 @@ describe('Ticker', () => {
 		unmount(v.app);
 	});
 
-	// A work item with no korg page renders unlinked rather than pointing at a
-	// 404 — lineHref's rule, shared with the Net Log (#1187).
-	it('renders an unlinkable ref as plain text', () => {
-		const v = render({ lines: [line({ kind: 'report', wi_number: null, ref: 77 })] });
-		expect(v.target.querySelector('.ev a')).toBeNull();
-		expect(v.target.querySelector('.lref')!.textContent).toBe('77');
+	// Was: "renders an unlinkable ref as plain text". There is no such thing any
+	// more (#1203). korg's `/n/:id` resolves every kind, so the six kinds that
+	// used to degrade — correctly, under kfdc #993's don't-fake-URLs rule — now
+	// link like the other three. The degradation was never the goal; having no
+	// URL to offer was the constraint, and korg sprint 070 removed it.
+	it('links a kind that used to have no korg page at all', () => {
+		const v = render({ lines: [line({ kind: 'report', node_id: 77, wi_number: null, ref: 77 })] });
+		expect(v.target.querySelector('.lref')).toBeNull();
+		expect(v.target.querySelector('.ev a')!.getAttribute('href')).toBe('https://korg.example/n/77');
 		unmount(v.app);
 	});
 });

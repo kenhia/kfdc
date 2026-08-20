@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatAge, type ReportRow } from '$lib/board';
+	import NodeRef from '$lib/NodeRef.svelte';
 
 	let { reports, generated }: { reports: ReportRow[]; generated: string } = $props();
 
@@ -20,7 +21,9 @@
 			<li>
 				<span class="light {light(r)}" title={r.status}></span>
 				<span>
-					<b>{r.source}</b>
+					<NodeRef nodeId={r.node_id} class="src-ref" title="korg:{r.node_id}"
+						><b>{r.source}</b></NodeRef
+					>
 					{r.summary}
 					{#if r.escalated}<span class="esc">ESCALATED</span>{/if}
 					<span class="age">{formatAge(generated, r.report_date)}</span>

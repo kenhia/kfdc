@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Board, ProposalRow } from './board';
-import {
-	diffDigests,
-	digestBoard,
-	formatLine,
-	fragment,
-	lineHref,
-	type Digest,
-	type NetLogLine
-} from './netlog';
+import { diffDigests, digestBoard, formatLine, fragment, type Digest } from './netlog';
 
 const row = (over: Partial<ProposalRow> = {}): ProposalRow => ({
 	node_id: 1,
@@ -217,8 +209,9 @@ describe('diffDigests', () => {
 		expect(out.map(formatLine)).toEqual([
 			'OP: slice proposed→active korg 1021 - korg deploys via the registry'
 		]);
-		// A slice is a proposal — the line deep-links like one.
-		expect(lineHref(out[0], 'https://korg.example')).toBe('https://korg.example/planning');
+		// A slice is a proposal, and the line carries the slice's own node id —
+		// which is what the deep link needs (#1203, $lib/korglink).
+		expect(out[0].node_id).toBe(1021);
 	});
 
 	it('is silent when a pre-slice digest is the baseline, and on slice appearance', () => {
@@ -255,33 +248,5 @@ describe('fragment', () => {
 		expect(fragment('short')).toBe('short');
 		const long = 'x'.repeat(80);
 		expect(fragment(long)).toBe('x'.repeat(59) + '…');
-	});
-});
-
-describe('lineHref', () => {
-	const line = (over: Partial<NetLogLine>): NetLogLine => ({
-		observed: '2026-08-05T12:00:00Z',
-		panel: 'CC',
-		verb: 'call made',
-		project: 'p',
-		node_id: 1,
-		wi_number: null,
-		kind: 'other',
-		text: 't',
-		...over
-	});
-	const base = 'https://korg.example';
-
-	// korg's own AwaitingLane scheme: WI by number, program page, Planning.
-	it('links what korg has a page for and degrades the rest to null', () => {
-		expect(lineHref(line({ kind: 'workitem', wi_number: 744 }), base)).toBe(
-			'https://korg.example/work-items?wi=744'
-		);
-		expect(lineHref(line({ kind: 'program', node_id: 979 }), base)).toBe(
-			'https://korg.example/programs/979'
-		);
-		expect(lineHref(line({ kind: 'sprint_proposal' }), base)).toBe('https://korg.example/planning');
-		expect(lineHref(line({ kind: 'workitem', wi_number: null }), base)).toBeNull();
-		expect(lineHref(line({}), base)).toBeNull();
 	});
 });

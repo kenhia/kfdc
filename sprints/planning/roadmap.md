@@ -180,3 +180,9 @@ the decisions were in the detail:
 
 Do not re-add them here. They drifted out of a plan document once already,
 which is the whole argument for this file no longer being one.
+
+Three have since been built — #1204 (sprint 014), #1205 (sprint 015) and
+#1203 (sprint 016). The table is left as it stands: it records what moved
+into korg in sprint 009, not what is outstanding today. **korg answers
+that**, and this line exists only so the heading cannot be mistaken for a
+live claim as the list ages.

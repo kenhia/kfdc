@@ -29,6 +29,13 @@ is a deliberate commitment, not an omission.
   of 20 korg events had any Net Log counterpart, and the Net Log's own
   majority traffic (queue movement, splash, awaiting) is invisible to korg's
   log by construction.
+- **The board renders the rollup; real korg renders the node** (kfdc
+  #1203, sprint 016 — korg+ GP-1 at its sharpest). Every ref on the board is
+  a link into korg, and on the desk it opens korg *in a pane beside the
+  board* rather than navigating away. kfdc therefore never grows notes,
+  comments, an edit form or a clear-awaiting button: the thing that owns
+  those is on screen next to it. A future "just a small edit here" is a
+  change to this contract, not a feature. See § Expanded mode.
 - **Proposed/unbuilt things get dashed borders** (grease-pencil); live data
   gets solid. Never blur that line.
 - Status is encoded in form + color, never color alone (chips carry text).
@@ -110,6 +117,56 @@ renders both, and a panel that behaves differently on the wall takes a
   against korg's `generated`. The staleness age is not an age of korg's data
   — it is how long *this browser* has been unable to fetch any, which no korg
   timestamp can answer.
+
+## Expanded mode — the korg pane
+
+`/` only (kfdc #1203, sprint 016; slice 2 of program korg:1471). Clicking any
+ref on the desk board opens **real korg** in an iframe pane to the right of
+the board, deep-linked to that node.
+
+- **The pane is the whole node; the board is only the rollup.** This is what
+  keeps kfdc edit-free *by construction* rather than by discipline — there is
+  nothing to be tempted by, because the edit surface is real korg sitting
+  next to the board.
+- **One-way control, v1.** kfdc sets `iframe.src`. No `postMessage`, no
+  handshake, no state sync, in either direction (korg+ GP-17). A channel
+  between the two would be the first step toward a second korg UI.
+- **Every ref is a real `<a href>` first.** The pane is an enhancement *on* a
+  link, never a substitute for one: ⌘/ctrl/shift/alt-click and middle-click
+  are left to the browser, and "copy link address" works. `$lib/NodeRef` is
+  the one component that draws a ref, and it hijacks only the plain
+  left-click.
+- **One rule builds every korg URL** — `$lib/korglink.nodeHref`, which is
+  `${base}/n/${node_id}` and takes no `kind`. korg resolves the kind
+  server-side. A consumer-side kind → path map is forbidden (korg+ GP-16),
+  and the one kfdc used to keep was wrong in production: `/work-items?wi=N`
+  was a URL korg never served, so every Net Log work-item link quietly landed
+  on the unfiltered list. Because korg now has a page for every kind, no ref
+  degrades to plain text any more — kfdc #993's don't-fake-URLs rule stands,
+  it simply has nothing left to catch.
+- **The wall has no pane.** It is a display mode, not a workstation. Refs
+  there stay the plain links they always were — the wall withdraws the pane,
+  not the address — and `Board.svelte` hands the wall a *disabled* pane so no
+  panel needs a `wall` prop just to decide whether a ref is clickable. Same
+  rule as On Deck's roll-up: no affordance it cannot honour.
+- **The board sheds a column rather than overflowing one.** `.deck-main` is a
+  CSS container and the board's column count keys off *its* width, not the
+  viewport's — the reason a pane taking a third of the screen does not
+  reproduce #1284. Measured with a headless browser (jsdom cannot see
+  layout): 3840→1200, pane closed and open, zero overflow; reverted to the
+  old viewport media queries the pane-open board keeps three columns and
+  spills 12px at 1920/1600/1366.
+- **korg must admit the origin, and only production is admitted.** korg
+  serves `frame-ancestors` from `KORG_FRAME_ANCESTORS`, whose one entry is
+  `https://kubsdb.encke-wahoo.ts.net:8100`. Verified live in both directions:
+  from that origin the frame loads korg's real UI; from `127.0.0.1` it is
+  refused with a CSP violation. **The consequence for local development is
+  that the pane cannot render** — `npm run dev` serves 127.0.0.1, which the
+  allowlist does not name. That is correct default-closed behaviour (GP-17:
+  embedding is not authentication, and the allowlist is not an ACL), and the
+  pane offers `open in korg ↗` regardless. kfdc does not try to detect the
+  refusal: a cross-origin frame cannot be inspected, and guessing would mean
+  claiming something the board does not know.
 
 ## Tokens
 

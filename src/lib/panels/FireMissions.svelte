@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fireMissionOrder, progress, splashing, type ProposalRow } from '$lib/board';
 	import { parseSynopsis } from '$lib/curator';
+	import NodeRef from '$lib/NodeRef.svelte';
 
 	let { active }: { active: ProposalRow[] } = $props();
 
@@ -37,7 +38,7 @@
 		<div class="mission-card" class:splash>
 			<div class="row1">
 				<span class="proj">{row.project}</span>
-				<span class="id">korg:{row.node_id}</span>
+				<NodeRef nodeId={row.node_id} class="id" title={row.title}>korg:{row.node_id}</NodeRef>
 				{#if splash}
 					<span class="status splash">splash</span>
 				{:else}

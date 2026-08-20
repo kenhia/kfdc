@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
 	import { onDeckRows, type Board, type DepthRow, type ProgramRow } from '$lib/board';
+	import NodeRef from '$lib/NodeRef.svelte';
 
 	let {
 		queue,
@@ -68,7 +69,15 @@
 						<td class="qproj"
 							><span class="chips"><span class="proj">{r.row.project}</span></span></td
 						>
-						<td class="qtitle">{r.row.title}</td>
+						<!-- The queue has no id column to link, so the title carries it
+						     (#1203). The program roll-up row below deliberately does NOT:
+						     its one click already belongs to the expand control, and two
+						     things wanting the same click is how an affordance stops
+						     meaning one thing. -->
+						<td class="qtitle"
+							><NodeRef nodeId={r.row.node_id} title="korg:{r.row.node_id}">{r.row.title}</NodeRef
+							></td
+						>
 					</tr>
 				{:else}
 					{@const open = expanded.has(r.program.node_id)}
@@ -113,7 +122,9 @@
 								<td class="qproj"
 									><span class="chips"><span class="proj">{s.project}</span></span></td
 								>
-								<td class="qtitle">{s.title}</td>
+								<td class="qtitle"
+									><NodeRef nodeId={s.node_id} title="korg:{s.node_id}">{s.title}</NodeRef></td
+								>
 							</tr>
 						{/each}
 					{/if}

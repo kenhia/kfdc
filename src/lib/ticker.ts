@@ -17,7 +17,7 @@
 // cannot restate the record in its own words.
 
 import { formatAge, type Board } from './board';
-import { fragment, lineHref } from './netlog';
+import { fragment } from './netlog';
 
 export interface TickerLine {
 	// Age against the board's `generated` — Postgres's clock on both sides, the
@@ -78,7 +78,3 @@ export function tickerLines(b: Board): TickerLine[] {
 export function shipped(l: TickerLine): boolean {
 	return l.kind === 'sprint_proposal' && l.to_status === 'done';
 }
-
-// Both feeds link into korg by exactly one rule, so the two cannot drift apart
-// on what a korg URL looks like. Shared deliberately (#1187).
-export const tickerHref = lineHref;
