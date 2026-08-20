@@ -156,6 +156,57 @@ the board, deep-linked to that node.
   layout): 3840→1200, pane closed and open, zero overflow; reverted to the
   old viewport media queries the pane-open board keeps three columns and
   spills 12px at 1920/1600/1366.
+- **The pane's width is bounded by a floor under the board, never by a cap on
+  the pane** (kfdc #1489, sprint 017). Sprint 016 shipped
+  `clamp(420px, 38%, 900px)`; on a 3440px screen that pinned the pane at its
+  cap and the intended 38% never once applied — korg cramped, board stretched,
+  which is the report #1489 opened with. One fixed number cannot serve a laptop
+  and a 34" ultrawide, so the invariant the cap was really protecting — *the
+  board never becomes the sidebar of its own dashboard* — is expressed the
+  other way up: `clamp(420px, var(--pane-w, 38%), calc(100% - 640px - 14px))`.
+  Measured (deck 3404): unset renders the pane 1294px and the board 2096px,
+  three columns; a stored 41.1% renders 1399/1991, three columns; zero overflow
+  at 3440/2560/1920/1600/1366. Negative-tested both halves — with 016's cap
+  back, a stored 41.1% still renders 900px, *a settings dialog whose value CSS
+  silently discards*; with the floor removed, 80% on a 1920 screen crushes the
+  board to 363px.
+- **The pane is `box-sizing: border-box`, and that is load-bearing.** The board
+  has no global border-box rule, so `flex-basis` sizes the content box and the
+  pane's 1px borders land outside it — a reader who asks for 1400px gets
+  1402px. Two pixels is small; a settings box whose number is not the number is
+  not. Scoped to the pane: retrofitting border-box across a mature layout is a
+  different sprint.
+- **The reader's width lives in the browser, not in korg.** `localStorage`,
+  per browser, `kfdc.settings.v1` — kfdc's first client-side preference. It
+  does not breach GP-1: how wide one reader's pane is on one monitor is not
+  korg's data, and putting it server-side would mean a settings endpoint, a
+  store on kubsdb and a *deploy* to change a number. Pixels in, percent stored
+  — Ken reasons against a monitor he can see, the board holds a proportion that
+  survives a different window. The percent is of `.deck`'s content box, the box
+  a `flex-basis: %` actually resolves against; `window.innerWidth` would be off
+  by the body's 36px, which is small enough never to be noticed and never
+  right. **`$lib/settings.svelte.ts` mirrors the CSS clamp** so the popover can
+  print what will render rather than what was asked for — CSS owns the
+  enforcement, because it has to hold at any window size with no JS.
+- **Unset is not 38 — it is silence.** Nothing stored means no `--pane-w` and
+  no inline style, so app.css stays the single home of the default and `reset`
+  clears rather than writes. A corrupt, absent or foreign-shaped stored value
+  falls back the same way; the alternative is a board that throws on load for
+  the only person who has one.
+- **The gear is a masthead control, and there is no gear on the wall.**
+  `$lib/MastheadControl` owns everything about being a popover — open state,
+  focus, dismissal — and knows nothing of its contents, so #1202's transmit
+  drawer supplies contents and nothing else. It is not rendered on `/wall` at
+  all: nobody is at the keyboard, and a settings gear there is exactly the
+  affordance § Wall mode forbids.
+- **Escape belongs to the popover, and is stopped there.** The bullet below is
+  why this needs saying: a same-origin popover *can* honour Escape, but only
+  while it holds focus, so it takes focus on open and that is what the tests
+  assert. It also calls `stopPropagation`, because KorgPane listens for Escape
+  on the window — without it one keystroke would close both, and dismissing a
+  settings box would cost the reader the korg node they were reading. Verified
+  in a real browser with the pane open and the frame loaded, which is the state
+  that caught sprint 016 out.
 - **The pane promises the ✕, not Escape.** Chromium hands focus to a
   cross-origin frame shortly after it loads, and that frame's keystrokes are
   korg's — the board's window sees none of them. `close (Esc)` shipped on the
