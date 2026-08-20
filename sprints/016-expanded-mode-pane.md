@@ -180,6 +180,36 @@ Wall behaviour checked in the browser too (`.scratch/wall-pane.mjs`):
 `/wall` grows no pane and its ref navigates away like an ordinary link;
 `/` opens the pane and does not navigate.
 
+## Found on the deploy: Escape was dead
+
+The Phase 7 smoke test against production caught what no local check could.
+Everything else passed — 53 refs all on `/n/<id>`, zero legacy URLs, the
+done-criterion satisfied, three columns and no overflow at 2560, the wall
+growing no pane — and then:
+
+```
+Escape closes the pane      : false
+```
+
+Chromium focuses a freshly loaded iframe. `document.activeElement` became
+`IFRAME.pane-frame` about a second after the pane opened, and from that moment
+the window saw **zero** keydowns — korg's frame is cross-origin, so its
+keystrokes are korg's. The header said `close (Esc)`; the board could not
+honour it. That is the one thing `docs/design.md` forbids outright, and it was
+live for the length of one deploy.
+
+The pane now takes focus back once, on the frame's `load`, and the gate that
+would have caught it is `KorgPane.svelte.test.ts` — negative-tested by
+deleting `onload={holdFocus}` and watching *takes keyboard focus back from the
+frame when it loads* fail.
+
+**The lesson is about the first attempt at that gate, not the bug.** Removing
+`onload` with a `sed` pattern written against the pre-prettier indentation
+matched nothing, the suite passed, and for one minute a no-op read as a
+negative test confirming the fix. A gate is not proven by a passing suite
+after a planted error — it is proven by *seeing the specific assertion fail*.
+Check the failure, not the exit code.
+
 ## Decisions
 
 - **Opens on click, collapses** rather than an always-on split or a separate
