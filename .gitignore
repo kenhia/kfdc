@@ -1,6 +1,7 @@
 # kproject harness
 .scratch/
 .korg-sprint-proposal
+.sprint-defaults
 
 # Env
 .env
