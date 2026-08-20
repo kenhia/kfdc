@@ -29,12 +29,25 @@
 		korgBase,
 		// Wall mode: unattended widescreen, nobody at the keyboard.
 		wall = false,
-		// Wall mode only, and null whenever the board is being refreshed
-		// normally: how long the wall has been showing a board it could not
-		// refresh. See the statline below for why it is here rather than in a
-		// corner.
-		stale = null
-	}: BoardPayload & { wall?: boolean; stale?: string | null } = $props();
+		// Null whenever the board is current: how long this browser has been
+		// showing a board it could not refresh. Wall mode's original (#1204), and
+		// the desk's too since the desk stopped reloading (#1496) — a long-lived
+		// board is a board that can go stale. See the statline below for why it is
+		// there rather than in a corner.
+		stale = null,
+		// The desk's in-place refresh (#1496), and null on the wall, which refreshes
+		// on its own timer and has nobody to press anything. Its presence is what
+		// draws the ↻ and what arms the hotkeys — one prop, so the control and the
+		// keystroke can never disagree about whether refreshing is possible here.
+		refresh = null,
+		// A refresh is in flight. A slow korg should look slow rather than dead.
+		busy = false
+	}: BoardPayload & {
+		wall?: boolean;
+		stale?: string | null;
+		refresh?: (() => void) | null;
+		busy?: boolean;
+	} = $props();
 
 	// Expanded mode (#1203): one pane per board, published to every ref on the
 	// page through context. Disabled on the wall — refs there stay the plain
@@ -45,7 +58,42 @@
 	// change without a restart, which reloads the page; a board tracking a moving
 	// korg origin would have lost its data feed long before its links mattered.
 	// svelte-ignore state_referenced_locally
-	const pane = providePane(new PaneState(korgBase, !wall));
+	const pane = providePane(
+		new PaneState(korgBase, !wall, browser && !wall ? window.sessionStorage : null)
+	);
+
+	// The floor under the reloads no page can intercept (#1496): the Edge app
+	// window's own refresh control is browser chrome, and Ctrl+R while focus is
+	// inside korg's frame never reaches this document at all. In an effect rather
+	// than in PaneState's constructor because the server renders the pane closed —
+	// see `restore()` for why that distinction is a hydration mismatch, not a
+	// preference. Writes `pane.node` and reads nothing reactive, so it runs once.
+	$effect(() => pane.restore());
+
+	// One entry point for both ways of asking, so the button and the keystroke
+	// cannot drift, and neither can stack a second fetch on a slow korg.
+	function doRefresh() {
+		if (refresh && !busy) refresh();
+	}
+
+	// Ctrl+R and F5 become the IN-APP refresh on the desk (#1496). Both are
+	// interceptable in Chromium, unlike Ctrl+T/N/W. Ctrl+Shift+R is deliberately
+	// left alone: a real hard reload has to stay one keystroke away for when the
+	// app itself is what needs re-fetching, not korg.
+	//
+	// When focus is inside korg's frame this handler sees nothing — the same
+	// cross-origin boundary KorgPane.svelte documents for Escape — and Chromium
+	// services Ctrl+R as an ordinary top-level reload. That is why advertising the
+	// hotkey is honest where advertising `close (Esc)` was not: this one DEGRADES
+	// to what it replaced, and the pane comes back from sessionStorage. Escape's
+	// failure mode was nothing happening at all.
+	function onkeydown(e: KeyboardEvent) {
+		if (!refresh || e.shiftKey || e.altKey) return;
+		const mod = e.ctrlKey || e.metaKey;
+		if (!((e.key === 'F5' && !mod) || (mod && (e.key === 'r' || e.key === 'R')))) return;
+		e.preventDefault();
+		doRefresh();
+	}
 
 	// Board settings (#1489), kfdc's first client-side preference. No store on
 	// the server (nothing to read) and none on the wall — the wall renders no
@@ -70,6 +118,8 @@
 	// age on the page is computed against.
 	const asOf = $derived(board.generated.slice(0, 16).replace('T', ' ') + 'Z');
 </script>
+
+<svelte:window {onkeydown} />
 
 <header class="masthead">
 	<!--
@@ -112,10 +162,25 @@
 		{#if stale}
 			<!-- Beside `asOf`, deliberately, and not in a corner: the two are one
 			     claim. `asOf` says when korg assembled what you are reading; this
-			     says the wall has stopped being able to ask. A board that silently
-			     keeps showing an hour-old queue is exactly the wrong information
-			     nobody is standing there to scroll away from. -->
+			     says the browser has stopped being able to ask. A board that
+			     silently keeps showing an hour-old queue is exactly the wrong
+			     information nobody is standing there to scroll away from — and
+			     since #1496 the desk board is long-lived too, so it can reach this
+			     state without anyone noticing the ↻ stopped landing. -->
 			<span class="stale"><b>NO REFRESH</b> {stale}</span>
+		{/if}
+		{#if refresh}
+			<!-- Not a MastheadControl: it opens nothing, it does one thing. It wears
+			     the same button, because a second visual language for a second glyph
+			     in one statline is how a masthead becomes a toolbar. -->
+			<button
+				class="mast-btn mast-refresh"
+				type="button"
+				title="refresh (Ctrl+R)"
+				aria-label="refresh the board"
+				aria-busy={busy}
+				onclick={doRefresh}>↻</button
+			>
 		{/if}
 		{#if !wall}
 			<!-- Right of the time/date, where #1489 asked for it. Desk only: a

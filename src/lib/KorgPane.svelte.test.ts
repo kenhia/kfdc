@@ -42,6 +42,27 @@ describe('KorgPane', () => {
 		unmount(v.app);
 	});
 
+	// #1497. `clipboard-write`'s Permissions-Policy default allowlist is `self`,
+	// so a cross-origin frame has the capability only if the embedder hands it
+	// down — korg's Copy Sprint Command failed in the pane with a
+	// permissions-policy error while every other korg surface worked. The
+	// delegation is the whole fix, and this is the only place it can be asserted
+	// without a real cross-origin embed.
+	//
+	// `clipboard-read` is deliberately absent: korg's image paste reads
+	// `ClipboardEvent.clipboardData`, which is the reader's own gesture and needs
+	// no permission. The async read API is a different capability and the pane has
+	// no reason to hold it.
+	it('delegates clipboard-write to korg, and nothing else', () => {
+		const pane = new PaneState('https://korg.example');
+		pane.show(1203);
+		const v = render(pane);
+		const allow = v.frame().getAttribute('allow');
+		expect(allow).toBe('clipboard-write');
+		expect(allow).not.toMatch(/clipboard-read/);
+		unmount(v.app);
+	});
+
 	// True whenever the board holds focus, which is all jsdom can model and all
 	// the board ever claims — see the title test below for the other half.
 	it('closes on Escape while the board has focus', () => {

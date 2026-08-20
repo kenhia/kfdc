@@ -1,20 +1,16 @@
 <script lang="ts">
 	import Board from '$lib/Board.svelte';
-	import type { BoardPayload } from '$lib/payload';
-	import { WallFeed } from '$lib/wall.svelte';
+	import { BoardFeed } from '$lib/feed.svelte';
+	import { fetchPayload, type BoardPayload } from '$lib/payload';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	// Seeded from the server load and owned outright from there on: the wall
 	// never navigates, and following `data` afterwards would let a framework-side
-	// reload overwrite a board WallFeed knows to be the last good one.
+	// reload overwrite a board BoardFeed knows to be the last good one.
 	// svelte-ignore state_referenced_locally
-	const feed = new WallFeed<BoardPayload>(data, async () => {
-		const res = await fetch('/api/wall');
-		if (!res.ok) throw new Error(`GET /api/wall: ${res.status}`);
-		return (await res.json()) as BoardPayload;
-	});
+	const feed = new BoardFeed<BoardPayload>(data, fetchPayload);
 
 	// Period, not phase: the wall asks as often as the server's Net Log observer
 	// polls korg (`POLL_INTERVAL_MS`, imported through the load), so the board's

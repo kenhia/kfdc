@@ -12,7 +12,12 @@
 	     same head is invalid HTML resolved differently by different browsers,
 	     which is not a thing to leave under a kiosk. -->
 	<title>KFDC — Homelab Fire Direction</title>
-	<link rel="icon" href={favicon} />
+	<!-- `type` and `sizes="any"` are what make Chromium PREFER this over the PNGs
+	     app.html declares for the install path (#1494) — without them the tab icon
+	     is chosen by pixel size and a downscaled 128 wins, which is the same mark
+	     rendered less crisply. The install path is unaffected either way: it reads
+	     the manifest's `icons`, and those are PNG only. -->
+	<link rel="icon" type="image/svg+xml" sizes="any" href={favicon} />
 </svelte:head>
 
 {@render children()}
