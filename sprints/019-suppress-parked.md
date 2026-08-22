@@ -193,3 +193,44 @@ this program retires — and the un-park step added to its §3 restore checklist
 Un-parking is not korg's to guess: the status a row was parked out of is not
 recoverable from it, so the checklist has to name the target (1478 → `active`,
 1480 → `holding`). Pending the park, for the same reason.
+
+## Deployed
+
+**2026-08-22** — `0.5.0-00ca4e0` (merge commit `00ca4e05`), live on kubsdb at
+`https://kubsdb.encke-wahoo.ts.net:8100`. Rollback target: `0.5.0-6da12b4`
+(sprint 018) — `just deploy 0.5.0-6da12b4` is the whole rollback.
+
+sha256 `67d8ae2cb500eef6a3d1f518a611799209009b9e665991731bc524569971c775`,
+573267 bytes, 143 entries. **1.86s end to end**, every knarr step `ok`:
+stage 381ms · backup 202ms · install 205ms · restart 220ms · ready 262ms ·
+confirm 208ms · cleanup 0ms (pruned `0.5.0-eadc974`). `confirm`'s detail is
+the version string itself, so the running process was proven by its cwd rather
+than by a health check. `restart` at 220ms is sprint 013's post-fix baseline
+unchanged — the shutdown fix still holds.
+
+Three-way agreement: store `latest:` = `here:` top = `running:` = `0.5.0-00ca4e0`.
+
+**Verified live**, over the tailnet from kai rather than loopback, so
+`tailscale_serve` is exercised:
+
+- `GET /` → 200, and SSR rendered the board (`fire missions` present, not an
+  error shell).
+- The served CSS carries `--slate`, `.op-parked`, `.status.parked` and
+  `.parked-hid` — this sprint's treatment is in the bundle the host is running,
+  not merely in the repo.
+- The gear renders on `/` and **not** on `/wall`: sprint 017's rule still held
+  by the deployed artifact, which is the guard the wall's parked answer hangs off.
+
+**Not verifiable live, and this is the honest limit.** Production korg holds
+**no parked rows** — checked directly against `/api/board`: zero parked
+proposals in `queue`, zero parked programs, on a 5-row queue and 4 programs. So
+the filter has nothing to act on and the board today renders exactly as it did
+before, which is correct behaviour for a feature whose whole job is conditional
+on a status nothing carries yet. The filter, the receipt and the wall
+suppression are proven by the test suite and by the five-width probe against a
+stub that *does* carry parked rows — not by production.
+
+That last step closes when korg:1478 and korg:1480 are parked, which is Ken's
+call and is the standing Awaiting Ken on program korg:1549. The board is now on
+the far side of the sequencing that decision was waiting for: it knows how to
+draw parked, so parking them no longer costs an undecorated row.
