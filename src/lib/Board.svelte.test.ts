@@ -10,8 +10,9 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Board from './Board.svelte';
-import type { Board as BoardData } from './board';
+import type { Board as BoardData, ProposalRow } from './board';
 import { PANE_STORAGE_KEY } from './pane.svelte';
+import { STORAGE_KEY as SETTINGS_KEY } from './settings.svelte';
 
 // An empty korg. Every panel renders its own nothing-here state, which is all
 // this test needs — the claim is about the masthead, not the board.
@@ -93,6 +94,87 @@ describe('Board masthead', () => {
 	it('draws no ↻ on the wall, which refreshes on its own timer', () => {
 		const v = render(true);
 		expect(v.refreshBtn()).toBeNull();
+		unmount(v.app);
+	});
+});
+
+// #1540. The wall has no gear (above), so "include parked" needs a FIXED answer
+// there rather than a setting — and the answer is suppress, because the wall is
+// an at-a-glance display of what is in motion and parked is the definition of
+// what is not.
+//
+// The wall is protected twice over and that is deliberate: it is handed no
+// localStorage to read (sprint 017, so a desk preference cannot follow the
+// board onto an unattended screen), and `Board.svelte` writes the rule again as
+// `!wall &&` at the point of use. Either alone would hold. These tests pin the
+// OUTCOME the pair exists to produce, which is the claim that actually matters
+// and the only one that stays true if the plumbing is rearranged.
+describe('parked rows (#1540)', () => {
+	const PARKED_TITLE = 'a row korg says is dormant';
+	const parked: ProposalRow = {
+		node_id: 1478,
+		title: PARKED_TITLE,
+		summary: 'deferred with no end date',
+		project: 'agent-projects',
+		status: 'parked',
+		rank: '9',
+		pinned: false,
+		comment_count: 0,
+		covered_count: 2,
+		open: 2,
+		resolved: 0,
+		done: 0,
+		closed: 0,
+		updated: '2026-08-20T09:00:00Z',
+		synopsis: null
+	};
+	const withParked: BoardData = { ...board, queue: [parked] };
+	const shows = (t: HTMLElement) => t.textContent!.includes(PARKED_TITLE);
+
+	it('hides parked on the desk when nothing is stored, which is the default', () => {
+		const v = render(false, { board: withParked });
+		expect(shows(v.target)).toBe(false);
+		unmount(v.app);
+	});
+
+	it('shows parked on the desk once the setting is on', () => {
+		localStorage.setItem(SETTINGS_KEY, JSON.stringify({ includeParked: true }));
+		const v = render(false, { board: withParked });
+		expect(shows(v.target)).toBe(true);
+		unmount(v.app);
+	});
+
+	// The gate. A preference set at the desk must not be able to put dormant work
+	// on a screen with no control to take it back off.
+	it('hides parked on the wall even with the setting stored on', () => {
+		localStorage.setItem(SETTINGS_KEY, JSON.stringify({ includeParked: true }));
+		const v = render(true, { board: withParked });
+		expect(shows(v.target)).toBe(false);
+		unmount(v.app);
+	});
+
+	// The board's first rule (docs/design.md): a panel that hides rows names what
+	// it hid. Suppressing parked is the largest hiding kfdc does, so the receipt
+	// is not optional — and it names the CAUSE, because unlike korg's omitted
+	// counts this one is undone by a checkbox the reader has.
+	it('names the parked rows it hid, and says a setting did it', () => {
+		const v = render(false, { board: withParked });
+		expect(v.target.textContent).toMatch(/1 parked, hidden by a board setting/);
+		unmount(v.app);
+	});
+
+	it('says nothing about hiding when the rows are being drawn', () => {
+		localStorage.setItem(SETTINGS_KEY, JSON.stringify({ includeParked: true }));
+		const v = render(false, { board: withParked });
+		expect(v.target.textContent).not.toMatch(/hidden by a board setting/);
+		unmount(v.app);
+	});
+
+	// The statline is printed above the panel it counts (D-3), so it has to move
+	// with it or the masthead contradicts the board underneath.
+	it('leaves the parked row out of the live count it is printed beside', () => {
+		const v = render(false, { board: withParked });
+		expect(v.target.querySelector('.statline')!.textContent).toMatch(/0\s*live proposals/);
 		unmount(v.app);
 	});
 });

@@ -2,8 +2,18 @@
 	import { progress, type Board, type ProgramRow, type ProgramSlice } from '$lib/board';
 	import NodeRef from '$lib/NodeRef.svelte';
 
-	let { programs, omitted }: { programs: ProgramRow[]; omitted: Board['programs_omitted'] } =
-		$props();
+	let {
+		programs,
+		omitted,
+		// Parked programs this board chose not to draw (#1540) — kfdc's own
+		// hiding, named the way korg's is (docs/design.md: nothing disappears
+		// silently).
+		parkedHidden = 0
+	}: {
+		programs: ProgramRow[];
+		omitted: Board['programs_omitted'];
+		parkedHidden?: number;
+	} = $props();
 
 	// Slice chip state, switched on korg's proposal literal: done → checked
 	// off, active → in motion, declined → dropped, anything else (proposed) →
@@ -64,5 +74,9 @@
 		<p class="empty">no programs in motion — single-tube fires only</p>
 	{/each}
 
-	<p class="queue-foot">omitted: {omitted.done} done, {omitted.archived} archived</p>
+	<p class="queue-foot">
+		omitted: {omitted.done} done, {omitted.archived} archived{#if parkedHidden}<span
+				class="parked-hid">· {parkedHidden} parked, hidden by a board setting</span
+			>{/if}
+	</p>
 </section>

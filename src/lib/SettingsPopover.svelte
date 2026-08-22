@@ -38,8 +38,8 @@
 		if (draft !== '' && Number.isFinite(px)) settings.setPx(px, deck);
 	}
 
-	function reset() {
-		settings.reset();
+	function resetWidth() {
+		settings.resetPaneWidth();
 		draft = String(settings.paneWidthPx(deck));
 	}
 </script>
@@ -68,7 +68,28 @@
 		</div>
 	</div>
 
-	<button class="setting-reset" type="button" onclick={reset}>
-		reset to default ({DEFAULT_PANE_PCT}%)
+	<!-- The second row (#1540), and sprint 017's prediction holding: the shell
+	     was shaped as a list and this is another `.setting`, not a redesign.
+	     Phrased as INCLUDE rather than "hide parked", so the checked state means
+	     more on screen — a checkbox whose ticked state removes rows is the kind
+	     of double negative a reader has to stop and solve. -->
+	<div class="setting">
+		<label class="setting-l" for="set-parked">include parked</label>
+		<input
+			id="set-parked"
+			class="setting-c"
+			type="checkbox"
+			checked={settings.includeParked}
+			onchange={(e) => settings.setIncludeParked(e.currentTarget.checked)}
+		/>
+		<!-- Says what korg means by it, because `parked` is korg's word and this
+		     is the only place on the board that has room to explain it. -->
+		<div class="setting-n">
+			korg's dormant rows — deferred with no end date. Off by default; the wall never shows them.
+		</div>
+	</div>
+
+	<button class="setting-reset" type="button" onclick={resetWidth}>
+		reset width to default ({DEFAULT_PANE_PCT}%)
 	</button>
 </div>

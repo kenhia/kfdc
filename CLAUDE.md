@@ -118,7 +118,30 @@ reticle instead of a generated "K" (`static/manifest.webmanifest` + committed
 32/128/192/512 rasters, declared in `src/app.html` so the paths stay
 un-hashed) — **Edge caches the shortcut icon at install time, so seeing it
 takes an uninstall/reinstall**. `docs/design.md` §§ Staying current, Expanded
-mode, The installed app.
+mode, The installed app. Sprint 019 is kfdc's half of korg's new **`parked`**
+status (korg sprint 072, **GP-19**): korg owns the distinction and emits the
+literal, kfdc only chooses whether to *draw* it — deriving dormancy from slice
+states, a stale `updated` or comment prose is forbidden outright. `parked` gets
+a treatment the #1444 gate demanded (`--slate`, the board's only cool-neutral;
+the card recedes *below* the neutral base, the chip is dashed where `holding` is
+solid) and **"include parked" is the settings popover's second row, off by
+default** — sprint 017's "a second setting is an added field" held exactly,
+though `persist()`/`reset()` both had to stop assuming one. **One filter in one
+place**: `withoutParked` in `src/lib/board.ts` filters `queue` and `programs`
+only, and records why it leaves `blocked`, `slices`, `awaiting` and `depth`
+alone. Rate of Fire and the Net Log cannot move when the checkbox does — both
+are computed server-side, so "a display toggle must not rewrite a measurement"
+is true by construction. `/wall` suppresses parked unconditionally (no gear, so
+no affordance it cannot honour). And because *nothing disappears silently*, both
+panels name what they hid. Two things the plan did not predict, both found by
+looking at the rendered board: `Operations.svelte.test.ts` had used `parked` as
+its hypothetical *unknown* literal and korg then shipped it, so the test passed
+while asserting the opposite of its name — a specimen must now assert its own
+fictionality; and a parked queue row was indistinguishable from a queued one
+with the setting on, which is the one reader who asked. `docs/design.md`
+§ Parked work. **Still open and Ken's**: korg:1478/1480 are not parked yet
+(Awaiting Ken on program korg:1549), and `kai:~/5090/PARKED.md` is rewritten
+after they are.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the
   `sveltekit()` plugin in `vite.config.ts` — no `svelte.config.js`; that is
