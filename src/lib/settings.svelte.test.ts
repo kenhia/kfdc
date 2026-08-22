@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	BoardSettings,
+	DEFAULT_INCLUDE_PARKED,
 	DEFAULT_PANE_PCT,
 	PANE_MAX_PCT,
 	PANE_MIN_PCT,
@@ -103,6 +104,95 @@ describe('clampPct', () => {
 	});
 });
 
+// #1540 — the second setting, and the first time the "one key holding an
+// object" shape from #1489 has had to hold two of anything. Most of these are
+// about the two fields not being able to hurt each other.
+describe('includeParked', () => {
+	it('is off when nothing is stored, which is the whole feature', () => {
+		const s = new BoardSettings(fakeStorage());
+		expect(s.includeParked).toBe(DEFAULT_INCLUDE_PARKED);
+		expect(s.includeParked).toBe(false);
+	});
+
+	it('persists alongside the pane width rather than replacing it', () => {
+		const store = fakeStorage();
+		const s = new BoardSettings(store);
+		s.setPx(1400, DECK);
+		s.setIncludeParked(true);
+		expect(JSON.parse(store.data[STORAGE_KEY])).toEqual({ panePct: 41.1, includeParked: true });
+	});
+
+	it('does not lose a stored width when it is set, or the reverse', () => {
+		const store = fakeStorage();
+		new BoardSettings(store).setIncludeParked(true);
+		const s = new BoardSettings(store);
+		s.setPx(1400, DECK);
+		expect(s.includeParked).toBe(true);
+		expect(new BoardSettings(store).panePct).toBe(41.1);
+	});
+
+	// The button says "reset width"; it must do only that. With one setting in
+	// the shell the two readings were the same sentence — with two they are not.
+	it('survives the pane width being reset, which is a button with a narrower label', () => {
+		const store = fakeStorage();
+		const s = new BoardSettings(store);
+		s.setIncludeParked(true);
+		s.setPx(1400, DECK);
+		s.resetPaneWidth();
+		expect(s.panePct).toBeNull();
+		expect(s.includeParked).toBe(true);
+		expect(JSON.parse(store.data[STORAGE_KEY])).toEqual({ includeParked: true });
+	});
+
+	// The default has to reach localStorage as ABSENT, not as a stored `false`.
+	// A reader who ticks and un-ticks must end up indistinguishable from one who
+	// never opened the popover — otherwise they are silently pinned to today's
+	// defaults if a default ever moves.
+	it('leaves no key behind when every setting is back to its default', () => {
+		const store = fakeStorage();
+		const s = new BoardSettings(store);
+		s.setIncludeParked(true);
+		s.setIncludeParked(false);
+		expect(STORAGE_KEY in store.data).toBe(false);
+	});
+
+	it('reads a stored `true` back', () => {
+		const s = new BoardSettings(fakeStorage({ [STORAGE_KEY]: '{"includeParked":true}' }));
+		expect(s.includeParked).toBe(true);
+		expect(s.panePct).toBeNull();
+	});
+
+	// Per-field validation, and this is what it buys: a hand-edited or
+	// half-migrated `includeParked` costs the reader nothing but that field.
+	it.each([
+		['a string', '{"panePct":41.1,"includeParked":"yes"}'],
+		['a number', '{"panePct":41.1,"includeParked":1}'],
+		['absent', '{"panePct":41.1}']
+	])('falls back for a %s includeParked without costing the pane width', (_why, raw) => {
+		const s = new BoardSettings(fakeStorage({ [STORAGE_KEY]: raw }));
+		expect(s.includeParked).toBe(false);
+		expect(s.panePct).toBe(41.1);
+	});
+
+	it('keeps a stored includeParked when the pane width is the corrupt half', () => {
+		const s = new BoardSettings(
+			fakeStorage({ [STORAGE_KEY]: '{"panePct":"wide","includeParked":true}' })
+		);
+		expect(s.panePct).toBeNull();
+		expect(s.includeParked).toBe(true);
+	});
+
+	it('applies on a storage that throws, even though it cannot be saved', () => {
+		const s = new BoardSettings(hostileStorage);
+		expect(() => s.setIncludeParked(true)).not.toThrow();
+		expect(s.includeParked).toBe(true);
+	});
+
+	it('has no store at all on the server, and still answers', () => {
+		expect(new BoardSettings(null).includeParked).toBe(false);
+	});
+});
+
 describe('BoardSettings', () => {
 	it('says nothing at all when nothing is stored, so app.css keeps the default', () => {
 		const s = new BoardSettings(fakeStorage());
@@ -147,7 +237,7 @@ describe('BoardSettings', () => {
 		const store = fakeStorage();
 		const s = new BoardSettings(store);
 		s.setPx(1400, DECK);
-		s.reset();
+		s.resetPaneWidth();
 		expect(s.panePct).toBeNull();
 		expect(s.deckStyle).toBeUndefined();
 		expect(STORAGE_KEY in store.data).toBe(false);
@@ -183,7 +273,7 @@ describe('BoardSettings', () => {
 		expect(() => s.setPx(1400, DECK)).not.toThrow();
 		// The width is applied even though it could not be saved.
 		expect(s.panePct).toBe(41.1);
-		expect(() => s.reset()).not.toThrow();
+		expect(() => s.resetPaneWidth()).not.toThrow();
 		expect(s.panePct).toBeNull();
 	});
 });

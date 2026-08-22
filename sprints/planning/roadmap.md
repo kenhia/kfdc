@@ -58,6 +58,13 @@ design change, not an implementation detail:
   never write.
 - **The curator runs on kai; the board runs on kubsdb.** kubsdb gets no
   agent tooling (k-homelab #988).
+- **korg owns dormancy; the board only chooses whether to draw it**
+  (korg+ GP-19, sprint 019). korg's `parked` means deferred until a condition
+  fires, with no end date. kfdc may filter on that literal and may never
+  reconstruct it — not from a stale `updated`, not from a slice list, not from
+  prose in a comment, and not from a slice's parent program being parked.
+  The temptation is real and looks like a feature; korg is deliberate that
+  parking a program does not park its slices. `docs/design.md` § Parked work.
 
 ## What was built
 

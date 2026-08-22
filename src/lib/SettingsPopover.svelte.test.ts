@@ -34,7 +34,15 @@ function render(settings: BoardSettings, width = DECK) {
 		app,
 		input,
 		type,
+		// The FIRST `.setting-n` — the width row's. #1540 added a second row with
+		// a note of its own, and this accessor is the width one on purpose.
 		note: () => target.querySelector('.setting-n')!.textContent!.replace(/\s+/g, ' ').trim(),
+		parked: () => target.querySelector('input.setting-c') as HTMLInputElement,
+		tick: (on: boolean) => {
+			const box = target.querySelector('input.setting-c') as HTMLInputElement;
+			box.checked = on;
+			box.dispatchEvent(new Event('change', { bubbles: true }));
+		},
 		reset: () => (target.querySelector('button.setting-reset') as HTMLButtonElement).click()
 	};
 }
@@ -131,5 +139,68 @@ describe('SettingsPopover', () => {
 		expect(v.note()).toBe('stored 80% of 1440px · renders 786px');
 		expect(1440 - 786 - 14).toBe(640);
 		unmount(v.app);
+	});
+
+	// #1540's row. The list shape from #1489 held: this is another `.setting`.
+	describe('include parked', () => {
+		it('opens unticked, because suppressing parked is the default', () => {
+			const v = render(new BoardSettings(fakeStorage()));
+			expect(v.parked().checked).toBe(false);
+			unmount(v.app);
+		});
+
+		it('opens ticked when the reader has already turned it on', () => {
+			const store = fakeStorage();
+			new BoardSettings(store).setIncludeParked(true);
+			const v = render(new BoardSettings(store));
+			expect(v.parked().checked).toBe(true);
+			unmount(v.app);
+		});
+
+		it('applies and persists a tick', () => {
+			const store = fakeStorage();
+			const settings = new BoardSettings(store);
+			const v = render(settings);
+			v.tick(true);
+			expect(settings.includeParked).toBe(true);
+			expect(new BoardSettings(store).includeParked).toBe(true);
+			unmount(v.app);
+		});
+
+		it('un-ticks back to nothing stored', () => {
+			const store = fakeStorage();
+			const settings = new BoardSettings(store);
+			const v = render(settings);
+			v.tick(true);
+			v.tick(false);
+			expect(settings.includeParked).toBe(false);
+			expect(new BoardSettings(store).includeParked).toBe(false);
+			unmount(v.app);
+		});
+
+		// The label names one setting and the button names the other. This is the
+		// pairing that would have broken quietly if `reset()` had kept clearing
+		// the whole key when a second field moved in.
+		it('is not touched by the width reset beside it', () => {
+			const settings = new BoardSettings(fakeStorage());
+			const v = render(settings);
+			v.tick(true);
+			v.type('1400');
+			v.reset();
+			expect(settings.panePct).toBeNull();
+			expect(settings.includeParked).toBe(true);
+			expect(v.parked().checked).toBe(true);
+			unmount(v.app);
+		});
+
+		// The label is a checkbox's, so the box has to be reachable by clicking
+		// the words — the row is a list row, not an icon.
+		it('binds its label to the box', () => {
+			const v = render(new BoardSettings(fakeStorage()));
+			const label = v.target.querySelector('label[for="set-parked"]');
+			expect(label).not.toBeNull();
+			expect(v.parked().id).toBe('set-parked');
+			unmount(v.app);
+		});
 	});
 });

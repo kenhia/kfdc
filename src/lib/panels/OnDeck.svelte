@@ -6,6 +6,7 @@
 	let {
 		queue,
 		omitted,
+		parkedHidden = 0,
 		depth,
 		programs,
 		// Wall mode (#1204): nobody is at the keyboard, so nothing here offers to
@@ -15,6 +16,12 @@
 	}: {
 		queue: Board['queue'];
 		omitted: Board['proposals_omitted'];
+		/**
+		 * Parked rows this board chose not to draw (#1540). Distinct from
+		 * `omitted`, which is what korg withheld — and printed distinctly, because
+		 * one is undone by a checkbox and the other is not.
+		 */
+		parkedHidden?: number;
 		depth: DepthRow[];
 		programs: ProgramRow[];
 		wall?: boolean;
@@ -66,8 +73,20 @@
 						<td class="rank"
 							>{#if r.row.pinned}<span class="pin" title="pinned">⚑</span>{/if}{r.row.rank}</td
 						>
+						<!-- The parked marker (#1540). Without it, a queue row korg calls
+						     parked is indistinguishable from one it calls proposed the
+						     moment the setting is on — which is to say, invisible to the
+						     only reader who asked to see it. Found by looking at the real
+						     board, not by a test: the palette gate reaches the program
+						     literals and had nothing to say about a queue row.
+						     Inside the `.chips` wrapper so it wraps with the project chip
+						     rather than extending the unbreakable run #1284 measured. -->
 						<td class="qproj"
-							><span class="chips"><span class="proj">{r.row.project}</span></span></td
+							><span class="chips"
+								><span class="proj">{r.row.project}</span>{#if r.row.status === 'parked'}<span
+										class="status parked">parked</span
+									>{/if}</span
+							></td
 						>
 						<!-- The queue has no id column to link, so the title carries it
 						     (#1203). The program roll-up row below deliberately does NOT:
@@ -135,7 +154,9 @@
 		</tbody>
 	</table>
 	<p class="queue-foot">
-		omitted: {omitted.done} done, {omitted.declined} declined, {omitted.archived} archived
+		omitted: {omitted.done} done, {omitted.declined} declined, {omitted.archived} archived{#if parkedHidden}<span
+				class="parked-hid">· {parkedHidden} parked, hidden by a board setting</span
+			>{/if}
 	</p>
 
 	<div class="depth">

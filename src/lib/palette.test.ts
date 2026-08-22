@@ -32,7 +32,16 @@ describe('program state palette', () => {
 	// most of its life in. Red made it a near-permanent alarm that led nowhere,
 	// because awaiting-Ken is a column (set_awaiting) rendered by Commander's
 	// Call — never a status value.
-	it.each(['.op-holding', '.status.holding'])('keeps the alarm colour out of %s', (selector) => {
-		expect(rule(selector)).not.toMatch(/--red/);
-	});
+	//
+	// `parked` (#1536) is held to the same rule, and it is the stronger case of
+	// the two: holding is merely usually long, where parked is deferred with no
+	// end date by definition. An alarm on a row whose whole meaning is "nothing
+	// will happen here until something outside korg changes" cannot be acted on
+	// by the person looking at it, which is what made red wrong the first time.
+	it.each(['.op-holding', '.status.holding', '.op-parked', '.status.parked'])(
+		'keeps the alarm colour out of %s',
+		(selector) => {
+			expect(rule(selector)).not.toMatch(/--red/);
+		}
+	);
 });

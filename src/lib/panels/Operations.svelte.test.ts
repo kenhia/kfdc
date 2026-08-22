@@ -72,11 +72,25 @@ describe('Operations program state', () => {
 
 	// A status kfdc has never heard of must land on the neutral base, not on
 	// whichever treatment happens to be the default. korg owns the vocabulary
-	// and can grow it between deploys.
+	// and can grow it between deploys — GP-13's consumer half, and the runtime
+	// half of the pair whose compile-time half is palette.test.ts.
+	//
+	// THE SPECIMEN HAS TO BE FICTIONAL, and #1536 is why that is now written
+	// down and asserted rather than assumed. This test shipped with `parked` as
+	// its hypothetical unknown; korg then shipped `parked` for real (sprint
+	// 072), and the test went on passing while asserting the opposite of its
+	// own name — that a KNOWN literal gets a class of its own, which is the
+	// `it.each` above. A hypothetical borrowed from korg's plausible future is
+	// a hypothetical with an expiry date, so this one is deliberately a word
+	// korg has no use for, and the vocabulary is checked rather than trusted.
+	const UNKNOWN = 'mothballed';
 	it('lands an unknown status on the neutral base', () => {
-		const v = render({ programs: [program({ status: 'parked' })] });
-		expect(v.state()).toEqual(['op-parked']);
-		expect(v.card().className).not.toMatch(/op-(queued|active|holding|done)/);
+		expect(PROGRAM_STATUSES as readonly string[]).not.toContain(UNKNOWN);
+		const v = render({ programs: [program({ status: UNKNOWN })] });
+		expect(v.state()).toEqual([`op-${UNKNOWN}`]);
+		for (const known of PROGRAM_STATUSES) {
+			expect(v.card().className).not.toMatch(new RegExp(`op-${known}\\b`));
+		}
 		unmount(v.app);
 	});
 

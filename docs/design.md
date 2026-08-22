@@ -54,14 +54,18 @@ is a deliberate commitment, not an omission.
   `queued` arrived and read as in flight (kfdc #1444, sprint 012). korg owns
   the vocabulary and grows it between deploys, so the board *will* meet an
   unrendered literal in production; quiet is the only safe default. Program
-  states: `queued` cyan, `active` amber, `holding` neutral, `done` dim.
+  states: `queued` cyan, `active` amber, `holding` neutral, `done` dim,
+  `parked` recessed slate (see § Parked work).
 - **A filled chip means something is happening; the outline chip is rest.**
   `holding` is the board's only unfilled status chip — korg's resting state
   between slices, and the state a program spends most of its life in. It was
   red until kfdc #1196, on a semantic korg does not have (awaiting-Ken is a
   column set by `set_awaiting` and drawn by Commander's Call, never a status),
   so the alarm was near-permanent and led nowhere. **Red is for an ask, never
-  for a resting state.**
+  for a resting state.** `parked` is the second unfilled chip and is *dashed*
+  where `holding` is solid — the board's existing grease-pencil convention for
+  a thing that is not settled, doing the work of separating two states that
+  both mean nobody is working on this.
 - **Nothing disappears silently.** A panel that hides rows names what it
   hid and where it went — the roll-up is expandable (`▸`/`▾`, the board's
   only interactive control), and the Deconfliction aside is a faint receipt
@@ -323,6 +327,76 @@ the board, deep-linked to that node.
   refusal: a cross-origin frame cannot be inspected, and guessing would mean
   claiming something the board does not know.
 
+## Parked work — korg's word, and what the board does with it
+
+korg gained `parked` for sprint proposals and programs in its sprint 072 (korg
+#1534/#1535): **deferred until a condition fires, with no end date.** It is a
+real gap in the vocabulary, not a synonym — `declined` asserts a decision *not*
+to do the work, and a proposal blocked on hardware in for RMA is neither
+declined nor honestly live. korg+ **GP-19** is the contract, and its division of
+labour is the whole design:
+
+> korg owns the distinction, emits the literal, and keeps parked rows visible in
+> a de-prioritised order. A consumer may **filter** on that literal and may
+> never **derive** dormancy for itself.
+
+So kfdc reads korg's `status` and nothing else. Inferring parked-ness from a
+stale `updated`, an empty slice list, a tag convention or prose in a comment is
+the one thing the decision forbids outright — it is GP-13's state half in the
+visibility register, and korg #1196 is the scar it comes from.
+
+**The treatment** (kfdc #1536). `.op-parked` is the only program card that
+recedes *below* the neutral base: every other card is built on `--panel` or
+lighter and sits on the board, this one is built on `--ground` and reads as a
+recess in it. That is the status made visual — still here, deliberately not in
+play. The chip is unfilled like `holding`'s and dashed, which is what separates
+them at 10px: holding rests between slices and resumes on its own, parked waits
+on something outside korg. **No `--red`** — #1196's rule applies here with more
+force, not less, because parked is long-lived by definition and an alarm the
+reader cannot clear is exactly what made red wrong the first time.
+
+**The setting** (kfdc #1540). "Include parked" is the second row of the settings
+popover, **off by default** — the whole request was that dormant work stops
+occupying the board, and shipping the control defaulted to *show* would ship the
+switch and none of the benefit. It is display chrome, not korg's data, which is
+what keeps it inside GP-1: korg changing cannot make the stored value wrong.
+
+**One filter, one place.** Parked rows reach the board through several doors —
+On Deck and its program-collapse path, Operations, the statline, per-project
+depth — and a filter written at each door leaks at the one nobody listed.
+`withoutParked` in `$lib/board.ts` filters the collection once and carries the
+per-collection reasoning; every panel downstream renders what it is given and
+does not know the setting exists. It filters exactly **`queue`** and
+**`programs`**, and the things it deliberately leaves alone each have a reason
+recorded beside them — notably `blocked` (a parked blocker is still an unmet
+blocker, so hiding it would have Deconfliction call work ready when it is not),
+`programs[].slices` (a program's plan, and its `remaining`/`total` counters —
+dropping a parked step would report progress that came from putting work on
+hold), and `awaiting` (a decision pending on a parked row is very often the
+decision that would *unpark* it, so hiding it makes the setting self-sealing).
+
+**A display toggle must not rewrite a measurement**, and here it structurally
+cannot: Rate of Fire reads korg's work-item flow series, and the Net Log digest
+is assembled server-side from the raw rollup. Neither is derived from the value
+this filter returns, so neither moves when the checkbox does — by construction
+rather than by discipline. It also means toggling the setting can never be
+mistaken by the Net Log for korg activity.
+
+**The wall's answer is fixed, and it is suppress.** `/wall` has no gear (§ Wall
+mode — *the wall draws no affordance it cannot honour*), so a preference with no
+control there must not be able to reach it. The wall is an at-a-glance display
+of what is in motion, and parked is the definition of what is not. It is guarded
+twice on purpose: the wall is handed no `localStorage` to read, and `Board.svelte`
+writes the rule again as `!wall &&` at the point of use.
+
+**And the hiding is named.** Suppressing parked is the largest piece of hiding
+kfdc does, so it is the last place *nothing disappears silently* may be skipped:
+On Deck and Operations print `· n parked, hidden by a board setting` on the same
+line as korg's omitted counts. The count is kfdc's own — korg's `*_omitted` says
+what *korg* withheld, and only the board knows what the board chose not to draw.
+It wears `--slate` rather than `--faint` because of the two halves of that
+sentence, this is the one the reader can undo from here.
+
 ## Tokens
 
 | Token | Value | Role |
@@ -337,6 +411,16 @@ the board, deep-linked to that node.
 | `--green` | `#97ba6b` | done / clear / healthy |
 | `--splash` | `#b6f26b` | fire mission at work-complete — watch for impact |
 | `--cyan` | `#8fb5ba` | project chips / queued info / the `queued` program state |
+| `--slate` | `#8a97a0` | the `parked` state, and only that |
+
+`--slate` is the board's only cool-neutral, and it exists for one status.
+Everything else here is warm — olive ground, manila ink — so a desaturated
+blue-grey is the one hue available that reads as *set aside* without reading as
+an accent. korg's own pages reached the same conclusion independently and for
+the same stated reason (`bg-slate-800`, korg #1535): parked sits nearest `done`,
+but keeps a hue where done has none, because dormant is not finished and the two
+must not converge at a glance. korg's `done` is neutral and kfdc's is warm, so
+kfdc's parked is cool.
 
 Semantic colors (red/green/amber lights) are reserved for state; `--cyan`
 identifies projects everywhere. Panel headers: mono, uppercase,

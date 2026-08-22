@@ -197,3 +197,35 @@ describe('On Deck on the wall', () => {
 		unmount(v.app);
 	});
 });
+
+// #1540. A parked queue row is only ever on screen because the reader ticked
+// "include parked" — so it has to say which rows those are. This gap was found
+// by looking at the rendered board and not by any test: the palette gate covers
+// the PROGRAM literals and had nothing to say about a queue row, which carries
+// no status chip at all in the ordinary case.
+describe('the parked marker', () => {
+	const parkedChips = (t: HTMLElement) =>
+		[...t.querySelectorAll('td.qproj span.status.parked')].map((e) => e.textContent!.trim());
+
+	it('marks a parked queue row', () => {
+		const v = render({ queue: [row(5), row(7, { status: 'parked' })], programs: [] });
+		expect(parkedChips(v.target)).toEqual(['parked']);
+		unmount(v.app);
+	});
+
+	it('marks nothing when korg has parked nothing', () => {
+		const v = render({ queue: [row(5), row(7)], programs: [] });
+		expect(parkedChips(v.target)).toEqual([]);
+		unmount(v.app);
+	});
+
+	// Beside the project chip and inside the same wrapper, so the two wrap
+	// together — #1284 measured what an unbreakable inline run costs this panel.
+	it('puts the marker in the chips wrapper with the project', () => {
+		const v = render({ queue: [row(7, { status: 'parked' })], programs: [] });
+		const chips = v.target.querySelector('td.qproj span.chips')!;
+		expect(chips.querySelector('span.status.parked')).not.toBeNull();
+		expect([...chips.children].map((c) => c.className)).toEqual(['proj', 'status parked']);
+		unmount(v.app);
+	});
+});

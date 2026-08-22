@@ -30,6 +30,18 @@ export const STORAGE_KEY = 'kfdc.settings.v1';
  */
 export const DEFAULT_PANE_PCT = 38;
 
+/**
+ * Whether parked rows are drawn (#1540). Off, and the default is the feature:
+ * the request was that dormant work stops occupying the board, so shipping the
+ * control defaulted to *show* would ship the switch and none of the benefit.
+ *
+ * This is display chrome, not korg's data, which is what makes localStorage
+ * legitimate here at all — GP-1's 2026-08-20 note gives the test: would korg
+ * changing make the stored value wrong? A preference about what to draw
+ * survives any korg write. A cached count of what korg holds would not.
+ */
+export const DEFAULT_INCLUDE_PARKED = false;
+
 // These three mirror app.css's `.korg-pane` clamp, and exist here so the
 // popover's px readout can tell the truth about what CSS will actually do.
 // CSS owns the ENFORCEMENT — it has to, because it works at any window size
@@ -89,24 +101,42 @@ export function resolvedPanePx(pct: number, deckWidth: number): number {
 	return Math.round(Math.max(PANE_MIN_PX, Math.min(wanted, max)));
 }
 
-// Anything at all can be in localStorage — a hand-edited value, a half-written
-// entry, a format from a kfdc two sprints from now. Every failure lands on the
-// default, because the alternative is a board that throws on load for the only
-// person who has one.
-function readPct(storage: StorageLike | null): number | null {
-	if (!storage) return null;
+interface Stored {
+	panePct: number | null;
+	includeParked: boolean;
+}
+
+const DEFAULTS: Stored = { panePct: null, includeParked: DEFAULT_INCLUDE_PARKED };
+
+/**
+ * Anything at all can be in localStorage — a hand-edited value, a half-written
+ * entry, a format from a kfdc two sprints from now. Every failure lands on the
+ * default, because the alternative is a board that throws on load for the only
+ * person who has one.
+ *
+ * One parse for the whole object, so a second setting cannot mean a second read
+ * of the same key — and so a payload that is corrupt for one field falls back
+ * for that field ONLY. Each field is validated on its own: a hand-edited
+ * `includeParked` must not be able to cost the reader their pane width.
+ */
+function read(storage: StorageLike | null): Stored {
+	if (!storage) return DEFAULTS;
 	try {
 		const raw = storage.getItem(STORAGE_KEY);
-		if (raw === null) return null;
+		if (raw === null) return DEFAULTS;
 		const parsed: unknown = JSON.parse(raw);
-		if (typeof parsed !== 'object' || parsed === null) return null;
-		const v = (parsed as Record<string, unknown>).panePct;
-		if (typeof v !== 'number' || !Number.isFinite(v)) return null;
-		return clampPct(v);
+		if (typeof parsed !== 'object' || parsed === null) return DEFAULTS;
+		const o = parsed as Record<string, unknown>;
+		const pct = o.panePct;
+		const parked = o.includeParked;
+		return {
+			panePct: typeof pct === 'number' && Number.isFinite(pct) ? clampPct(pct) : null,
+			includeParked: typeof parked === 'boolean' ? parked : DEFAULT_INCLUDE_PARKED
+		};
 	} catch {
 		// Covers both a corrupt payload and a browser that throws on the property
 		// access itself (private modes do).
-		return null;
+		return DEFAULTS;
 	}
 }
 
@@ -118,11 +148,21 @@ export class BoardSettings {
 	 */
 	panePct = $state<number | null>(null);
 
+	/**
+	 * Whether the board draws korg's parked rows (#1540). A plain boolean rather
+	 * than nullable-for-unset, because unlike `panePct` there is no CSS default
+	 * underneath it that "say nothing" could defer to — something has to decide
+	 * what the first render shows, and that decision is `DEFAULT_INCLUDE_PARKED`.
+	 */
+	includeParked = $state<boolean>(DEFAULT_INCLUDE_PARKED);
+
 	private readonly storage: StorageLike | null;
 
 	constructor(storage: StorageLike | null = null) {
 		this.storage = storage;
-		this.panePct = readPct(storage);
+		const stored = read(storage);
+		this.panePct = stored.panePct;
+		this.includeParked = stored.includeParked;
 	}
 
 	/**
@@ -152,22 +192,46 @@ export class BoardSettings {
 		this.setPct(pctFromPx(px, deckWidth));
 	}
 
-	/** Back to nothing stored, which is how the CSS default becomes reachable again. */
-	reset(): void {
-		this.panePct = null;
-		try {
-			this.storage?.removeItem(STORAGE_KEY);
-		} catch {
-			// See persist().
-		}
+	setIncludeParked(on: boolean): void {
+		this.includeParked = on;
+		this.persist();
 	}
 
+	/**
+	 * Back to nothing stored for the PANE, which is how the CSS default becomes
+	 * reachable again — `null` is not 38, it is "say nothing and let app.css
+	 * decide", and that is what keeps one default in one place.
+	 *
+	 * Named for the pane since #1540 rather than left as a bare `reset`: it
+	 * always was the pane width's reset, and the popover's button always said
+	 * so, but with one setting in the shell the two readings were the same
+	 * sentence. With two they are not, and a `reset()` that silently also
+	 * un-hid parked rows would be a button doing more than its label.
+	 */
+	resetPaneWidth(): void {
+		this.panePct = null;
+		this.persist();
+	}
+
+	/**
+	 * Writes only what differs from the defaults, and removes the key outright
+	 * when nothing does. That is not tidiness: `panePct === null` has to reach
+	 * localStorage as ABSENT rather than as `null`, because the whole contract
+	 * of the default is that kfdc emits no `--pane-w` and app.css supplies the
+	 * single value. Storing the defaults back would also quietly convert every
+	 * reader who has ever opened the popover into someone pinned to today's
+	 * numbers if a default ever moves.
+	 */
 	private persist(): void {
+		const payload: Record<string, unknown> = {};
+		if (this.panePct !== null) payload.panePct = this.panePct;
+		if (this.includeParked !== DEFAULT_INCLUDE_PARKED) payload.includeParked = this.includeParked;
 		try {
-			this.storage?.setItem(STORAGE_KEY, JSON.stringify({ panePct: this.panePct }));
+			if (Object.keys(payload).length === 0) this.storage?.removeItem(STORAGE_KEY);
+			else this.storage?.setItem(STORAGE_KEY, JSON.stringify(payload));
 		} catch {
 			// A full or unavailable store costs this reader persistence, never the
-			// board. The width they just set is already applied.
+			// board. What they just set is already applied.
 		}
 	}
 }

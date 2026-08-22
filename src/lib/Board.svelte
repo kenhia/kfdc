@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { statline } from '$lib/board';
+	import { statline, withoutParked } from '$lib/board';
 	import KorgPane from '$lib/KorgPane.svelte';
 	import MastheadControl from '$lib/MastheadControl.svelte';
 	import { PaneState, providePane } from '$lib/pane.svelte';
@@ -112,7 +112,37 @@
 	let deck = $state<HTMLDivElement | null>(null);
 	const deckWidth = () => deck?.clientWidth ?? 0;
 
-	const stats = $derived(statline(board));
+	// The board as this reader has asked to see it (#1540). Everything below the
+	// masthead renders `shown`; `board` itself is used only where a figure must
+	// come from korg's whole corpus rather than from the filtered view.
+	//
+	// THE WALL'S ANSWER IS A LITERAL, not a consequence. `settings` is already
+	// built with no storage on the wall, so `includeParked` would read false
+	// there anyway — but that is an accident of plumbing, and the rule it has to
+	// express is sprint 017's: the wall draws no affordance it cannot honour, so
+	// a preference with no control on that screen must not be able to reach it.
+	// Written as `!wall &&` so deleting the storage guard could never quietly
+	// hand the wall a setting it has no gear to change back.
+	//
+	// The wall suppressing parked unconditionally is the right fixed answer on
+	// its own terms too: the wall is an at-a-glance display of what is in
+	// motion, and parked is the definition of what is not.
+	const showParked = $derived(!wall && settings.includeParked);
+	const filtered = $derived(withoutParked(board));
+	const shown = $derived(showParked ? board : filtered.board);
+	// Zero when parked rows are being drawn, so the receipt appears only where
+	// something was actually withheld — the same shape as korg's omitted counts.
+	const hidden = $derived(showParked ? { queue: 0, programs: 0 } : filtered.hidden);
+
+	// The statline reads the FILTERED board, and korg's D-3 rule is why: every
+	// figure derives from the lists it is printed beside, so it cannot disagree
+	// with them. A `live` count including rows On Deck is not drawing would be
+	// the statline contradicting the panel under it. `shipped` and `projects`
+	// come from korg's own counts either way and do not move.
+	const stats = $derived(statline(shown));
+	// The Ticker quotes korg verbatim (#1186) and takes the unfiltered board on
+	// purpose: `→ parked` is a real korg transition, and the feed that exists to
+	// say what korg recorded must not go quiet about the act of parking.
 	const ticker = $derived(tickerLines(board));
 	// The board's own assembly time (Postgres's clock) — the reference every
 	// age on the page is computed against.
@@ -203,23 +233,28 @@
 	<div class="deck-main">
 		<div class="board">
 			<div class="col">
-				<FireMissions active={board.active} />
-				<Deconfliction {board} />
+				<FireMissions active={shown.active} />
+				<Deconfliction board={shown} />
 			</div>
 			<div class="col">
 				<!-- Operations holds the concept's second column; On Deck rides below. -->
-				<Operations programs={board.programs} omitted={board.programs_omitted} />
+				<Operations
+					programs={shown.programs}
+					omitted={shown.programs_omitted}
+					parkedHidden={hidden.programs}
+				/>
 				<OnDeck
-					queue={board.queue}
-					omitted={board.proposals_omitted}
-					depth={board.depth}
-					programs={board.programs}
+					queue={shown.queue}
+					omitted={shown.proposals_omitted}
+					depth={shown.depth}
+					programs={shown.programs}
+					parkedHidden={hidden.queue}
 					{wall}
 				/>
 			</div>
 			<div class="col">
-				<CommandersCall awaiting={board.awaiting} generated={board.generated} />
-				<SensorNet reports={board.reports} generated={board.generated} />
+				<CommandersCall awaiting={shown.awaiting} generated={shown.generated} />
+				<SensorNet reports={shown.reports} generated={shown.generated} />
 				<RateOfFire {flow} />
 			</div>
 		</div>

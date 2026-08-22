@@ -17,6 +17,14 @@
 	--green: #97ba6b;
 	--splash: #b6f26b;
 	--cyan: #8fb5ba;
+	/* The board's only cool-neutral, and it exists for one status. Everything
+	   else here is warm — olive ground, manila ink — so a desaturated blue-grey
+	   is the one hue that reads as "set aside" without reading as an accent.
+	   korg's own pages made the same call for the same reason (`bg-slate-800`,
+	   korg #1535): parked sits nearest `done`, but keeps a hue where done has
+	   none, because dormant is not finished and the two must not converge at a
+	   glance. kfdc's `done` is warm-neutral, so kfdc's parked is cool. */
+	--slate: #8a97a0;
 	--mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 	--sans: system-ui, 'Segoe UI', sans-serif;
 }
@@ -202,9 +210,22 @@ header.masthead {
 	flex-wrap: wrap;
 	gap: 4px 8px;
 }
+/* Rows are a list, so they need the gap a list has. On the first row it would
+   be a stray indent under the header's rule. */
+.setting + .setting {
+	margin-top: 10px;
+}
 .setting-l {
 	font-size: 12px;
 	color: var(--ink);
+}
+/* Right-aligned like the px box above it, and for the same reason: the label
+   column is what makes two rows read as one list rather than two widgets. */
+.setting-c {
+	margin-left: auto;
+	accent-color: var(--amber);
+	width: 13px;
+	height: 13px;
 }
 .setting-i {
 	width: 74px;
@@ -477,6 +498,19 @@ section.panel {
 	background: var(--green);
 	font-weight: 700;
 }
+/* PARKED (#1536, korg's GP-19) — deferred until a condition fires, no end
+   date. Unfilled for the same reason `holding` is: a filled chip reads as
+   something happening. Dashed is what separates the two at 10px — holding is
+   resting between slices and will resume on its own, parked is waiting on
+   something outside korg, and the broken border says provisional where a
+   solid one says steady. No `--red`: #1196's rule applies with more force
+   here, not less, because parked is long-lived BY DEFINITION and an alarm
+   nobody can clear is the exact failure that rule was written for. */
+.status.parked {
+	color: var(--slate);
+	border: 1px dashed color-mix(in oklab, var(--slate) 40%, var(--line));
+	padding: 1px 6px;
+}
 
 /* ---------- fire missions ---------- */
 .mission-card {
@@ -585,6 +619,16 @@ td.qtitle {
 	font-size: 10.5px;
 	color: var(--faint);
 	margin: 8px 12px 0;
+}
+/* The parked receipt (#1540), riding the omitted line rather than getting a
+   line of its own — it is the same sentence: here is what you are not looking
+   at. Slate rather than `--faint` because it differs from its neighbours in a
+   way worth one glance: korg withheld the omitted rows, and a checkbox in this
+   reader's own browser withheld these. The one on the line that can be undone
+   from here is the one that gets the hue. */
+.parked-hid {
+	color: var(--slate);
+	margin-left: 5px;
 }
 
 /* Program roll-up (#1064): one row standing in for a declared sequence.
@@ -918,6 +962,17 @@ footer.ticker .src-note {
 .op-done {
 	border-color: var(--line);
 	background: var(--panel-2);
+}
+/* PARKED — the fifth literal, and the only one that recedes BELOW the base.
+   Every other card is built on `--panel` or lighter and sits on the board;
+   this one is built on `--ground`, so it reads as a recess in the board
+   rather than a card on it. That is the whole meaning of the status made
+   visual: still here, deliberately not in play. The cool border is what keeps
+   it from collapsing into `done` — the two are alike in being rows you are
+   not choosing from, and different in that one of them is coming back. */
+.op-parked {
+	border-color: color-mix(in oklab, var(--slate) 22%, var(--line-soft));
+	background: color-mix(in oklab, var(--slate) 5%, var(--ground));
 }
 .op .row1 {
 	display: flex;

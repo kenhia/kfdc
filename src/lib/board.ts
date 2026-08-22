@@ -7,7 +7,13 @@ export interface ProposalRow {
 	title: string;
 	summary: string;
 	project: string;
-	status: 'active' | 'proposed';
+	// korg's PROPOSAL_LIVE_STATUSES (korg-core vocab.rs) — the whole domain a
+	// board row can carry, because the terminal pair rides `proposals_omitted`
+	// rather than a list. This declared two literals until #1536, and that was
+	// a GP-14 sampled enum rather than a domain: korg grew `parked` in sprint
+	// 072 and the narrower type would have endorsed an exhaustive `switch`
+	// that could not see it. Taken from korg's set, not from a window.
+	status: 'proposed' | 'active' | 'parked';
 	rank: string;
 	pinned: boolean;
 	comment_count: number;
@@ -91,7 +97,14 @@ export interface ProgramSlice {
 // derivation can see (GP-13's state half). This list is not a second
 // definition of that fact — it is the record of which literals the board has
 // chosen a treatment for, and palette.test.ts holds it to that.
-export const PROGRAM_STATUSES = ['queued', 'active', 'holding', 'done'] as const;
+//
+// `parked` joined in korg sprint 072 (#1535): deferred until a condition
+// fires, with no end date. GP-19 is the contract it arrives under — korg owns
+// the distinction, emits the literal and sorts parked last in the collection
+// it belongs to; kfdc chooses only whether to DRAW it. Inferring dormancy from
+// a stale `updated`, an empty slice list or prose in a comment is the one
+// thing the decision forbids outright.
+export const PROGRAM_STATUSES = ['queued', 'active', 'holding', 'done', 'parked'] as const;
 
 export interface ProgramRow {
 	node_id: number;
@@ -214,8 +227,14 @@ export function fireMissionOrder(active: ProposalRow[]): ProposalRow[] {
 }
 
 // A proposal is finished when korg would stop counting it as remaining work.
-// Mirrors korg's terminal set for the kind — `closed` is a work-item status
+// Mirrors korg's PROPOSAL_TERMINAL_STATUSES — `closed` is a work-item status
 // and has no proposal spelling.
+//
+// `parked` is deliberately NOT in this set, which is GP-19's third property
+// written in code: a parked slice is UNFINISHED — deferred, not dropped — so
+// it still counts toward a program's `remaining`. Admitting it would have the
+// On Deck roll-up report a program as nearly complete precisely because the
+// rest of its work was put on hold, which is the opposite of what parking says.
 const PROPOSAL_FINISHED = new Set(['done', 'declined']);
 
 // A program collapses into one On Deck row once it contributes this many
@@ -278,6 +297,84 @@ export function onDeckRows(queue: ProposalRow[], programs: ProgramRow[]): OnDeck
 		});
 	}
 	return rows;
+}
+
+/** korg's literal for deferred-with-no-end-date (GP-19), on every node kind. */
+export const PARKED = 'parked';
+
+/**
+ * The board with korg's parked rows taken out of it (#1540) — the desk's
+ * "Include parked" setting off, and the wall's fixed answer always.
+ *
+ * ONE FILTER, ONE PLACE. Parked rows reach the board through several doors —
+ * On Deck and its program-collapse path, Operations, the statline, per-project
+ * depth — and a filter written at each door leaks at the one nobody listed.
+ * So the collection is filtered once, here, and every panel downstream renders
+ * what it is given without knowing this setting exists.
+ *
+ * WHAT IS FILTERED, and it is only two things:
+ *   - `queue` — where korg puts every parked proposal, whichever half it was
+ *     parked out of (#1534). This is the door the feature was asked for.
+ *   - `programs` — parked programs, riding last in the same collection (#1535).
+ *
+ * WHAT IS NOT, each for a reason rather than by omission:
+ *   - `active` — korg guarantees no parked row lands here, precisely so Fire
+ *     Missions can never show a row that cannot move. Filtering it too would
+ *     cost nothing today and would silently absorb the breach if that ever
+ *     stopped being true; leaving it alone means a parked mission would be
+ *     VISIBLE, which is what you want from a contract violation.
+ *   - `programs[].slices` — a program's slices are its declared plan, and they
+ *     carry `remaining`/`total`. Dropping a parked step would shorten the plan
+ *     on screen and make a program read as nearer done because part of it was
+ *     put on hold. GP-19: parked is unfinished.
+ *   - `blocked` — a parked blocker is still an unmet blocker (GP-19, and korg
+ *     confirmed it on its own side in #1534). Hiding it would have
+ *     Deconfliction report work as ready to start when it is not, which is the
+ *     one thing that panel exists to prevent.
+ *   - `awaiting` — korg keeps awaiting markers on parked rows deliberately, and
+ *     the reason to render them is sharper than the reason to keep them: a
+ *     decision pending on a parked row is very often the decision that would
+ *     UNPARK it. Hiding it makes the setting self-sealing.
+ *   - `depth`, and every `*_omitted` count — korg computes these, and kfdc
+ *     cannot subtract parked rows from a number it did not derive. GP-13 in its
+ *     original register: a figure the consumer cannot compute is korg's.
+ *   - `events` — the Ticker quotes korg verbatim, and `→ parked` is exactly the
+ *     transition worth quoting. A board that hid parking would go silent about
+ *     the act of parking.
+ *
+ * AND IT REPORTS WHAT IT HID, because the board's first rule is that nothing
+ * disappears silently (docs/design.md): a panel that hides rows names what it
+ * hid and where it went. This filter is the largest piece of hiding kfdc does,
+ * so it is the last place that rule may be skipped — the counts ride back with
+ * the board and the panels print them beside korg's own omitted line.
+ *
+ * TWO THINGS THE SETTING CANNOT REACH AT ALL, which is the answer to "a display
+ * toggle must not silently rewrite a measurement". Rate of Fire reads korg's
+ * work-item flow series, and the Net Log digest is assembled server-side from
+ * the raw rollup. Neither is derived from this Board value, so neither moves
+ * when the checkbox does — by construction, not by discipline. That also means
+ * toggling the setting can never be mistaken by the Net Log for korg activity.
+ */
+export interface ParkedFiltered {
+	board: Board;
+	/**
+	 * What was taken out, so the panels can say so. kfdc counts these itself
+	 * rather than reading them off korg, and that is not a side derivation of
+	 * korg's data (GP-1): korg's `*_omitted` counts describe what KORG withheld,
+	 * and these describe what this board chose not to draw. The board is the
+	 * only thing that knows the second number, because it is the only thing that
+	 * made the choice.
+	 */
+	hidden: { queue: number; programs: number };
+}
+
+export function withoutParked(b: Board): ParkedFiltered {
+	const queue = b.queue.filter((r) => r.status !== PARKED);
+	const programs = b.programs.filter((p) => p.status !== PARKED);
+	return {
+		board: { ...b, queue, programs },
+		hidden: { queue: b.queue.length - queue.length, programs: b.programs.length - programs.length }
+	};
 }
 
 // Ages are computed against the board's `generated` (Postgres's clock, the
