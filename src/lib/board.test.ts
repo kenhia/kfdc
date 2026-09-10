@@ -1,16 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import {
+	delayedOps,
 	fireMissionOrder,
 	formatAge,
 	onDeckRows,
 	progress,
+	soakClock,
 	splashing,
 	statline,
 	withoutParked,
+	withoutReviewed,
+	withoutSoaking,
 	type Board,
+	type BlockedRow,
 	type ProgramRow,
 	type ProgramSlice,
-	type ProposalRow
+	type ProgramSoak,
+	type ProposalRow,
+	type ReportRow
 } from './board';
 
 const row = (over: Partial<ProposalRow> = {}): ProposalRow => ({
@@ -154,6 +161,7 @@ describe('withoutParked', () => {
 		span: ['korg', 'kfdc'],
 		slice_count: 3,
 		slices: [slice(10), slice(11), slice(12)],
+		soaks: [],
 		...over
 	});
 
@@ -309,6 +317,7 @@ describe('onDeckRows', () => {
 		span: ['korg', 'kfdc'],
 		slice_count: 3,
 		slices: [slice(10), slice(11), slice(12)],
+		soaks: [],
 		...over
 	});
 	const queued = (node_id: number, over: Partial<ProposalRow> = {}) =>
@@ -403,5 +412,248 @@ describe('formatAge', () => {
 	});
 	it('never goes negative on clock skew', () => {
 		expect(formatAge(gen, '2026-08-05T12:00:05Z')).toBe('0m');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Delayed Ops (#2155) — korg's soaking programs, routed out of Operations.
+// ---------------------------------------------------------------------------
+describe('soaking', () => {
+	const slice = (node_id: number, status = 'done'): ProgramSlice => ({
+		node_id,
+		title: `slice ${node_id}`,
+		project: 'korg',
+		status,
+		rank: String(node_id),
+		open: 0,
+		resolved: 0,
+		done: 1,
+		closed: 0,
+		covered_count: 1
+	});
+
+	const soak = (over: Partial<ProgramSoak> = {}): ProgramSoak => ({
+		node_id: 2062,
+		wi_number: 2062,
+		title: 'wave 1: three consecutive nightlies across five hosts',
+		project: 'kmon',
+		wi_status: 'open',
+		check_after: '2026-09-13',
+		invalidated_if: "kai's baseline is regenerated outside the timer",
+		rank: '0',
+		...over
+	});
+
+	const prog = (over: Partial<ProgramRow> = {}): ProgramRow => ({
+		node_id: 2070,
+		title: 'kmon fleet collection',
+		aim: 'a',
+		status: 'soaking',
+		span: ['kmon'],
+		slice_count: 1,
+		slices: [slice(2071)],
+		soaks: [soak()],
+		...over
+	});
+
+	const blockedBy = (blocker: number, proposal: number): BlockedRow => ({
+		proposal,
+		via: 'covered',
+		dependent: proposal,
+		dependent_wi_number: null,
+		blocker,
+		blocker_kind: 'workitem',
+		blocker_wi_number: blocker,
+		blocker_title: 'the blocker',
+		blocker_project: 'kmon',
+		blocker_status: 'open',
+		sequenced_by: null
+	});
+
+	// The partition is the contract: `withoutSoaking` routes them OUT of the
+	// general collection and `delayedOps` routes them IN to their own panel, and
+	// the two read the same literal. Asserting the split is total is what stops
+	// them ever disagreeing — a program dropped by one and not picked up by the
+	// other would vanish from the board entirely.
+	it('puts every program in exactly one of the two panels', () => {
+		const programs = [
+			prog({ node_id: 1, status: 'queued', soaks: [] }),
+			prog({ node_id: 2, status: 'active', soaks: [] }),
+			prog({ node_id: 3, status: 'holding', soaks: [] }),
+			prog({ node_id: 4, status: 'soaking' }),
+			prog({ node_id: 5, status: 'done', soaks: [] }),
+			prog({ node_id: 6, status: 'parked', soaks: [] }),
+			prog({ node_id: 7, status: 'soaking' })
+		];
+		const b = board({ programs });
+		const ops = withoutSoaking(b).programs.map((p) => p.node_id);
+		const delayed = delayedOps(b).map((r) => r.program.node_id);
+
+		expect(delayed).toEqual([4, 7]);
+		expect(ops).toEqual([1, 2, 3, 5, 6]);
+		expect([...ops, ...delayed].sort((a, x) => a - x)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+	});
+
+	it('leaves everything but `programs` untouched', () => {
+		const b = board({ programs: [prog()], blocked: [blockedBy(2062, 3)] });
+		const out = withoutSoaking(b);
+		expect(out.programs).toEqual([]);
+		expect(out.queue).toBe(b.queue);
+		expect(out.blocked).toBe(b.blocked);
+		expect(out.reports).toBe(b.reports);
+	});
+
+	// "What does this block?" — the sharpest thing in Ken's framing (korg #2149).
+	// A dependency may name the program, one of its slices, or one of its soak
+	// work items, and all three are the program holding the row up.
+	it.each([
+		['the program itself', 2070],
+		['one of its slices', 2071],
+		['one of its soak work items', 2062]
+	])('counts a blocker that is %s', (_label, blocker) => {
+		const b = board({
+			queue: [row({ node_id: 3, status: 'proposed', title: 'downstream work' })],
+			programs: [prog()],
+			blocked: [blockedBy(blocker, 3)]
+		});
+		expect(delayedOps(b)[0].blocks).toEqual([
+			{ node_id: 3, title: 'downstream work', project: 'p', blocker }
+		]);
+	});
+
+	it('ignores a blocker belonging to some other program', () => {
+		const b = board({
+			queue: [row({ node_id: 3, status: 'proposed' })],
+			programs: [prog()],
+			blocked: [blockedBy(9999, 3)]
+		});
+		expect(delayedOps(b)[0].blocks).toEqual([]);
+	});
+
+	// The panel renders "blocks nothing" in words, so the empty array has to be
+	// reachable and honest rather than a rendering accident.
+	it('reports an empty block list when nothing depends on it', () => {
+		const b = board({ programs: [prog()], blocked: [] });
+		expect(delayedOps(b)[0].blocks).toEqual([]);
+	});
+
+	// korg emits one entry per (row, blocker) pair. The reader asked what is held
+	// up, not how many edges say so.
+	it('names a row held up by two of its soaks once', () => {
+		const b = board({
+			queue: [row({ node_id: 3, status: 'proposed' })],
+			programs: [prog({ soaks: [soak(), soak({ node_id: 2064, wi_number: 2064 })] })],
+			blocked: [blockedBy(2062, 3), blockedBy(2064, 3)]
+		});
+		expect(delayedOps(b)[0].blocks.map((x) => x.node_id)).toEqual([3]);
+	});
+
+	// The reason delayedOps takes the UNFILTERED board. A parked dependent is
+	// still blocked (GP-19: parked is unfinished), so a reader who has hidden
+	// parked rows must not be told this program "blocks nothing" — a false
+	// all-clear is the one failure this question exists to prevent.
+	it('still names a parked dependent, which is what the unfiltered board buys', () => {
+		const b = board({
+			queue: [row({ node_id: 3, status: 'parked', title: 'deferred but blocked' })],
+			programs: [prog()],
+			blocked: [blockedBy(2062, 3)]
+		});
+		expect(delayedOps(b)[0].blocks).toEqual([
+			{ node_id: 3, title: 'deferred but blocked', project: 'p', blocker: 2062 }
+		]);
+		// And the parked filter, which Operations does apply, leaves `blocked`
+		// alone — so the two agree.
+		expect(withoutParked(b).board.blocked).toBe(b.blocked);
+	});
+
+	// An unresolvable title is a korg contract breach worth SEEING. Dropping the
+	// row would shorten the one list the panel exists to count.
+	it('falls back to the id rather than dropping a row it cannot name', () => {
+		const b = board({ queue: [], active: [], programs: [prog()], blocked: [blockedBy(2062, 77)] });
+		expect(delayedOps(b)[0].blocks).toEqual([
+			{ node_id: 77, title: 'korg:77', project: null, blocker: 2062 }
+		]);
+	});
+});
+
+describe('soakClock', () => {
+	const GEN = '2026-09-10T12:00:00Z';
+
+	it.each([
+		['2026-09-13', 3, 'waiting', '3d'],
+		['2026-09-11', 1, 'waiting', '1d'],
+		['2026-09-10', 0, 'due', 'due today'],
+		['2026-09-09', -1, 'overdue', '1d overdue'],
+		['2026-09-03', -7, 'overdue', '7d overdue']
+	])('reads %s as %id (%s)', (checkAfter, days, state, label) => {
+		expect(soakClock(GEN, checkAfter as string)).toEqual({ days, state, label });
+	});
+
+	// Counted against the board's `generated`, never Date.now() — the same rule
+	// formatAge follows, and what keeps the wall and the desk agreeing.
+	it('counts from the board`s clock, not the wall clock', () => {
+		expect(soakClock('2026-09-01T00:00:00Z', '2026-09-13')!.days).toBe(12);
+		expect(soakClock('2026-09-20T00:00:00Z', '2026-09-13')!.days).toBe(-7);
+	});
+
+	// A state korg genuinely permits: the `soaks` edge demands both fields to be
+	// CREATED and never re-checks them, so an operator may clear check_after on a
+	// soak already in the array.
+	it('returns null when the soak carries no check date', () => {
+		expect(soakClock(GEN, null)).toBeNull();
+	});
+
+	it('returns null rather than NaN on an unparseable date', () => {
+		expect(soakClock(GEN, 'someday')).toBeNull();
+	});
+
+	// The time of day must not move the day count — otherwise the same soak reads
+	// differently at 09:00 and at 23:00.
+	it('ignores the time of day on the board`s timestamp', () => {
+		const early = soakClock('2026-09-10T00:00:01Z', '2026-09-13')!;
+		const late = soakClock('2026-09-10T23:59:59Z', '2026-09-13')!;
+		expect(early).toEqual(late);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Sensor Net's reviewed filter (#2156).
+// ---------------------------------------------------------------------------
+describe('withoutReviewed', () => {
+	const report = (node_id: number, reviewed: boolean): ReportRow => ({
+		node_id,
+		source: 'kfo-soak',
+		model: 'ken',
+		status: 'attention',
+		escalated: false,
+		summary: 's',
+		report_date: '2026-09-10',
+		comment_count: 0,
+		reviewed,
+		updated: '2026-09-10T00:00:00Z'
+	});
+
+	it('drops reviewed rows and counts what it dropped', () => {
+		const b = board({ reports: [report(1, false), report(2, true), report(3, true)] });
+		const out = withoutReviewed(b);
+		expect(out.board.reports.map((r) => r.node_id)).toEqual([1]);
+		expect(out.hidden).toBe(2);
+	});
+
+	it('hides nothing, and says so, when korg has reviewed nothing', () => {
+		const b = board({ reports: [report(1, false)] });
+		const out = withoutReviewed(b);
+		expect(out.board.reports).toEqual(b.reports);
+		expect(out.hidden).toBe(0);
+	});
+
+	// A display toggle must not rewrite a measurement. Reports are the only
+	// collection this touches.
+	it('touches nothing but `reports`', () => {
+		const b = board({ reports: [report(1, true)] });
+		const out = withoutReviewed(b).board;
+		expect(out.queue).toBe(b.queue);
+		expect(out.programs).toBe(b.programs);
+		expect(out.events).toBe(b.events);
 	});
 });

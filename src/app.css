@@ -511,6 +511,21 @@ section.panel {
 	border: 1px dashed color-mix(in oklab, var(--slate) 40%, var(--line));
 	padding: 1px 6px;
 }
+/* SOAKING (#2151, korg's GP-19 amendment) — all slice work done, acceptance
+   waiting on tests that only the passage of days can satisfy. GREEN, because
+   this is the done family: the engineering finished. OUTLINED, because there
+   is nothing here for the reader to do — the same reason `holding` is unfilled,
+   where a filled chip reads as something happening right now.
+   Solid, not dashed: dashed is `parked`'s, and the difference between the two
+   is exactly the thing that must survive a 10px glance — parked waits on a
+   condition with no end date, soaking waits on a clock that is already running.
+   Green-outlined cannot be confused with grey-outlined `holding` or with the
+   cool dashed slate of `parked`, and the fill is what keeps it off `done`. */
+.status.soaking {
+	color: var(--green);
+	border: 1px solid color-mix(in oklab, var(--green) 45%, var(--line));
+	padding: 1px 6px;
+}
 
 /* ---------- fire missions ---------- */
 .mission-card {
@@ -628,6 +643,14 @@ td.qtitle {
    from here is the one that gets the hue. */
 .parked-hid {
 	color: var(--slate);
+	margin-left: 5px;
+}
+/* Operations naming what MOVED rather than what it hid (#2155). Green, not
+   slate: slate is reserved for the count a checkbox in this browser withheld,
+   and this one is not undoable from here because it is not a setting — those
+   programs are drawn in full, one panel down. */
+.soak-moved {
+	color: color-mix(in oklab, var(--green) 60%, var(--muted));
 	margin-left: 5px;
 }
 
@@ -970,6 +993,17 @@ footer.ticker .src-note {
    visual: still here, deliberately not in play. The cool border is what keeps
    it from collapsing into `done` — the two are alike in being rows you are
    not choosing from, and different in that one of them is coming back. */
+/* SOAKING — the sixth literal. Sits between `done` and `holding` on purpose:
+   it keeps `done`'s green hue because the engineering IS finished, and stays on
+   the `--panel` base rather than dropping to `--ground` like `parked`, because
+   something is still running here. That is the distinction the card has to
+   carry — parked is a recess in the board, soaking is a card on it with a clock
+   in the corner. No `--red` anywhere: #1196's rule binds hardest here, since a
+   soaking program is BY DEFINITION one nobody can advance for days. */
+.op-soaking {
+	border-color: color-mix(in oklab, var(--green) 26%, var(--line));
+	background: color-mix(in oklab, var(--green) 3%, var(--panel));
+}
 .op-parked {
 	border-color: color-mix(in oklab, var(--slate) 22%, var(--line-soft));
 	background: color-mix(in oklab, var(--slate) 5%, var(--ground));
@@ -1068,6 +1102,180 @@ footer.ticker .src-note {
 	font-family: var(--mono);
 	color: var(--faint);
 	padding: 0 7px;
+}
+
+/* ---------- delayed ops (sprint 020) ----------
+   The panel that exists so Operations can stop generating demand nobody can
+   satisfy (korg #2149). It draws the soaks and never the slices, so its density
+   budget goes on the three facts a soak actually carries: how long is left,
+   what voids it, and what it is holding up. */
+.soak-card {
+	margin: 0 12px 12px;
+	padding: 9px 11px 11px;
+	border: 1px solid color-mix(in oklab, var(--green) 26%, var(--line));
+	background: color-mix(in oklab, var(--green) 3%, var(--panel));
+}
+.soak-card .row1 {
+	display: flex;
+	align-items: baseline;
+	gap: 9px;
+	flex-wrap: wrap;
+	margin-bottom: 3px;
+}
+.soak-card h3 {
+	font-family: var(--mono);
+	font-size: 12.5px;
+	letter-spacing: 0.08em;
+	margin: 0;
+}
+/* The span chips wrap rather than extending an unbreakable inline run — #1284
+   measured that failure in On Deck and the rule is the board's now: nothing
+   renders past its box. */
+.soak-card .span-chips {
+	display: inline-flex;
+	gap: 5px;
+	flex-wrap: wrap;
+	margin-left: auto;
+}
+.soak-card .aim {
+	font-size: 12px;
+	color: var(--muted);
+	margin: 0 0 9px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.soaks {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.soak {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 4px 0;
+	border-top: 1px solid var(--line-soft);
+}
+.soak-head {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+.soak-t {
+	font-size: 12px;
+	color: var(--ink);
+	flex: 1 1 220px;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+/* A soak WI whose status is no longer `open` — the evidence has been judged and
+   the program is waiting on its close rather than on the clock. */
+.soak-st {
+	font-family: var(--mono);
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--green);
+}
+/* The clock. Three states, three treatments, and the word carries each one so
+   colour is never doing the work alone (docs/design.md). */
+.clock {
+	font-family: var(--mono);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+	margin-left: auto;
+}
+/* Waiting — the ordinary state, and deliberately the quietest thing on the row.
+   This is the whole point of the panel: a soak with days left is not asking. */
+.clock.c-waiting {
+	color: var(--muted);
+}
+/* Due — the window has arrived and the evidence can be judged. Amber, the
+   board's attention colour, because this one IS actionable. */
+.clock.c-due {
+	color: var(--amber);
+	font-weight: 700;
+}
+/* Overdue — past the window with no verdict. The one place red is right in this
+   panel, and it passes #1196's test that the others fail: a reader looking at
+   it can clear it, by judging the soak. */
+.clock.c-overdue {
+	color: var(--red);
+	font-weight: 700;
+}
+/* No check date — reachable because korg gates the soak fields on edge creation
+   and never re-checks them. Faint: it is a gap, not an alarm. */
+.clock.c-none {
+	color: var(--faint);
+	font-style: italic;
+}
+.voids {
+	font-size: 11px;
+	color: var(--muted);
+	padding-left: 2px;
+	/* `invalidated_if` is FREE TEXT from korg, and the likeliest thing to appear
+	   in an invalidation condition is a path — `~/src/ai/kmon/state/baseline.json`
+	   — which has no break opportunity in it at all. Measured, not guessed: a
+	   190-character unbreakable token pushed this row 508px past the panel at
+	   1366 and took the whole page 79px past its box with it. That is #1284's
+	   failure class, and the board's rule is that nothing renders past its box.
+	   `anywhere` rather than `break-word` because it also lets the flex parent
+	   shrink below the token's width, which is the half that fixes the page. */
+	overflow-wrap: anywhere;
+}
+.voids b {
+	font-family: var(--mono);
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--amber-dim);
+	font-weight: 400;
+	margin-right: 4px;
+}
+.soak-none {
+	font-size: 11.5px;
+	color: var(--faint);
+	font-style: italic;
+	padding: 4px 0;
+	border-top: 1px solid var(--line-soft);
+}
+/* Same reasoning as `.voids`: these titles are korg's, not kfdc's, and a
+   proposal title may legitimately carry a long unbroken token. */
+.blocks {
+	overflow-wrap: anywhere;
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	flex-wrap: wrap;
+	font-size: 11.5px;
+	margin: 8px 0 0;
+	padding-top: 7px;
+	border-top: 1px solid var(--line-soft);
+}
+.blocks-l {
+	font-family: var(--mono);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--red);
+}
+.blocked-row {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 5px;
+	min-width: 0;
+}
+/* "Blocks nothing" is an ANSWER, so it is written out rather than left as an
+   absent line — and it is the answer that turns an anxious two-day wait into a
+   shrug (korg #2149). Green: this is good news. */
+.blocks-none {
+	color: color-mix(in oklab, var(--green) 70%, var(--muted));
+	font-style: italic;
 }
 
 /* ---------- deconfliction (sprint 003, concept CSS) ---------- */
@@ -1178,6 +1386,18 @@ footer.ticker .src-note {
 	font-size: 10.5px;
 	color: var(--faint);
 	margin-left: 4px;
+}
+/* korg's reviewed flag (#2154), rendered never written. Slate — the board's
+   cool-neutral for "set aside", the same hue parked wears, because this row has
+   been dealt with and is no longer asking. The word is the form; the colour
+   only reinforces it. */
+.health .rev {
+	font-family: var(--mono);
+	font-size: 10px;
+	color: var(--slate);
+	letter-spacing: 0.06em;
+	margin-left: 4px;
+	white-space: nowrap;
 }
 .health .net-silent {
 	color: var(--faint);

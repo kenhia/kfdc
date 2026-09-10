@@ -38,10 +38,20 @@ describe('program state palette', () => {
 	// end date by definition. An alarm on a row whose whole meaning is "nothing
 	// will happen here until something outside korg changes" cannot be acted on
 	// by the person looking at it, which is what made red wrong the first time.
-	it.each(['.op-holding', '.status.holding', '.op-parked', '.status.parked'])(
-		'keeps the alarm colour out of %s',
-		(selector) => {
-			expect(rule(selector)).not.toMatch(/--red/);
-		}
-	);
+	//
+	// `soaking` (#2151) joins them, and the argument is the strongest of the
+	// three: the state means "acceptance is waiting on the passage of days", so
+	// a reader looking at it can do nothing about it TODAY by definition. The
+	// clock inside Delayed Ops may go red when a soak is overdue — that one IS
+	// actionable, and it is a different selector.
+	it.each([
+		'.op-holding',
+		'.status.holding',
+		'.op-parked',
+		'.status.parked',
+		'.op-soaking',
+		'.status.soaking'
+	])('keeps the alarm colour out of %s', (selector) => {
+		expect(rule(selector)).not.toMatch(/--red/);
+	});
 });

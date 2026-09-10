@@ -42,6 +42,24 @@ export const DEFAULT_PANE_PCT = 38;
  */
 export const DEFAULT_INCLUDE_PARKED = false;
 
+/**
+ * Whether reviewed reports are drawn in Sensor Net (#2156). ON, and the
+ * asymmetry with `includeParked` above is deliberate rather than an
+ * inconsistency — the two settings hide different KINDS of thing.
+ *
+ * Parked defaults to hidden because the request was that dormant work stop
+ * occupying the board, and a queue row that cannot move is pure noise. A
+ * reviewed report is not noise: it is the latest word from that sensor, and
+ * Sensor Net's question is "is the net reporting", not "is there unread news".
+ * Defaulting to hide would let a diligent morning empty the panel down to
+ * `net silent — no reports`, which is the panel's phrase for a fault.
+ *
+ * So the mark is the default and the filter is the refinement: every report
+ * renders, reviewed ones wear a mark, and a reader who wants only what still
+ * wants attention unticks the box.
+ */
+export const DEFAULT_INCLUDE_REVIEWED = true;
+
 // These three mirror app.css's `.korg-pane` clamp, and exist here so the
 // popover's px readout can tell the truth about what CSS will actually do.
 // CSS owns the ENFORCEMENT — it has to, because it works at any window size
@@ -104,9 +122,14 @@ export function resolvedPanePx(pct: number, deckWidth: number): number {
 interface Stored {
 	panePct: number | null;
 	includeParked: boolean;
+	includeReviewed: boolean;
 }
 
-const DEFAULTS: Stored = { panePct: null, includeParked: DEFAULT_INCLUDE_PARKED };
+const DEFAULTS: Stored = {
+	panePct: null,
+	includeParked: DEFAULT_INCLUDE_PARKED,
+	includeReviewed: DEFAULT_INCLUDE_REVIEWED
+};
 
 /**
  * Anything at all can be in localStorage — a hand-edited value, a half-written
@@ -129,9 +152,11 @@ function read(storage: StorageLike | null): Stored {
 		const o = parsed as Record<string, unknown>;
 		const pct = o.panePct;
 		const parked = o.includeParked;
+		const reviewed = o.includeReviewed;
 		return {
 			panePct: typeof pct === 'number' && Number.isFinite(pct) ? clampPct(pct) : null,
-			includeParked: typeof parked === 'boolean' ? parked : DEFAULT_INCLUDE_PARKED
+			includeParked: typeof parked === 'boolean' ? parked : DEFAULT_INCLUDE_PARKED,
+			includeReviewed: typeof reviewed === 'boolean' ? reviewed : DEFAULT_INCLUDE_REVIEWED
 		};
 	} catch {
 		// Covers both a corrupt payload and a browser that throws on the property
@@ -156,6 +181,13 @@ export class BoardSettings {
 	 */
 	includeParked = $state<boolean>(DEFAULT_INCLUDE_PARKED);
 
+	/**
+	 * Whether Sensor Net draws reports korg has marked reviewed (#2156). Same
+	 * plain-boolean shape as `includeParked` and for the same reason: there is no
+	 * CSS default underneath a row that either renders or does not.
+	 */
+	includeReviewed = $state<boolean>(DEFAULT_INCLUDE_REVIEWED);
+
 	private readonly storage: StorageLike | null;
 
 	constructor(storage: StorageLike | null = null) {
@@ -163,6 +195,7 @@ export class BoardSettings {
 		const stored = read(storage);
 		this.panePct = stored.panePct;
 		this.includeParked = stored.includeParked;
+		this.includeReviewed = stored.includeReviewed;
 	}
 
 	/**
@@ -197,6 +230,11 @@ export class BoardSettings {
 		this.persist();
 	}
 
+	setIncludeReviewed(on: boolean): void {
+		this.includeReviewed = on;
+		this.persist();
+	}
+
 	/**
 	 * Back to nothing stored for the PANE, which is how the CSS default becomes
 	 * reachable again — `null` is not 38, it is "say nothing and let app.css
@@ -226,6 +264,8 @@ export class BoardSettings {
 		const payload: Record<string, unknown> = {};
 		if (this.panePct !== null) payload.panePct = this.panePct;
 		if (this.includeParked !== DEFAULT_INCLUDE_PARKED) payload.includeParked = this.includeParked;
+		if (this.includeReviewed !== DEFAULT_INCLUDE_REVIEWED)
+			payload.includeReviewed = this.includeReviewed;
 		try {
 			if (Object.keys(payload).length === 0) this.storage?.removeItem(STORAGE_KEY);
 			else this.storage?.setItem(STORAGE_KEY, JSON.stringify(payload));

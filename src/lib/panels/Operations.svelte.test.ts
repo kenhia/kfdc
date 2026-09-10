@@ -31,6 +31,7 @@ const program = (over: Partial<ProgramRow> = {}): ProgramRow => ({
 	span: ['korg', 'kfdc'],
 	slice_count: 2,
 	slices: [slice(1445, 'done'), slice(1446, 'active')],
+	soaks: [],
 	...over
 });
 

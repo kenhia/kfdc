@@ -397,6 +397,98 @@ what *korg* withheld, and only the board knows what the board chose not to draw.
 It wears `--slate` rather than `--faint` because of the two halves of that
 sentence, this is the one the reader can undo from here.
 
+## Soaking work — a clock, where Operations drew a demand
+
+korg gained `soaking` for programs in its sprint 079 (korg #2151), and kfdc's
+half is sprint 020. The problem was Ken's, stated exactly:
+
+> With the current state of 2070, I will essentially be looking at an
+> "almost done" program for a couple of days with not much that I can do
+> immediately to drive it forward.
+
+A program whose engineering is finished but whose acceptance can only be
+satisfied by the **passage of days** had nowhere to sit. It stayed `active`,
+Operations drew it, and **Operations means "wants your attention"** — so for two
+or three days the board generated demand nobody could satisfy. The framing that
+matters, and the reason this was a kfdc sprint at all: **korg was not wrong;
+the rendering was.**
+
+`soaking` means *all slice work is done; acceptance waits on extended tests that
+only time can satisfy.* korg+ **GP-19**'s 2026-09-10 amendment is the contract,
+and its point is that *declared vs derived is a spectrum*: `soaking` is declared
+like `parked` (korg never sets it), but korg gates it on **entry** — every slice
+terminal, at least one live soak — and lifts it on **exit** like the derived
+`queued`, promoting the program back to `active` the moment a new slice starts.
+Ask about a status's entry and its exit separately. As with `parked`, kfdc reads
+korg's literal and chooses only whether to *draw* it; deriving "waiting on time"
+from a slice list, a stale `updated` or prose in a comment is forbidden outright.
+
+**Delayed Ops** renders them, below On Deck. **Its defining property is what it
+does not draw: no slice chips.** Every slice of a soaking program is terminal by
+korg's entry rule, so re-listing them would fill the panel with the one part of
+the program nobody can act on — Operations' failure mode moved one panel down.
+The soaks are the remainder, so the soaks are the content: `#wi`, title, the
+clock, and **`invalidated_if` on the row**. That last one is a column in korg
+rather than prose in a body because of kmon #2058 — a soak lives inside a live
+fleet, and the reader it is written for is the next agent about to touch the
+state it names.
+
+**Routed, not hidden**, and the distinction earns its own function. `withoutParked`
+suppresses and must confess a count; `withoutSoaking` *moves* rows to a panel one
+lower, so it has no `hidden` count to return — nothing was withheld. Operations
+still says `· n soaking, in Delayed Ops`, because a program that was in that panel
+yesterday is a question either way; it wears green rather than the `--slate` of a
+hidden count, since this one is not undoable from here and is not a setting at all.
+
+**GP-19's parked corollary does not bite here, and the reason is korg's not
+kfdc's.** Filtering a parked *program* must never take its still-live slices with
+it. A soaking program cannot have one: korg refuses entry unless every slice is
+terminal, and promotes the program out the moment a slice starts. There is no
+live slice to orphan — by korg's invariant, not by this board's care. If korg
+ever relaxes that entry rule, the comment on `withoutSoaking` is the thing that
+should stop being true first.
+
+**"What does this block?"** was the sharpest thing in Ken's original framing and
+nothing captured it. It derives from `board.blocked` — rows whose blocker is the
+program, one of its slices, or one of its soak WIs — and **"blocks nothing" is
+written out in words**, because an absent line reads as *not computed* and this
+is the fact that turns an anxious two-day wait into a shrug. That derivation
+takes the **unfiltered** board on purpose: what a program blocks is korg's fact,
+and a reader's parked setting must not be able to turn a real blocked row into a
+false all-clear. It is the same reasoning that keeps `blocked` out of
+`withoutParked`'s filter list.
+
+**The clock** counts whole UTC days against the board's `generated` — Postgres's
+clock, the rule `formatAge` already followed — never `Date.now()`, so the wall
+and the desk cannot disagree about the same soak. Three states, three
+treatments, the word carrying each: `3d` muted (the ordinary state, and
+deliberately the quietest thing on the row — a soak with days left is not
+asking), `due today` amber, `Nd overdue` red. Red is right *here* and wrong on
+the card, and the test is #1196's: a reader looking at an overdue soak **can**
+clear it, by judging the evidence. `no check date` is reachable and rendered
+plainly, because korg demands both soak fields to *create* the edge and never
+re-checks them.
+
+**The treatment** keeps `done`'s green — the engineering *is* finished — in the
+outlined chip form, because there is nothing here for the reader to do. Solid,
+where `parked` is dashed: those two must not converge at a glance, since parked
+waits on a condition with no end date and soaking waits on a clock already
+running. The card stays on `--panel` rather than dropping to `--ground` like
+parked: something is still running here. No `--red` on either, and the palette
+gate now holds `soaking` to that alongside `holding` and `parked`.
+
+**Sensor Net learned `reviewed`** in the same sprint (korg #2154). The mark is
+korg's flag rendered and never written — marking a report read happens in real
+korg, one click away in the pane (GP-18). Its setting is `include reviewed`,
+phrased that way for the reason the parked row records — a ticked box means more
+on screen — and it defaults **on**, which is the opposite of parked and
+deliberately so: a reviewed report is not noise but the latest word from that
+sensor, and Sensor Net asks *is the net reporting*, not *is there unread news*.
+Defaulting to hide would let a diligent morning empty the panel down to
+`net silent — no reports`, which is the panel's phrase for a fault. The wall
+therefore fixes this one to **show** — the opposite of its parked answer, and
+both are written as literals at the point of use.
+
 ## Tokens
 
 | Token | Value | Role |

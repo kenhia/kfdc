@@ -70,6 +70,10 @@ export interface ReportRow {
 	summary: string;
 	report_date: string;
 	comment_count: number;
+	// This report has been acted on (korg #2154, sprint 079). korg resets it to
+	// false when a same-day re-run replaces the content, so it always marks a
+	// review of THIS text and never carries forward to text nobody has read.
+	reviewed: boolean;
 	updated: string;
 }
 
@@ -89,6 +93,37 @@ export interface ProgramSlice {
 	covered_count: number;
 }
 
+/**
+ * One extended test a program is soaking on (korg #2152, sprint 079) — a
+ * RESOLVED work-item row rather than a bare edge ref, so a consumer never
+ * crawls (GP-1, GP-13).
+ *
+ * Both soak fields are nullable here even though korg REFUSES to create a
+ * `soaks` edge without them. That is not defensive typing: korg's refusal
+ * fires on entry and is deliberately never re-checked, so clearing
+ * `check_after` on a soak already in the array is a normal operator act and
+ * the two fields are independently clearable. GP-14 — the type states korg's
+ * value domain, not the domain of the rows that happen to exist today.
+ */
+export interface ProgramSoak {
+	node_id: number;
+	wi_number: number;
+	title: string;
+	// Null for an unassigned work item, as everywhere else korg carries a
+	// project on a row that need not have one.
+	project: string | null;
+	wi_status: string;
+	/** `YYYY-MM-DD` — the earliest this test's evidence can be judged. */
+	check_after: string | null;
+	/**
+	 * What state, if it changes, VOIDS the test. A column rather than prose
+	 * because of kmon #2058: a soak lives inside a live fleet, and the reader it
+	 * is written for is the next agent about to touch that state.
+	 */
+	invalidated_if: string | null;
+	rank: string;
+}
+
 // korg's program lifecycle, in the order it reads (korg-core vocab.rs
 // PROGRAM_STATUSES, `queued` added by #1424). kfdc switches on the literal
 // korg emits and never reconstructs one from the slices: `queued` means no
@@ -104,7 +139,22 @@ export interface ProgramSlice {
 // it belongs to; kfdc chooses only whether to DRAW it. Inferring dormancy from
 // a stale `updated`, an empty slice list or prose in a comment is the one
 // thing the decision forbids outright.
-export const PROGRAM_STATUSES = ['queued', 'active', 'holding', 'done', 'parked'] as const;
+//
+// `soaking` joined in korg sprint 079 (#2151): all slice work is done and only
+// extended tests that span days remain. GP-19's 2026-09-10 amendment is its
+// contract — declared like `parked` (korg never sets it), gated by korg on
+// ENTRY (every slice terminal, at least one live soak), and lifted by korg on
+// EXIT like the derived `queued` when a new slice starts under it. kfdc reads
+// the literal and chooses only whether to draw it; deriving "waiting on time"
+// from a slice list or a comment is the thing GP-19 forbids outright.
+export const PROGRAM_STATUSES = [
+	'queued',
+	'active',
+	'holding',
+	'soaking',
+	'done',
+	'parked'
+] as const;
 
 export interface ProgramRow {
 	node_id: number;
@@ -116,6 +166,11 @@ export interface ProgramRow {
 	span: string[];
 	slice_count: number;
 	slices: ProgramSlice[];
+	// The program's terminal extended tests, in rank order (korg #2152). Empty
+	// on almost every program, and the WHOLE remaining content of a soaking one:
+	// by the time korg lets a program enter `soaking`, every slice is terminal,
+	// so the soaks are the only part left that anyone can still act on.
+	soaks: ProgramSoak[];
 }
 
 // One unmet `depends_on` holding up a live row (korg #978). Deterministic —
@@ -375,6 +430,177 @@ export function withoutParked(b: Board): ParkedFiltered {
 		board: { ...b, queue, programs },
 		hidden: { queue: b.queue.length - queue.length, programs: b.programs.length - programs.length }
 	};
+}
+
+/** korg's literal for a program waiting only on extended tests (GP-19, #2151). */
+export const SOAKING = 'soaking';
+
+/**
+ * The board with korg's soaking programs taken out of `programs` (#2155).
+ *
+ * ROUTED, NOT HIDDEN — and the distinction is the panel. A parked row is
+ * suppressed and its absence has to be confessed in a foot; a soaking program
+ * is drawn in full, in Delayed Ops, one panel lower. So this function has no
+ * `hidden` count to return: nothing is withheld from the reader, and a count
+ * saying otherwise would be the board apologising for a move it did not make.
+ * Operations still names how many left and where they went, because a program
+ * vanishing from the panel it was in yesterday is a question either way.
+ *
+ * Why Operations must stop drawing them is the whole slice: Operations means
+ * "wants your attention", and a program whose engineering is finished and whose
+ * acceptance is a calendar generates demand nobody can satisfy (korg #2149).
+ *
+ * THE GP-19 COROLLARY DOES NOT BITE HERE, and it is worth saying why rather
+ * than being quietly right. Filtering a parked PROGRAM must not take its still
+ * live slices with it — a parked program may legitimately hold active ones. A
+ * soaking program cannot: korg refuses `soaking` unless every slice is already
+ * terminal, and promotes the program back to `active` the moment a slice starts
+ * under it. So there is no live slice to orphan — by korg's invariant, not by
+ * kfdc's care. If korg ever relaxes that entry rule, this comment is the thing
+ * that should stop being true first.
+ */
+export function withoutSoaking(b: Board): Board {
+	return { ...b, programs: b.programs.filter((p) => p.status !== SOAKING) };
+}
+
+/** One live row a soaking program is holding up — Delayed Ops' second line. */
+export interface SoakBlock {
+	/** The blocked proposal. */
+	node_id: number;
+	title: string;
+	project: string | null;
+	/** Which node of the program blocks it — the program, a slice, or a soak WI. */
+	blocker: number;
+}
+
+export interface DelayedOpsRow {
+	program: ProgramRow;
+	/**
+	 * What this program blocks, deduplicated by blocked row. EMPTY IS THE
+	 * ANSWER, not the absence of one: "blocks nothing" is the fact that turns an
+	 * anxious two-day wait into a shrug, and the panel renders it in words.
+	 */
+	blocks: SoakBlock[];
+}
+
+/**
+ * Delayed Ops (#2155): korg's soaking programs, with their soaks and what they
+ * block. One derivation over one rollup — no second fetch (GP-1, GP-13).
+ *
+ * TAKES THE UNFILTERED BOARD, deliberately, and this is the one subtle thing
+ * here. "What does this block?" is a fact about korg, not about what the reader
+ * has asked to see, and the reader's parked setting must not be able to turn a
+ * real blocked row into "blocks nothing" — a false all-clear is exactly the
+ * failure the question exists to prevent, and it is the same reasoning that
+ * keeps `blocked` out of `withoutParked`'s filter list. The soaking rows
+ * themselves are unaffected by the choice: `parked` and `soaking` are one
+ * `status` field, so no program can be both and the two filters are disjoint.
+ *
+ * Titles are resolved from `active` + `queue`, which korg guarantees contain
+ * every row `blocked` can name. A row that is somehow missing falls back to its
+ * id rather than being dropped: an unresolvable title is a korg contract breach
+ * worth SEEING, and silently shortening the list would be the board hiding the
+ * one thing it was asked to count.
+ */
+export function delayedOps(b: Board): DelayedOpsRow[] {
+	const live = new Map<number, ProposalRow>();
+	for (const r of b.active) live.set(r.node_id, r);
+	for (const r of b.queue) live.set(r.node_id, r);
+
+	return b.programs
+		.filter((p) => p.status === SOAKING)
+		.map((program) => {
+			// Every node of the program a dependency could name.
+			const mine = new Set<number>([
+				program.node_id,
+				...program.slices.map((s) => s.node_id),
+				...program.soaks.map((s) => s.node_id)
+			]);
+			const blocks: SoakBlock[] = [];
+			const seen = new Set<number>();
+			for (const row of b.blocked) {
+				// korg emits one entry per (row, blocker) pair, so a proposal held up
+				// by two of this program's soaks arrives twice. The reader asked what
+				// is held up, not how many edges say so.
+				if (!mine.has(row.blocker) || seen.has(row.proposal)) continue;
+				seen.add(row.proposal);
+				const p = live.get(row.proposal);
+				blocks.push({
+					node_id: row.proposal,
+					title: p?.title ?? `korg:${row.proposal}`,
+					project: p?.project ?? null,
+					blocker: row.blocker
+				});
+			}
+			return { program, blocks };
+		});
+}
+
+/** Where a soak's check date sits relative to the board's own clock. */
+export interface SoakClock {
+	/** Whole days from the board's date to `check_after`; negative once past. */
+	days: number;
+	state: 'waiting' | 'due' | 'overdue';
+	label: string;
+}
+
+const DAY_MS = 86_400_000;
+
+/** UTC midnight of an ISO timestamp or a bare `YYYY-MM-DD`. */
+function utcDay(iso: string): number {
+	const t = Date.parse(iso);
+	if (Number.isNaN(t)) return NaN;
+	const d = new Date(t);
+	return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+/**
+ * How long a soak has left, against the board's `generated` — Postgres's clock,
+ * the same rule `formatAge` follows and for the same reason: never Date.now(),
+ * so every age on the page shares one reference and the wall cannot drift from
+ * the desk.
+ *
+ * NULL WHEN THERE IS NO DATE, which is a state korg genuinely permits: the
+ * `soaks` edge demands both fields to be CREATED and never re-checks them, so
+ * an operator may clear `check_after` afterwards. The panel says so in words
+ * rather than rendering a countdown from nothing.
+ *
+ * Counted in whole UTC days on both sides. The alternative — the viewer's local
+ * midnight — would have the wall and the desk disagree about the same soak
+ * across a timezone, and would make a rendered countdown depend on who is
+ * looking at it. The cost is that an evening in PDT reads as the next UTC day:
+ * at most one boundary, always toward "ready", and kfdc only draws this clock —
+ * the judging is the soak scan's (kfo, or Ken standing in for it).
+ */
+export function soakClock(generated: string, checkAfter: string | null): SoakClock | null {
+	if (!checkAfter) return null;
+	const from = utcDay(generated);
+	const to = utcDay(checkAfter);
+	if (Number.isNaN(from) || Number.isNaN(to)) return null;
+	const days = Math.round((to - from) / DAY_MS);
+	if (days > 0) return { days, state: 'waiting', label: `${days}d` };
+	if (days === 0) return { days, state: 'due', label: 'due today' };
+	return { days, state: 'overdue', label: `${-days}d overdue` };
+}
+
+/**
+ * The board with korg's reviewed reports taken out (#2156) — the desk's
+ * "include reviewed" setting off. Sensor Net's rows are the only thing it
+ * touches, and the count rides back so the panel can name what it hid, the same
+ * receipt `withoutParked` leaves.
+ *
+ * `reviewed` is korg's fact and korg's alone (GP-18): kfdc never writes it.
+ * Marking a report read happens in real korg — in the pane, one click away from
+ * the row — which is exactly the delegation that keeps this board edit-free.
+ */
+export interface ReviewedFiltered {
+	board: Board;
+	hidden: number;
+}
+
+export function withoutReviewed(b: Board): ReviewedFiltered {
+	const reports = b.reports.filter((r) => !r.reviewed);
+	return { board: { ...b, reports }, hidden: b.reports.length - reports.length };
 }
 
 // Ages are computed against the board's `generated` (Postgres's clock, the
