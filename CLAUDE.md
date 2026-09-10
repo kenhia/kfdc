@@ -140,7 +140,7 @@ while asserting the opposite of its name — a specimen must now assert its own
 fictionality; and a parked queue row was indistinguishable from a queued one
 with the setting on, which is the one reader who asked. `docs/design.md`
 § Parked work. **Still open and Ken's**: korg:1478/1480 are not parked yet
-(Awaiting Ken on program korg:1549), and `kai:~/5090/PARKED.md` is rewritten
+(Awaiting Ken on program korg:1549), and `kai:~/src/5090-RMA/PARKED.md` is rewritten
 after they are.
 
 - Stack: SvelteKit + TypeScript, node adapter (adapter configured on the

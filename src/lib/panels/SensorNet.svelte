@@ -2,7 +2,16 @@
 	import { formatAge, type ReportRow } from '$lib/board';
 	import NodeRef from '$lib/NodeRef.svelte';
 
-	let { reports, generated }: { reports: ReportRow[]; generated: string } = $props();
+	let {
+		reports,
+		generated,
+		/**
+		 * Reviewed reports this board chose not to draw (#2156) — kfdc's own
+		 * hiding, and named for the same reason parked's is: nothing disappears
+		 * silently (docs/design.md).
+		 */
+		reviewedHidden = 0
+	}: { reports: ReportRow[]; generated: string; reviewedHidden?: number } = $props();
 
 	// Status → light, form + color together (design rule): the status word is
 	// in the title attribute and the escalated flag is text, never color alone.
@@ -26,6 +35,13 @@
 					>
 					{r.summary}
 					{#if r.escalated}<span class="esc">ESCALATED</span>{/if}
+					{#if r.reviewed}
+						<!-- korg's flag (#2154), rendered and never written: marking a
+						     report read happens in real korg, one click away in the pane
+						     (GP-18). Form and colour together — the word carries it, so a
+						     reader who cannot see the dimming still reads "reviewed". -->
+						<span class="rev" title="marked reviewed in korg">✓ reviewed</span>
+					{/if}
 					<span class="age">{formatAge(generated, r.report_date)}</span>
 				</span>
 			</li>
@@ -33,4 +49,12 @@
 			<li class="net-silent">net silent — no reports</li>
 		{/each}
 	</ul>
+	{#if reviewedHidden}
+		<!-- Only when something was actually withheld. Sensor Net carries no
+		     korg-side omitted counts, so a foot that was always there would be a
+		     permanently empty line in the densest column on the board. -->
+		<p class="queue-foot">
+			<span class="parked-hid">{reviewedHidden} reviewed, hidden by a board setting</span>
+		</p>
+	{/if}
 </section>

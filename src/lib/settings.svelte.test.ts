@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	BoardSettings,
 	DEFAULT_INCLUDE_PARKED,
+	DEFAULT_INCLUDE_REVIEWED,
 	DEFAULT_PANE_PCT,
 	PANE_MAX_PCT,
 	PANE_MIN_PCT,
@@ -274,6 +275,82 @@ describe('BoardSettings', () => {
 		// The width is applied even though it could not be saved.
 		expect(s.panePct).toBe(41.1);
 		expect(() => s.resetPaneWidth()).not.toThrow();
+		expect(s.panePct).toBeNull();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// The third setting (#2156). Sprint 017 predicted "a second setting is an added
+// field, not a format migration"; #1540 held it to that and this is the third,
+// so the claim is now load-bearing rather than a hope.
+// ---------------------------------------------------------------------------
+describe('includeReviewed', () => {
+	// ON, unlike includeParked — and the asymmetry is the decision, not drift.
+	// Sensor Net asks whether the net is reporting, not whether there is unread
+	// news, and a panel that empties itself as reports get read would say
+	// `net silent` on a healthy morning.
+	it('defaults to on, where includeParked defaults to off', () => {
+		const s = new BoardSettings(null);
+		expect(s.includeReviewed).toBe(DEFAULT_INCLUDE_REVIEWED);
+		expect(s.includeReviewed).toBe(true);
+		expect(s.includeParked).toBe(false);
+	});
+
+	it('persists only when it differs from the default', () => {
+		const store = fakeStorage();
+		const s = new BoardSettings(store);
+
+		s.setIncludeReviewed(false);
+		expect(JSON.parse(store.getItem(STORAGE_KEY)!)).toEqual({ includeReviewed: false });
+
+		// Back to the default: the key goes away entirely rather than storing the
+		// default back, so a default that ever moves reaches this reader too.
+		s.setIncludeReviewed(true);
+		expect(store.getItem(STORAGE_KEY)).toBeNull();
+	});
+
+	it('reloads what was stored', () => {
+		const store = fakeStorage();
+		store.setItem(STORAGE_KEY, JSON.stringify({ includeReviewed: false }));
+		expect(new BoardSettings(store).includeReviewed).toBe(false);
+	});
+
+	// One parse for the whole object, each field validated on its own — a
+	// hand-edited `includeReviewed` must not cost the reader their pane width or
+	// their parked setting.
+	it('falls back for itself alone when the stored value is junk', () => {
+		const store = fakeStorage();
+		store.setItem(
+			STORAGE_KEY,
+			JSON.stringify({ panePct: 44, includeParked: true, includeReviewed: 'yes' })
+		);
+		const s = new BoardSettings(store);
+		expect(s.includeReviewed).toBe(DEFAULT_INCLUDE_REVIEWED);
+		expect(s.panePct).toBe(44);
+		expect(s.includeParked).toBe(true);
+	});
+
+	// Three settings in one key, still one key.
+	it('shares the key with the other two', () => {
+		const store = fakeStorage();
+		const s = new BoardSettings(store);
+		s.setPct(44);
+		s.setIncludeParked(true);
+		s.setIncludeReviewed(false);
+		expect(JSON.parse(store.getItem(STORAGE_KEY)!)).toEqual({
+			panePct: 44,
+			includeParked: true,
+			includeReviewed: false
+		});
+	});
+
+	// #1540's lesson, now with a third row: a button must not do more than its
+	// label. `resetPaneWidth` resets the pane width.
+	it('survives resetPaneWidth', () => {
+		const s = new BoardSettings(fakeStorage());
+		s.setIncludeReviewed(false);
+		s.resetPaneWidth();
+		expect(s.includeReviewed).toBe(false);
 		expect(s.panePct).toBeNull();
 	});
 });

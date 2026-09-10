@@ -266,3 +266,135 @@ describe('Board pane restore (#1496)', () => {
 		unmount(v.app);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Sprint 020's two routings, asserted at the level where they actually happen:
+// Board.svelte is the one place that decides what each panel is handed.
+// ---------------------------------------------------------------------------
+const soakingProgram = {
+	node_id: 2070,
+	title: 'kmon fleet collection',
+	aim: 'collect every host nightly',
+	status: 'soaking',
+	span: ['kmon'],
+	slice_count: 1,
+	slices: [
+		{
+			node_id: 2071,
+			title: 'a finished slice',
+			project: 'kmon',
+			status: 'done',
+			rank: '0',
+			open: 0,
+			resolved: 0,
+			done: 1,
+			closed: 0,
+			covered_count: 1
+		}
+	],
+	soaks: [
+		{
+			node_id: 2062,
+			wi_number: 2062,
+			title: 'three consecutive nightlies',
+			project: 'kmon',
+			wi_status: 'open',
+			check_after: '2026-09-13',
+			invalidated_if: 'the baseline is regenerated',
+			rank: '0'
+		}
+	]
+};
+
+const reviewedReport = {
+	node_id: 2098,
+	source: 'kmon',
+	model: 'm',
+	status: 'ok',
+	escalated: false,
+	summary: 'all eight hosts collected',
+	report_date: '2026-08-20',
+	comment_count: 0,
+	reviewed: true,
+	updated: '2026-08-20T00:00:00Z'
+};
+
+function panelText(target: HTMLElement, heading: string): string {
+	const h = [...target.querySelectorAll('h2')].find((n) => n.textContent === heading)!;
+	return h.closest('section')!.textContent!.replace(/\s+/g, ' ');
+}
+
+describe('Board routes soaking programs off Operations (#2155)', () => {
+	// The whole slice, in one assertion: Operations means "wants your attention",
+	// and this program does not want any until the clock runs out.
+	it('draws a soaking program in Delayed Ops and not in Operations', () => {
+		const v = render(false, { board: { ...board, programs: [soakingProgram] } });
+		expect(panelText(v.target, 'Delayed Ops')).toContain('kmon fleet collection');
+		expect(panelText(v.target, 'Operations')).not.toContain('kmon fleet collection');
+		unmount(v.app);
+	});
+
+	// Nothing disappears silently — and this one MOVED, so the foot says where to
+	// rather than that it was hidden.
+	it('has Operations name where they went', () => {
+		const v = render(false, { board: { ...board, programs: [soakingProgram] } });
+		expect(panelText(v.target, 'Operations')).toContain('1 soaking, in Delayed Ops');
+		unmount(v.app);
+	});
+
+	// The wall is not a display preference — it is the same routing. A panel that
+	// only existed on the desk would leave the wall showing the demand the whole
+	// sprint exists to remove.
+	it('routes the same way on the wall', () => {
+		const v = render(true, { board: { ...board, programs: [soakingProgram] } });
+		expect(panelText(v.target, 'Delayed Ops')).toContain('kmon fleet collection');
+		expect(panelText(v.target, 'Operations')).not.toContain('kmon fleet collection');
+		unmount(v.app);
+	});
+
+	it('says so, in the FDC register, when nothing is soaking', () => {
+		const v = render(false);
+		expect(panelText(v.target, 'Delayed Ops')).toContain('no missions in soak');
+		unmount(v.app);
+	});
+});
+
+describe('Board and reviewed reports (#2156)', () => {
+	const withReport = { board: { ...board, reports: [reviewedReport] } };
+
+	it('draws reviewed reports by default, marked', () => {
+		const v = render(false, withReport);
+		expect(panelText(v.target, 'Sensor Net')).toContain('all eight hosts collected');
+		expect(v.target.querySelector('.rev')).not.toBeNull();
+		unmount(v.app);
+	});
+
+	it('hides them when the reader unticks the setting, and says how many', () => {
+		localStorage.setItem(SETTINGS_KEY, JSON.stringify({ includeReviewed: false }));
+		const v = render(false, withReport);
+		const net = panelText(v.target, 'Sensor Net');
+		expect(net).not.toContain('all eight hosts collected');
+		expect(net).toContain('1 reviewed, hidden by a board setting');
+		unmount(v.app);
+	});
+
+	// The wall's fixed answer, and it is the OPPOSITE of its parked one. A
+	// reviewed report is still the latest word from that sensor, and a wall that
+	// dropped it could show a sensor as silent on a morning it had reported.
+	//
+	// WHAT THIS TEST CAN AND CANNOT PIN, measured rather than assumed. Two
+	// mechanisms enforce the rule: `settings` is built with no storage on the
+	// wall, AND `showReviewed` is written as a literal. They agree, so deleting
+	// EITHER one alone leaves this test green — a negative run confirmed it.
+	// Deleting the literal once the storage guard is gone fails it, which is
+	// exactly the scenario the literal was written for and the reason it is not
+	// redundant. The pre-existing parked literal measures identically; this is
+	// defence in depth, and the note is here so a later reader does not read a
+	// passing test as proof that one line alone is doing the work.
+	it('always draws them on the wall, whatever the desk stored', () => {
+		localStorage.setItem(SETTINGS_KEY, JSON.stringify({ includeReviewed: false }));
+		const v = render(true, withReport);
+		expect(panelText(v.target, 'Sensor Net')).toContain('all eight hosts collected');
+		unmount(v.app);
+	});
+});

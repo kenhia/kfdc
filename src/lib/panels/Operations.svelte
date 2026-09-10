@@ -8,11 +8,22 @@
 		// Parked programs this board chose not to draw (#1540) — kfdc's own
 		// hiding, named the way korg's is (docs/design.md: nothing disappears
 		// silently).
-		parkedHidden = 0
+		parkedHidden = 0,
+		/**
+		 * Soaking programs, which now render in Delayed Ops instead (#2155).
+		 * Named here even though nothing was HIDDEN — the rule is that a panel
+		 * says what left it and where it went, and a program that was in this
+		 * panel yesterday is a question whether it was suppressed or moved.
+		 * Printed distinctly from `parkedHidden` for the same reason korg's
+		 * `omitted` is: one of these is undone by a checkbox and the other is not
+		 * a setting at all.
+		 */
+		soaking = 0
 	}: {
 		programs: ProgramRow[];
 		omitted: Board['programs_omitted'];
 		parkedHidden?: number;
+		soaking?: number;
 	} = $props();
 
 	// Slice chip state, switched on korg's proposal literal: done → checked
@@ -77,6 +88,6 @@
 	<p class="queue-foot">
 		omitted: {omitted.done} done, {omitted.archived} archived{#if parkedHidden}<span
 				class="parked-hid">· {parkedHidden} parked, hidden by a board setting</span
-			>{/if}
+			>{/if}{#if soaking}<span class="soak-moved">· {soaking} soaking, in Delayed Ops</span>{/if}
 	</p>
 </section>

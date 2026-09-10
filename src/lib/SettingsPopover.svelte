@@ -89,6 +89,25 @@
 		</div>
 	</div>
 
+	<!-- The third row (#2156). Phrased as INCLUDE for the reason the row above
+	     records: a checkbox whose ticked state removes rows is a double negative
+	     the reader has to stop and solve. Ticked means more on screen, both
+	     times — even though this one ships ticked and that one ships clear. -->
+	<div class="setting">
+		<label class="setting-l" for="set-reviewed">include reviewed</label>
+		<input
+			id="set-reviewed"
+			class="setting-c"
+			type="checkbox"
+			checked={settings.includeReviewed}
+			onchange={(e) => settings.setIncludeReviewed(e.currentTarget.checked)}
+		/>
+		<div class="setting-n">
+			Sensor Net reports korg has marked reviewed. On by default — a report that has been read is
+			still the latest word from that sensor.
+		</div>
+	</div>
+
 	<button class="setting-reset" type="button" onclick={resetWidth}>
 		reset width to default ({DEFAULT_PANE_PCT}%)
 	</button>

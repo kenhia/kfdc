@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { statline, withoutParked } from '$lib/board';
+	import { delayedOps, statline, withoutParked, withoutReviewed, withoutSoaking } from '$lib/board';
 	import KorgPane from '$lib/KorgPane.svelte';
 	import MastheadControl from '$lib/MastheadControl.svelte';
 	import { PaneState, providePane } from '$lib/pane.svelte';
@@ -9,6 +9,7 @@
 	import { BoardSettings } from '$lib/settings.svelte';
 	import CommandersCall from '$lib/panels/CommandersCall.svelte';
 	import Deconfliction from '$lib/panels/Deconfliction.svelte';
+	import DelayedOps from '$lib/panels/DelayedOps.svelte';
 	import FireMissions from '$lib/panels/FireMissions.svelte';
 	import NetLog from '$lib/panels/NetLog.svelte';
 	import OnDeck from '$lib/panels/OnDeck.svelte';
@@ -128,11 +129,39 @@
 	// its own terms too: the wall is an at-a-glance display of what is in
 	// motion, and parked is the definition of what is not.
 	const showParked = $derived(!wall && settings.includeParked);
-	const filtered = $derived(withoutParked(board));
-	const shown = $derived(showParked ? board : filtered.board);
-	// Zero when parked rows are being drawn, so the receipt appears only where
+
+	// The wall's answer for reviewed reports is a literal too, and it is the
+	// OPPOSITE of parked's — which is the point of writing both out rather than
+	// letting `!wall &&` stand for "the wall hides things". Sensor Net asks
+	// whether the net is reporting, not whether there is unread news, so a wall
+	// that dropped reviewed reports could show a sensor as silent on a morning
+	// when it had in fact reported and been read. Parked is what is not in
+	// motion; a reviewed report is still the latest word from that sensor.
+	const showReviewed = $derived(wall ? true : settings.includeReviewed);
+
+	const parked = $derived(withoutParked(board));
+	const afterParked = $derived(showParked ? board : parked.board);
+	const reviewed = $derived(withoutReviewed(afterParked));
+	const afterReviewed = $derived(showReviewed ? afterParked : reviewed.board);
+
+	// Soaking programs leave the general program collection LAST, and they are
+	// routed rather than hidden — Delayed Ops draws them in full, below On Deck.
+	// So there is no setting here and nothing to confess in a count: this one is
+	// not a preference, it is where that kind of program belongs (#2155).
+	const shown = $derived(withoutSoaking(afterReviewed));
+
+	// Built from the UNFILTERED board on purpose — see delayedOps(): "what does
+	// this block?" is korg's fact, and a display setting must not be able to turn
+	// a real blocked row into "blocks nothing".
+	const delayed = $derived(delayedOps(board));
+
+	// Zero when the rows are being drawn, so the receipt appears only where
 	// something was actually withheld — the same shape as korg's omitted counts.
-	const hidden = $derived(showParked ? { queue: 0, programs: 0 } : filtered.hidden);
+	const hidden = $derived({
+		queue: showParked ? 0 : parked.hidden.queue,
+		programs: showParked ? 0 : parked.hidden.programs,
+		reports: showReviewed ? 0 : reviewed.hidden
+	});
 
 	// The statline reads the FILTERED board, and korg's D-3 rule is why: every
 	// figure derives from the lists it is printed beside, so it cannot disagree
@@ -242,6 +271,7 @@
 					programs={shown.programs}
 					omitted={shown.programs_omitted}
 					parkedHidden={hidden.programs}
+					soaking={delayed.length}
 				/>
 				<OnDeck
 					queue={shown.queue}
@@ -251,10 +281,18 @@
 					parkedHidden={hidden.queue}
 					{wall}
 				/>
+				<!-- Below On Deck, where #2155 asked for it: the second column reads
+				     top to bottom as what is running, what is next, and what is only
+				     waiting on time. -->
+				<DelayedOps rows={delayed} generated={shown.generated} />
 			</div>
 			<div class="col">
 				<CommandersCall awaiting={shown.awaiting} generated={shown.generated} />
-				<SensorNet reports={shown.reports} generated={shown.generated} />
+				<SensorNet
+					reports={shown.reports}
+					generated={shown.generated}
+					reviewedHidden={hidden.reports}
+				/>
 				<RateOfFire {flow} />
 			</div>
 		</div>

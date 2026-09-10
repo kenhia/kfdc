@@ -82,6 +82,7 @@ describe('digestBoard', () => {
 						status: 'active',
 						span: ['korg'],
 						slice_count: 1,
+						soaks: [],
 						slices: [
 							{
 								node_id: 973,
