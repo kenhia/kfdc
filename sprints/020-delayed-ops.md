@@ -204,3 +204,46 @@ looked perfect until something plausible was put in it.
 - **First live render is slice 4's acceptance, not this slice's.** Nothing is
   `soaking` in production until the retrofit of program 2070 runs. Everything
   above was verified against a fixture shaped from `get_program`.
+
+## Deployed
+
+**`0.5.0-eb7bc5a` on kubsdb, 2026-09-10**, published from merged `main`
+(`eb7bc5a`) and installed through knarr — the artifact fetched and
+SHA256-verified on kai, then uploaded, so what runs is the bytes that were
+verified rather than the same commit rebuilt.
+
+- **sha256** `18c3c1e69e6947f21edb276133b0336db6485fe19a55e625b832e6a1b7ead0ac`
+  (589,276 bytes, 143 entries).
+- **1,895ms end to end**, `restart` 231ms. Well inside sprint 013's measured
+  1.91s, so nothing has reintroduced the referenced-handle stall that used to
+  make a deploy wait out `TimeoutStopSec`.
+- **Every knarr step `ok`**, asserted from the status document rather than
+  re-probed: stage 394ms · backup 197ms · install 215ms · restart 231ms ·
+  ready 256ms (1 attempt) · **confirm 206ms, detail `0.5.0-eb7bc5a`** ·
+  cleanup 0ms (pruned `0.5.0-efd1cd0`). `confirm` is the one that matters —
+  it resolves the running process's cwd through the `current` symlink, so it
+  proves the *right* version rather than that *a* kfdc answered.
+- **Three views agree**: store `latest`, the serving host's top unpacked
+  version, and `running:` are all `0.5.0-eb7bc5a`.
+- **Rollback target** was `0.5.0-00ca4e0` (sprint 019); it stays unpacked on
+  the host, so `just deploy 0.5.0-00ca4e0` is the whole rollback.
+
+**Verified live over the tailnet from kai** (not loopback — that is the half
+`tailscale_serve` does not otherwise exercise), HTTP 200 and the board SSR'd
+rather than an error shell:
+
+- **Delayed Ops renders on `/` and on `/wall`**, showing its empty state,
+  `no missions in soak — nothing waiting on the clock`. That is the correct
+  answer today: nothing in production is `soaking` until slice 4 retrofits
+  program 2070, and this sprint's record deliberately does not claim a live
+  render it has not earned.
+- **Operations prints no soaking receipt**, which agrees — zero soaking
+  programs means nothing to say, and a receipt appearing here would be the
+  count lying.
+- **`soaks` and `reviewed` both flow through kfdc's own `/api/page`**: all 5
+  reports carry `reviewed` (0 true, matching korg), both programs carry
+  `soaks`. The plumbing is live even though neither field has anything to draw
+  yet.
+
+**The first live render of a populated panel is slice 4's acceptance, not
+this deploy's** — as the opening handoff (korg:2174) specified.
