@@ -195,3 +195,55 @@ verified in slice 3 and never executed.
   did nothing: it lifts `holding` only, and `soaking` is korg's to maintain.
 - **`active → soaking` at ship** is sprint-ship Step 6.5's, and belongs in the
   ship's own record below.
+
+## Deployed
+
+**`0.5.0-f2b1b19`** to **kubsdb**, 2026-09-11 01:16 UTC, from merged `main`
+(`f2b1b19`). Published from a clean `main` and installed as that artifact —
+`just publish` then `just deploy 0.5.0-f2b1b19`, one knarr call.
+
+knarr status document, asserted rather than re-probed (`ok`, `resolved_version`,
+every step, and `confirm`'s **detail** equal to the version — a `confirm` that is
+merely `ok` says only that a cwd was readable):
+
+| step | status | ms | detail |
+|---|---|---|---|
+| stage | ok | 400 | uploaded to `/tmp/knarr-kfdc-0.5.0-f2b1b19.tar.gz` |
+| backup | ok | 195 | `current -> 0.5.0-eb7bc5a` |
+| install | ok | 209 | unpacked `versions/0.5.0-f2b1b19`; `current ->` it |
+| restart | ok | 218 | restarted `kfdc.service` (user scope) |
+| ready | ok | 285 | ready after 1 attempt |
+| confirm | ok | 206 | **`0.5.0-f2b1b19`** |
+| cleanup | ok | 0 | pruned `0.5.0-6da12b4` |
+
+`sha256 dc647031a723be12144b98329a8d9ed7bafb94ad3222427097756d3ccf099b43`,
+**1916ms end to end** — in line with sprint 013's measured 1.91s, so the
+shutdown fix is still bought.
+
+**Verified live over the tailnet from kai** (not loopback — `tailscale_serve` is
+the half loopback does not exercise): HTTP 200, SSR rendered (`fire missions`
+present). The sprint's own work confirmed on the deployed board, which was a
+real test rather than a formality: Step 6.5 had just put program **2167** back to
+`soaking`, so Delayed Ops drew **two** compact cards — `kmon #2180, #2181` and
+`kfo #2185` — the multi-project grouping rendering from live korg for the first
+time. `soak-line` present; `soak-head`, `soak-t`, `voids` and `c-none` all
+absent; **`blocks-none` element count 0**.
+
+Three-way agreement: store `latest`, the host's top entry and `running` are all
+`0.5.0-f2b1b19`. Rollback target if needed: `just deploy 0.5.0-eb7bc5a`, which
+stays unpacked on the host.
+
+**Reload before judging it** (kfdc WI 2190): an already-open board keeps the old
+bundle until the tab is reloaded, so a viewer who was looking at the board during
+the deploy is still looking at `0.5.0-eb7bc5a`.
+
+### The locator trap, twice
+
+A first pass grepped the live HTML for the string `blocks nothing` and found it,
+which reads as a failed deploy. It is in program 2167's korg **`notes`**,
+serialized into the SSR payload, quoting the very design decision this sprint
+reversed. The panel renders no such element — `blocks-none` count is 0, which is
+the assertion that actually means something. This is the same failure as the
+screenshot step earlier in the sprint, in a different tool: **a text match over a
+board that renders korg's text will eventually match korg's text.** Assert on
+structure.
