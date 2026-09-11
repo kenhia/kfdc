@@ -1104,11 +1104,14 @@ footer.ticker .src-note {
 	padding: 0 7px;
 }
 
-/* ---------- delayed ops (sprint 020) ----------
+/* ---------- delayed ops (sprint 020, compacted in 021) ----------
    The panel that exists so Operations can stop generating demand nobody can
-   satisfy (korg #2149). It draws the soaks and never the slices, so its density
-   budget goes on the three facts a soak actually carries: how long is left,
-   what voids it, and what it is holding up. */
+   satisfy (korg #2149). Sprint 020 spent its density budget on the three facts
+   a soak carries — how long is left, what voids it, what it is holding up —
+   and #2193 measured the result against a real board: a program nobody can
+   advance was still drawing a program's worth of card. So the budget shrank to
+   what a GLANCE wants. Three lines at most now: who, which tests, and only if
+   the answer is not "nothing", what is held up. */
 .soak-card {
 	margin: 0 12px 12px;
 	padding: 9px 11px 11px;
@@ -1127,68 +1130,48 @@ footer.ticker .src-note {
 	font-size: 12.5px;
 	letter-spacing: 0.08em;
 	margin: 0;
+	min-width: 0;
+	/* #2193 removed `.voids`, which is where 020's measured fix lived — so the
+	   protection moves here rather than leaving with it. This title is korg's
+	   free text and a program title can legitimately be a path; the board's rule
+	   is that nothing renders past its box (#1284). */
+	overflow-wrap: anywhere;
 }
 /* The span chips wrap rather than extending an unbreakable inline run — #1284
    measured that failure in On Deck and the rule is the board's now: nothing
-   renders past its box. */
+   renders past its box. `margin-left: auto` keeps them right, which is also
+   what holds the clock beside the status chip rather than adrift between the
+   two — one auto margin on the row, not two. */
 .soak-card .span-chips {
 	display: inline-flex;
 	gap: 5px;
 	flex-wrap: wrap;
 	margin-left: auto;
 }
-.soak-card .aim {
+/* The soak refs, one line per program: `kmon #2180, #2181; kfo #2185`. Ordinary
+   inline text flow rather than a flex row, because it IS a sentence of refs and
+   should wrap like one — the separators are real characters in the DOM, so the
+   line survives being copied out of the board. */
+.soak-line {
 	font-size: 12px;
-	color: var(--muted);
-	margin: 0 0 9px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-.soaks {
-	list-style: none;
 	margin: 0;
-	padding: 0;
-}
-.soak {
-	display: flex;
-	flex-direction: column;
-	gap: 1px;
-	padding: 4px 0;
+	padding: 5px 0 0;
 	border-top: 1px solid var(--line-soft);
+	line-height: 1.9;
+	overflow-wrap: anywhere;
 }
-.soak-head {
-	display: flex;
-	align-items: baseline;
-	gap: 6px;
-	flex-wrap: wrap;
-}
-.soak-t {
-	font-size: 12px;
-	color: var(--ink);
-	flex: 1 1 220px;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-/* A soak WI whose status is no longer `open` — the evidence has been judged and
-   the program is waiting on its close rather than on the clock. */
-.soak-st {
-	font-family: var(--mono);
-	font-size: 10px;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--green);
+.soak-line .sep {
+	color: var(--faint);
 }
 /* The clock. Three states, three treatments, and the word carries each one so
-   colour is never doing the work alone (docs/design.md). */
+   colour is never doing the work alone (docs/design.md). One per card since
+   #2193 — the soonest date across the program's soaks — so it sits on the
+   title row and takes no auto margin of its own. */
 .clock {
 	font-family: var(--mono);
 	font-size: 11px;
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
-	margin-left: auto;
 }
 /* Waiting — the ordinary state, and deliberately the quietest thing on the row.
    This is the whole point of the panel: a soak with days left is not asking. */
@@ -1208,35 +1191,6 @@ footer.ticker .src-note {
 	color: var(--red);
 	font-weight: 700;
 }
-/* No check date — reachable because korg gates the soak fields on edge creation
-   and never re-checks them. Faint: it is a gap, not an alarm. */
-.clock.c-none {
-	color: var(--faint);
-	font-style: italic;
-}
-.voids {
-	font-size: 11px;
-	color: var(--muted);
-	padding-left: 2px;
-	/* `invalidated_if` is FREE TEXT from korg, and the likeliest thing to appear
-	   in an invalidation condition is a path — `~/src/ai/kmon/state/baseline.json`
-	   — which has no break opportunity in it at all. Measured, not guessed: a
-	   190-character unbreakable token pushed this row 508px past the panel at
-	   1366 and took the whole page 79px past its box with it. That is #1284's
-	   failure class, and the board's rule is that nothing renders past its box.
-	   `anywhere` rather than `break-word` because it also lets the flex parent
-	   shrink below the token's width, which is the half that fixes the page. */
-	overflow-wrap: anywhere;
-}
-.voids b {
-	font-family: var(--mono);
-	font-size: 10px;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--amber-dim);
-	font-weight: 400;
-	margin-right: 4px;
-}
 .soak-none {
 	font-size: 11.5px;
 	color: var(--faint);
@@ -1244,8 +1198,9 @@ footer.ticker .src-note {
 	padding: 4px 0;
 	border-top: 1px solid var(--line-soft);
 }
-/* Same reasoning as `.voids`: these titles are korg's, not kfdc's, and a
-   proposal title may legitimately carry a long unbroken token. */
+/* These titles are korg's, not kfdc's, and a proposal title may legitimately
+   carry a long unbroken token — the same reasoning that kept 020's measured
+   `overflow-wrap` fix on every korg-authored string this panel prints. */
 .blocks {
 	overflow-wrap: anywhere;
 	display: flex;
@@ -1270,14 +1225,6 @@ footer.ticker .src-note {
 	gap: 5px;
 	min-width: 0;
 }
-/* "Blocks nothing" is an ANSWER, so it is written out rather than left as an
-   absent line — and it is the answer that turns an anxious two-day wait into a
-   shrug (korg #2149). Green: this is good news. */
-.blocks-none {
-	color: color-mix(in oklab, var(--green) 70%, var(--muted));
-	font-style: italic;
-}
-
 /* ---------- deconfliction (sprint 003, concept CSS) ---------- */
 .conflict {
 	margin: 0 12px 10px;
