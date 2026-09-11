@@ -427,11 +427,32 @@ from a slice list, a stale `updated` or prose in a comment is forbidden outright
 does not draw: no slice chips.** Every slice of a soaking program is terminal by
 korg's entry rule, so re-listing them would fill the panel with the one part of
 the program nobody can act on — Operations' failure mode moved one panel down.
-The soaks are the remainder, so the soaks are the content: `#wi`, title, the
-clock, and **`invalidated_if` on the row**. That last one is a column in korg
-rather than prose in a body because of kmon #2058 — a soak lives inside a live
-fleet, and the reader it is written for is the next agent about to touch the
-state it names.
+The soaks are the remainder, so the soaks are the content.
+
+**Sprint 021 applied that rule a second time, to the panel itself** (#2193).
+Sprint 020 drew every fact a soak carries — `#wi`, title, status, clock and
+`invalidated_if`, a block per soak — and one day of Ken living with it measured
+the result on a real board: a program nobody can advance was still drawing a
+program's worth of card. So the card is **three lines at most**:
+
+1. **the program** — title (a ref into korg), korg's status literal, one clock,
+   and the span chips;
+2. **one line of refs** — each soak as `#wi`, grouped by project, `,` within a
+   project and `;` between them: `kmon #2180, #2181; kfo #2185`. Groups appear
+   in **first-appearance order** and soaks keep korg's rank order within a
+   group — korg ranks that array, and grouping may gather refs without
+   re-ordering the projects;
+3. **what it blocks** — and only when something is blocked.
+
+The title, the status and the invalidation clause did not go anywhere: **the
+`wi_number` is the link**, and korg holds all three one click away. That is GP-1
+and GP-18 exactly — the board renders the rollup and **delegates** the node — and
+it is why the compaction costs no information, only a click. What survives the
+collapse is what a glance is for: which program, which tests, and how long is
+left. `invalidated_if` is still a column in korg rather than prose in a body, for
+kmon #2058's reason — a soak lives inside a live fleet and the reader it is
+written for is the next agent about to touch the state it names — but that reader
+now reaches it through the ref rather than off the board.
 
 **Routed, not hidden**, and the distinction earns its own function. `withoutParked`
 suppresses and must confess a count; `withoutSoaking` *moves* rows to a panel one
@@ -450,9 +471,16 @@ should stop being true first.
 
 **"What does this block?"** was the sharpest thing in Ken's original framing and
 nothing captured it. It derives from `board.blocked` — rows whose blocker is the
-program, one of its slices, or one of its soak WIs — and **"blocks nothing" is
-written out in words**, because an absent line reads as *not computed* and this
-is the fact that turns an anxious two-day wait into a shrug. That derivation
+program, one of its slices, or one of its soak WIs — and it is the fact that
+turns an anxious two-day wait into a shrug.
+
+**Its rendering reversed in 021, and both readings were right for their card.**
+Sprint 020 wrote *"blocks nothing — nothing is waiting on this"* out in words,
+because on a card carrying an aim line and a block per soak an absent line would
+have read as *not computed*. #2193 shrank the card to three lines, and Ken had by
+then watched the panel answer the question — so the line now reads as the answer
+it always was, and spending a line of a three-line card on it costs more than it
+tells. **The derivation did not move.** `blocks` still
 takes the **unfiltered** board on purpose: what a program blocks is korg's fact,
 and a reader's parked setting must not be able to turn a real blocked row into a
 false all-clear. It is the same reasoning that keeps `blocked` out of
@@ -462,12 +490,19 @@ false all-clear. It is the same reasoning that keeps `blocked` out of
 clock, the rule `formatAge` already followed — never `Date.now()`, so the wall
 and the desk cannot disagree about the same soak. Three states, three
 treatments, the word carrying each: `3d` muted (the ordinary state, and
-deliberately the quietest thing on the row — a soak with days left is not
+deliberately the quietest thing on the card — a soak with days left is not
 asking), `due today` amber, `Nd overdue` red. Red is right *here* and wrong on
 the card, and the test is #1196's: a reader looking at an overdue soak **can**
-clear it, by judging the evidence. `no check date` is reachable and rendered
-plainly, because korg demands both soak fields to *create* the edge and never
-re-checks them.
+clear it, by judging the evidence.
+
+Since #2193 there is **one clock per card**: the **soonest** `check_after` across
+the program's soaks — the date the program next becomes judgeable, which is what
+the panel's own subtitle promises. A soak korg carries with no date, or with one
+it cannot parse, drops out of that comparison rather than winning it; and when
+**no** soak has a date the card draws **no chip at all**. That is GP-13 in the
+numeric register — render nothing where korg says it cannot say — and the same
+trade the blocks line makes. Sprint 020's `no check date` wording was the right
+answer on a card with a row per soak; on this one the ref is the place to ask.
 
 **The treatment** keeps `done`'s green — the engineering *is* finished — in the
 outlined chip form, because there is nothing here for the reader to do. Solid,
