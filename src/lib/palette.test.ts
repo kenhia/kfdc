@@ -54,4 +54,21 @@ describe('program state palette', () => {
 	])('keeps the alarm colour out of %s', (selector) => {
 		expect(rule(selector)).not.toMatch(/--red/);
 	});
+
+	// #2190, and the same rule in the masthead rather than on a card. `NO
+	// REFRESH` earns red: the board could not reach korg and the reader may have
+	// to go and look. A pending reload is the board working correctly and
+	// announcing it, so dressing the two alike would spend the alarm colour on
+	// the good news and leave the reader unable to tell them apart at a glance.
+	it('keeps the alarm colour out of the pending-reload notice', () => {
+		expect(rule('.statline .updated')).not.toBe('');
+		expect(rule('.statline .updated')).not.toMatch(/--red/);
+		expect(rule('.statline .updated')).toMatch(/--amber/);
+	});
+
+	// And the one that must keep it, so the test above cannot be satisfied by
+	// red leaving the masthead altogether.
+	it('keeps the alarm colour ON the no-refresh marker', () => {
+		expect(rule('.statline .stale')).toMatch(/--red/);
+	});
 });

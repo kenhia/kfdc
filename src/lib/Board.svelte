@@ -28,6 +28,11 @@
 		flow,
 		netlog,
 		korgBase,
+		// `build` (#2190) arrives in the payload spread and is deliberately NOT
+		// destructured here: nothing on the board draws it. The comparison that
+		// uses it belongs to `BoardFeed`, which is the only thing that knows which
+		// build this page was SERVED with — a panel reading the field would be
+		// reading the build of the latest fetch and calling it the running one.
 		// Wall mode: unattended widescreen, nobody at the keyboard.
 		wall = false,
 		// Null whenever the board is current: how long this browser has been
@@ -42,12 +47,19 @@
 		// keystroke can never disagree about whether refreshing is possible here.
 		refresh = null,
 		// A refresh is in flight. A slow korg should look slow rather than dead.
-		busy = false
+		busy = false,
+		// A newer kfdc is serving (#2190) and the board is about to reload to pick
+		// it up. Says so rather than jumping: a board that blanked and came back
+		// under Ken's cursor with no explanation is indistinguishable from a
+		// crash. The wall never sets this — it reloads at once, and there is
+		// nobody there to read a notice.
+		updated = false
 	}: BoardPayload & {
 		wall?: boolean;
 		stale?: string | null;
 		refresh?: (() => void) | null;
 		busy?: boolean;
+		updated?: boolean;
 	} = $props();
 
 	// Expanded mode (#1203): one pane per board, published to every ref on the
@@ -228,6 +240,14 @@
 			     state without anyone noticing the ↻ stopped landing. -->
 			<span class="stale"><b>NO REFRESH</b> {stale}</span>
 		{/if}
+		{#if updated}
+			<!-- Beside `asOf` and `NO REFRESH`, because all three are one claim
+			     about how current the thing you are reading is. `NO REFRESH` says
+			     the board could not ask; this says the board asked and got an
+			     answer from a NEWER kfdc than the one drawing this pixel, so what
+			     is on screen is the old bundle and is about to be replaced. -->
+			<span class="updated"><b>BOARD UPDATED</b> reloading</span>
+		{/if}
 		{#if refresh}
 			<!-- Not a MastheadControl: it opens nothing, it does one thing. It wears
 			     the same button, because a second visual language for a second glyph
@@ -287,13 +307,22 @@
 				<DelayedOps rows={delayed} generated={shown.generated} />
 			</div>
 			<div class="col">
+				<!-- Rate of Fire leads the third column (#1841), and the reason is its
+				     HEIGHT rather than its importance: it is the only panel on the
+				     board whose height is fixed — a native-pixel svg of korg's flow
+				     window, drawn 1:1 and never stretched. Everything else here grows
+				     with the corpus. Ken measured the consequence of having it last:
+				     with four rows in Commander's Call, a maximized board still had
+				     to be scrolled to reach it, so the one panel that could never
+				     have been the cause of the overflow was the one paying for it.
+				     A constant-height panel placed first cannot be pushed off. -->
+				<RateOfFire {flow} />
 				<CommandersCall awaiting={shown.awaiting} generated={shown.generated} />
 				<SensorNet
 					reports={shown.reports}
 					generated={shown.generated}
 					reviewedHidden={hidden.reports}
 				/>
-				<RateOfFire {flow} />
 			</div>
 		</div>
 

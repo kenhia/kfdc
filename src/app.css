@@ -131,6 +131,22 @@ header.masthead {
 	color: var(--red);
 }
 
+/* #2190. Beside `.stale`, and deliberately NOT red: `NO REFRESH` is a fault
+   the reader may need to act on, this is the board working correctly and
+   saying so. Amber is the board's "in motion" hue and that is exactly what
+   this is — a reload already scheduled. Form as well as colour, per the
+   design rule: the words carry it, so the outline is a frame and not the
+   message. */
+.statline .updated {
+	color: var(--amber);
+	border: 1px solid color-mix(in oklab, var(--amber) 55%, transparent);
+	padding: 0 6px;
+	letter-spacing: 0.08em;
+}
+.statline .updated b {
+	color: var(--amber);
+}
+
 /* Masthead controls (#1489). A SLOT, not a one-off: the settings gear is the
    first thing to live here and #1202's transmit drawer is the next, so the
    button and the popover shell belong to $lib/MastheadControl rather than to

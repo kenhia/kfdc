@@ -7,6 +7,17 @@
 # config, no shell, no filesystem tools. Safe to re-run: a pass that finds
 # nothing new writes nothing (see the prompt's idempotence contract).
 #
+# That surface is enforced by `--permission-mode dontAsk` and NOT by the
+# allowlist alone (#2184). A headless `claude -p` child inherits
+# `permissions.defaultMode` from ~/.claude/settings.json, and on kai that is
+# `bypassPermissions` — so without the flag every tool not on the deny list
+# runs regardless of --allowed-tools. Measured on kai 2026-09-10: a probe
+# allowed only "Bash(echo *)" still ran `touch` and `cp`; with the flag both
+# were denied. The deny list was still honoured either way, so the real
+# exposure was file READS (Read/Glob/Grep are not denied) plus the plain fact
+# that the fence this header describes was not the fence in force. `just
+# check` greps for the argv line, so it cannot go quiet again.
+#
 # That locked-down tool surface is exactly why the deterministic collision
 # hints (sprint 015) are produced HERE and appended to the prompt on stdin:
 # the curator cannot run a script, so the hints reach it as input. If
@@ -25,6 +36,7 @@ hints="$("$ROOT/bin/collision-hints")" || hints=""
 
 exec claude -p \
   --model "${KFDC_CURATOR_MODEL:-claude-sonnet-5}" \
+  --permission-mode dontAsk \
   --mcp-config "$ROOT/curator/mcp-config.json" \
   --strict-mcp-config \
   --allowed-tools "mcp__korg" \

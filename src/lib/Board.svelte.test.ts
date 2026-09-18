@@ -35,7 +35,18 @@ function render(wall: boolean, extra: Record<string, unknown> = {}) {
 	const target = document.body.appendChild(document.createElement('div'));
 	const app = mount(Board, {
 		target,
-		props: { board, flow: null, netlog: [], korgBase: 'https://korg.example', wall, ...extra }
+		props: {
+			board,
+			flow: null,
+			netlog: [],
+			korgBase: 'https://korg.example',
+			// Required-but-nullable, and the compiler is what keeps it that way
+			// (#2190): adding the field to BoardPayload failed this fixture until
+			// it was named, which is the shape a payload field should have.
+			build: '0.5.0-abc1234',
+			wall,
+			...extra
+		}
 	});
 	// The pane restores in an `$effect`, which is scheduled rather than run
 	// inline — see PaneState.restore() for why it cannot be done in the
@@ -395,6 +406,70 @@ describe('Board and reviewed reports (#2156)', () => {
 		localStorage.setItem(SETTINGS_KEY, JSON.stringify({ includeReviewed: false }));
 		const v = render(true, withReport);
 		expect(panelText(v.target, 'Sensor Net')).toContain('all eight hosts collected');
+		unmount(v.app);
+	});
+});
+
+describe('Rate of Fire leads its column (#1841)', () => {
+	// The one layout claim jsdom CAN hold honestly. It cannot measure heights or
+	// see the overflow Ken photographed — those took a headless browser in
+	// `.scratch/` (#1284, #1460) — but document order inside a column is plain
+	// DOM, and document order is the whole of the fix. So this is a real gate on
+	// the thing that would silently drift back, and not a layout test pretending
+	// jsdom can see layout.
+	const headings = (target: HTMLElement) =>
+		[...target.querySelectorAll('.board .col')]
+			.map((col) => [...col.querySelectorAll('h2')].map((h) => h.textContent))
+			.find((hs) => hs.includes('Rate of Fire'))!;
+
+	it('puts Rate of Fire above Commander’s Call and Sensor Net', () => {
+		const v = render(false);
+		const hs = headings(v.target);
+		expect(hs[0]).toBe('Rate of Fire');
+		expect(hs.indexOf('Rate of Fire')).toBeLessThan(hs.indexOf("Commander's Call"));
+		expect(hs.indexOf('Rate of Fire')).toBeLessThan(hs.indexOf('Sensor Net'));
+		unmount(v.app);
+	});
+
+	// Wall mode is a display MODE, not a second layout — so the order is not a
+	// desk preference either. A board whose columns read differently on the wall
+	// is the thing `Board.svelte` exists to make impossible.
+	it('reads the same on the wall', () => {
+		const v = render(true);
+		expect(headings(v.target)[0]).toBe('Rate of Fire');
+		unmount(v.app);
+	});
+});
+
+describe('Board says so before it reloads for a new bundle (#2190)', () => {
+	const notice = (target: HTMLElement) => target.querySelector('.statline .updated');
+
+	// The board reloads for exactly one reason, and a reader is owed it. Without
+	// the notice the screen blanks and comes back under Ken's cursor with no
+	// explanation, which is indistinguishable from a crash — so this is the same
+	// rule as `NO REFRESH` beside `asOf`: never change what the board is claiming
+	// without saying that you did.
+	it('draws the notice while a reload is pending', () => {
+		const v = render(false, { updated: true });
+		expect(notice(v.target)!.textContent).toMatch(/board updated/i);
+		expect(notice(v.target)!.textContent).toMatch(/reloading/i);
+		unmount(v.app);
+	});
+
+	// The ordinary state, which is the one that lasts all day.
+	it('draws nothing at all the rest of the time', () => {
+		const v = render(false);
+		expect(notice(v.target)).toBeNull();
+		unmount(v.app);
+	});
+
+	// Not a fault, so not red. `NO REFRESH` means the board could not ask and the
+	// reader may need to act; this means the board asked, got a NEWER kfdc than
+	// the one drawing the pixel, and has already scheduled the fix. Amber is the
+	// board's in-motion hue and that is what this is.
+	it('is not dressed as a fault', () => {
+		const v = render(false, { updated: true });
+		expect(notice(v.target)!.classList.contains('stale')).toBe(false);
 		unmount(v.app);
 	});
 });

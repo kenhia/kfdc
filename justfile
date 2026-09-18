@@ -178,6 +178,7 @@ harness:
     @test -x deploy/bootstrap.sh
     @test -x bin/update-fdc
     @test -x bin/collision-hints
+    @grep -q '^  --permission-mode dontAsk \\$' bin/update-fdc || { echo "harness: bin/update-fdc lost the --permission-mode dontAsk argv line — the curator's allowlist is decorative without it, because a headless run inherits kai's bypassPermissions default (#2184)" >&2; exit 1; }
     @test -f systemd/kfdc.service
     @test -f .sprint-deploy
     @for s in $(grep -vE '^[[:space:]]*(#|$)' .sprint-deploy); do test -f ".claude/skills/$s/SKILL.md" || { echo "harness: .sprint-deploy names '$s' but .claude/skills/$s/SKILL.md is missing" >&2; exit 1; }; done

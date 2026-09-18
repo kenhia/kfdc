@@ -76,6 +76,26 @@ export class PaneState {
 	// The node on show; null exactly when the pane is closed.
 	node = $state<number | null>(null);
 
+	// Which iframe generation is on screen. Monotonic, and bumped by EVERY
+	// `show()` — including a `show()` of the node already on screen, which is
+	// the whole of #1551.
+	//
+	// The pane is one-way by contract (GP-17): kfdc sets a src and nothing comes
+	// back, so kfdc cannot know where inside korg the reader has navigated to. It
+	// follows that asking for the node you are already "on" is a REAL request
+	// with a real effect — go back to that node — and not a no-op. Keying the
+	// iframe on `node` made it one: Ken clicked a proposal, navigated away inside
+	// the frame, clicked the same proposal, and nothing happened, because the
+	// value the key watched had not changed. The documented workaround was to
+	// click a different ref and back, which is the same fix by hand.
+	//
+	// A counter rather than a nonce or a timestamp: it needs only to differ from
+	// its predecessor, `$state` makes the change observable, and an integer is
+	// the version of that a reader can reason about. It is deliberately NOT
+	// persisted — it identifies an iframe in this document, and there are no
+	// iframes across a reload.
+	frame = $state(0);
+
 	// Where the open node survives a reload the page could not intercept, or null
 	// wherever there is nothing to survive into: the server, and the wall.
 	private readonly storage: StorageLike | null;
@@ -101,9 +121,17 @@ export class PaneState {
 		return nodeHref(this.base, nodeId);
 	}
 
+	// Asking for the node already on show is a retarget like any other, and the
+	// `frame` bump is what makes it land. Do not "optimise" this with an early
+	// return when `nodeId === this.node`: that IS the #1551 bug, and it looks
+	// like a cheap win precisely because the state it would compare is the only
+	// state kfdc can see. Where korg has actually navigated to is cross-origin
+	// and unknowable here, so `node` is the node kfdc last SET, never the page
+	// the reader is looking at.
 	show(nodeId: number): void {
 		if (!this.enabled) return;
 		this.node = nodeId;
+		this.frame += 1;
 		this.persist();
 	}
 

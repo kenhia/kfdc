@@ -127,3 +127,128 @@ describe('BoardFeed', () => {
 		vi.useRealTimers();
 	});
 });
+
+// #2190. The board refreshes in place and never reloads, which is what lets the
+// korg pane survive — and what let a tab opened before a deploy go on executing
+// the OLD client bundle against NEW data indefinitely. Measured on 2026-09-11:
+// after sprint 020 deployed, Ken's board kept drawing the pre-020 layout while
+// the server had been correct for two hours, and only a relaunch fixed it.
+describe('BoardFeed taking a new bundle (#2190)', () => {
+	type B = { build: string | null };
+
+	/** A feed whose successive loads report the builds given. */
+	function buildFeed(seed: string | null, served: Array<string | null>, delayMs?: number) {
+		let i = 0;
+		const reload = vi.fn();
+		const f = new BoardFeed<B>(
+			{ build: seed },
+			async () => ({ build: served[Math.min(i++, served.length - 1)] }),
+			() => 0,
+			{ of: (p) => p.build, reload, delayMs }
+		);
+		return { f, reload };
+	}
+
+	it('reloads when the served build changes', async () => {
+		const { f, reload } = buildFeed('0.5.0-aaaaaaa', ['0.5.0-bbbbbbb']);
+		expect(f.servedBuild).toBe('0.5.0-aaaaaaa');
+		expect(f.newBuild).toBeNull();
+
+		await f.refresh();
+
+		expect(f.newBuild).toBe('0.5.0-bbbbbbb');
+		expect(reload).toHaveBeenCalledTimes(1);
+	});
+
+	// THE negative control, and the reason this is a gate rather than a
+	// demonstration: the common case is many polls and no deploy, and a feed
+	// that reloaded on those would be worse than the bug it replaces. The wall
+	// polls every three minutes, all day, unattended.
+	it('reloads never while the build holds, however many polls land', async () => {
+		const { f, reload } = buildFeed('0.5.0-aaaaaaa', ['0.5.0-aaaaaaa']);
+		for (let i = 0; i < 25; i++) await f.refresh();
+		expect(f.newBuild).toBeNull();
+		expect(reload).not.toHaveBeenCalled();
+	});
+
+	// Latched. A deploy is one event; the wall may poll again before the notice
+	// has finished showing, and a second reload scheduled off the same deploy
+	// would be a board that reloads twice for one reason.
+	it('reloads exactly once, even as later polls report the same new build', async () => {
+		const { f, reload } = buildFeed('0.5.0-aaaaaaa', ['0.5.0-bbbbbbb']);
+		await f.refresh();
+		await f.refresh();
+		await f.refresh();
+		expect(reload).toHaveBeenCalledTimes(1);
+	});
+
+	// "I cannot say which build this is" is not a deploy. `npm run dev` ships no
+	// VERSION stamp, so both sides are null there — and a feed that read null as
+	// a change would reload on its first poll, then on its first poll again, for
+	// as long as the dev server ran. korg+ GP-13's consumer half, in kfdc's own
+	// register: where the answer is absent, do nothing rather than substitute.
+	it.each([
+		['the page was served with no build', null, '0.5.0-bbbbbbb'],
+		['the refresh reported no build', '0.5.0-aaaaaaa', null],
+		['neither side has one (npm run dev)', null, null]
+	])('reloads never when %s', async (_label, seed, next) => {
+		const { f, reload } = buildFeed(seed, [next]);
+		await f.refresh();
+		await f.refresh();
+		expect(f.newBuild).toBeNull();
+		expect(reload).not.toHaveBeenCalled();
+	});
+
+	// A failed refresh is not a build change. `refresh()` swallows the error and
+	// keeps the last good board, so nothing about which bundle is running has
+	// been learned — and a korg outage must not reload the board it is keeping.
+	it('reloads never on a refresh that failed', async () => {
+		const reload = vi.fn();
+		const f = new BoardFeed<B>(
+			{ build: '0.5.0-aaaaaaa' },
+			async () => {
+				throw new Error('korg down');
+			},
+			() => 0,
+			{ of: (p) => p.build, reload }
+		);
+		await f.refresh();
+		expect(f.misses).toBe(1);
+		expect(f.newBuild).toBeNull();
+		expect(reload).not.toHaveBeenCalled();
+	});
+
+	// The desk waits so the notice can be read; the wall passes 0 and goes at
+	// once. Both are the same detection with a different policy, which is why
+	// the reload is injected rather than called from in here.
+	it('holds the reload for the notice when a delay is given', async () => {
+		vi.useFakeTimers();
+		try {
+			const { f, reload } = buildFeed('0.5.0-aaaaaaa', ['0.5.0-bbbbbbb'], 1_200);
+			await f.refresh();
+			// The board already says so, and has not jumped.
+			expect(f.newBuild).toBe('0.5.0-bbbbbbb');
+			expect(reload).not.toHaveBeenCalled();
+
+			vi.advanceTimersByTime(1_199);
+			expect(reload).not.toHaveBeenCalled();
+
+			vi.advanceTimersByTime(1);
+			expect(reload).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	// A feed built with no watch is the old feed exactly. The wall's refresh
+	// survived three sprints without one and nothing that does not opt in should
+	// acquire a reload path.
+	it('does nothing at all without a watch', async () => {
+		const f = new BoardFeed<B>({ build: '0.5.0-aaaaaaa' }, async () => ({
+			build: '0.5.0-bbbbbbb'
+		}));
+		await f.refresh();
+		expect(f.servedBuild).toBeNull();
+		expect(f.newBuild).toBeNull();
+	});
+});

@@ -3,7 +3,7 @@
 //
 // The promise matters here. `close (Esc)` shipped on the sprint-016 deploy and
 // was measured false in production within the hour — see the title test below.
-import { mount, unmount } from 'svelte';
+import { flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it } from 'vitest';
 import KorgPane from './KorgPane.svelte';
 import { PaneState, paneContext } from './pane.svelte';
@@ -93,6 +93,50 @@ describe('KorgPane', () => {
 		expect(v.closeBtn().title).toBe('close');
 		expect(v.closeBtn().title).not.toMatch(/esc/i);
 		expect(v.target.textContent).not.toMatch(/esc/i);
+		unmount(v.app);
+	});
+
+	// #1551, and the assertion that actually pins the fix. A new iframe ELEMENT
+	// is what navigates here — reassigning `src` on the existing one is the thing
+	// the key exists to avoid, because it pushes onto top-level session history.
+	// So the claim is about element identity, not about the src attribute, which
+	// is unchanged by a repeat request and therefore cannot witness it.
+	//
+	// This is the bug Ken reported: click a ref, navigate away inside korg, click
+	// the same ref, nothing happens. kfdc cannot see that the frame moved (GP-17
+	// forbids the channel that could tell it), so the only correct answer is to
+	// honour the request unconditionally.
+	it('re-frames the node already on show, so a repeat click navigates', () => {
+		const pane = new PaneState('https://korg.example');
+		pane.show(1203);
+		const v = render(pane);
+		const before = v.frame();
+		expect(before).not.toBeNull();
+
+		pane.show(1203);
+		flushSync();
+
+		const after = v.frame();
+		// A fresh element, not the same one re-pointed.
+		expect(after).not.toBe(before);
+		// At the same address, which is the point of asking again.
+		expect(after.getAttribute('src')).toBe('https://korg.example/n/1203');
+		unmount(v.app);
+	});
+
+	// The other half of the same mechanism, kept separate so a regression tells
+	// you which case broke.
+	it('re-frames on a different node too', () => {
+		const pane = new PaneState('https://korg.example');
+		pane.show(1203);
+		const v = render(pane);
+		const before = v.frame();
+
+		pane.show(1470);
+		flushSync();
+
+		expect(v.frame()).not.toBe(before);
+		expect(v.frame().getAttribute('src')).toBe('https://korg.example/n/1470');
 		unmount(v.app);
 	});
 
