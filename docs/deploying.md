@@ -231,6 +231,16 @@ itself on the board's own poll cadence and keeps the last good board, marked
 `NO REFRESH`, through a korg outage. Nothing to deploy, configure or restart
 separately; a kfdc deploy ships both.
 
+**Open boards take a deploy by themselves since sprint 022** (#2190). The
+bundle ships a `VERSION` stamp beside `build/`, the payload carries it, and a
+board whose next refresh reports a different one reloads: the wall at once, the
+desk after a `BOARD UPDATED reloading` notice. So a deploy no longer needs
+anyone to walk over to the monitor, and the old advice to hard-reload after
+shipping is obsolete. It is also a live acceptance check worth using — if a
+board that was open across a deploy does not reload, either the stamp did not
+reach the host or the payload is not carrying it, and `just versions` says
+which.
+
 ## What still runs from the clone on kai
 
 The curator. `bin/update-fdc`, `kfdc-curator.timer` and `just curator` need

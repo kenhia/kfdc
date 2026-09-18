@@ -13,6 +13,15 @@ export interface BoardPayload {
 	flow: WorkItemFlowSeries | null;
 	netlog: NetLogLine[];
 	korgBase: string;
+	// Which kfdc served this payload (#2190), as the published version label
+	// `0.5.0-<sha>`. The board compares it to the one it was served with and
+	// reloads when it changes, because refreshing in place means a tab opened
+	// before a deploy otherwise runs the OLD bundle against NEW data forever.
+	//
+	// Null where the server cannot say — `npm run dev` has no VERSION stamp. The
+	// comparison treats null as "no answer" and never as a change, so a dev board
+	// does not reload on every poll. See `$lib/server/build.ts`.
+	build: string | null;
 }
 
 /**

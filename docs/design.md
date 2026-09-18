@@ -18,6 +18,17 @@ is a deliberate commitment, not an omission.
   looked, observed times, panel codes FM/CC/OD/OP) · Ticker (korg's own
   transition log, footer strip) · Rate of Fire (work-item flow — are we
   gaining or losing ground).
+- **A constant-height panel goes first in its column** (#1841, sprint 022).
+  Every panel on this board grows with the corpus except one: Rate of Fire is
+  a native-pixel svg of korg's flow window, drawn 1:1 and never stretched, so
+  its height is the same on an empty board as on a full one. Placed last it
+  was the panel that paid for everyone else's growth — Ken measured it, with
+  four rows in Commander's Call a maximized board still had to be scrolled to
+  reach it. Placed first it cannot be pushed off, and the panels that *can*
+  absorb the overflow are the ones that do. The rule is about height
+  constancy, not importance, and it is the column-ordering counterpart of
+  *nothing renders past its box*.
+
 - **Two transition feeds, and they must not converge** (kfdc #1186,
   sprint 008). The Net Log is *observer-relative* — what this board saw
   change, at observation time, in FDC verbs. The Ticker is
@@ -136,6 +147,38 @@ stopped reloading.
   nobody is standing there to reload it, on the desk because a blip would
   otherwise throw away a board Ken was reading and the korg pane with it. The
   `NO REFRESH <age>` marker in the statline is the same marker on both.
+- **The one thing the board DOES reload for is a new kfdc** (#2190, sprint
+  022). Refreshing in place has a cost nothing else on this page pays: the tab
+  goes on executing the client bundle it was *served* with, so after a deploy it
+  draws the old board over new data indefinitely. Measured, not feared —
+  minutes after sprint 020 deployed, Ken's board was still drawing the pre-020
+  layout with both soaking programs under Operations while the server had been
+  correct for two hours, and only relaunching it helped. **The wall is the worst
+  case**: the one display nobody ever reloads, silently running old code after
+  every deploy.
+
+  So `/api/page` carries `build` — the published version label `0.5.0-<sha>`,
+  read from the `VERSION` file the bundle ships (`$lib/server/build.ts`) rather
+  than minted here, because a build id that could disagree with the deployed
+  version would be worse than none. `BoardFeed` compares every successful load
+  against the build the page was served with, and takes the new one: the wall at
+  once, the desk after a `BOARD UPDATED reloading` notice, since a board that
+  blanked under Ken's cursor with no explanation is indistinguishable from a
+  crash. It is latched — one deploy, one reload.
+
+  **Two nulls are not a change**, and that is the load-bearing half. `null`
+  means the server cannot say which build it is, which is the *ordinary* answer
+  under `npm run dev` (no stamp in the tree). A change requires both sides real
+  and different, because the alternative is a dev board that reloads on every
+  poll forever. That is korg+ GP-13's consumer half — where the answer is "I
+  cannot say", do nothing rather than substitute — applied to a field of
+  kfdc's own rather than one of korg's.
+
+  What this does **not** reintroduce is the problem #1496 fixed. A build change
+  happens once per deploy, so the pane is lost once per deploy instead of once
+  per refresh, and it comes back from `sessionStorage`, which is exactly the
+  floor that store was built to be.
+
 - **A refresh that hangs is the worst failure, not the mildest**, so it is
   bounded (`REFRESH_TIMEOUT_MS`, 30s). `fetch` has no default timeout, and a
   socket that never answers leaves `misses` at zero forever — the board goes
@@ -195,6 +238,23 @@ the board, deep-linked to that node.
   on the unfiltered list. Because korg now has a page for every kind, no ref
   degrades to plain text any more — kfdc #993's don't-fake-URLs rule stands,
   it simply has nothing left to catch.
+- **Asking for the node already on show is a real request** (kfdc #1551,
+  sprint 022). The pane is one-way, so `PaneState.node` is the node kfdc last
+  *set* — never the page the reader is looking at, which is cross-origin and
+  unknowable. It follows that a repeat click on the last ref means *go back to
+  that node*, and the pane must honour it. It did not: the iframe was keyed on
+  `node`, so the request that changed nothing the key watched created no new
+  element and therefore did not navigate. Ken's report was exact — click a
+  ref, navigate away inside korg, click the same ref, nothing — and his
+  workaround (click a different ref and back) was the fix performed by hand. The
+  key is now a **monotonic `frame` counter** bumped by every `show()`. Note what
+  this rules out: the tempting `if (nodeId === this.node) return` guard IS the
+  bug, and it looks like a saving precisely because the state it compares is the
+  only state kfdc can see. The reason a new element rather than a re-pointed
+  `src` is that reassigning `iframe.src` pushes onto **top-level** session
+  history, handing the board a Back button that rewinds the pane instead of
+  leaving the board.
+
 - **The pane's capability surface is a knob, and it is not the channel GP-17
   forbids** (kfdc #1497, sprint 018). A cross-origin frame holds a
   Permissions-Policy feature only if the embedder delegates it with `allow`, and

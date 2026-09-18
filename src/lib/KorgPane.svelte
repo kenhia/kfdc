@@ -34,13 +34,22 @@
 			>
 		</div>
 		<!--
-		  Keyed on the node so a NEW iframe element is created for each one rather
-		  than the src being reassigned on the existing element. Reassigning
-		  `iframe.src` pushes an entry onto the TOP-LEVEL session history, which
-		  hands the board a Back button that silently rewinds the pane instead of
-		  leaving the board — the classic iframe trap. `location.replace` is the
-		  other fix and is unavailable to us: korg is cross-origin, which is the
-		  whole reason the CSP allowlist (GP-17) exists.
+		  Keyed so a NEW iframe element is created for each request rather than the
+		  src being reassigned on the existing element. Reassigning `iframe.src`
+		  pushes an entry onto the TOP-LEVEL session history, which hands the board
+		  a Back button that silently rewinds the pane instead of leaving the board
+		  — the classic iframe trap. `location.replace` is the other fix and is
+		  unavailable to us: korg is cross-origin, which is the whole reason the
+		  CSP allowlist (GP-17) exists.
+
+		  Keyed on `pane.frame`, not on `pane.node` (#1551). Creating a new element
+		  is what navigates, so the key has to change on every REQUEST — and a key
+		  on `node` cannot, when the request is for the node already on show. That
+		  made re-clicking the last ref a no-op: kfdc had set that node, so nothing
+		  the key watched moved, even though the reader had navigated the frame
+		  somewhere else in the meantime. `frame` is bumped by `show()` regardless,
+		  so this re-mounts whenever asked and the fix needs no channel back from
+		  korg — which is the constraint that rules out every alternative.
 
 		  `allow` is the pane's CAPABILITY surface, and it is a knob rather than a
 		  question of principle (#1497). A cross-origin frame holds a
@@ -66,7 +75,7 @@
 		  The perimeter here is the tailnet, per GP-17 — the frame-ancestors header
 		  decides who may paint korg, and it is not an access-control list.
 		-->
-		{#key pane.node}
+		{#key pane.frame}
 			<iframe
 				class="pane-frame"
 				title="korg — node {pane.node}"

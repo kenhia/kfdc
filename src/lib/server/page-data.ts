@@ -8,11 +8,12 @@
 // wall already has a board on screen to keep.
 import type { BoardPayload } from '$lib/payload';
 import { netlog } from './netlog';
+import { buildId } from './build';
 import { fetchBoard, fetchFlow, korgBase } from './korg';
 
 export async function boardPayload(fetchFn?: typeof fetch): Promise<BoardPayload> {
 	// fetchBoard observes before returning, so the Net Log strip already
 	// includes whatever this very read changed.
 	const [board, flow] = await Promise.all([fetchBoard(fetchFn), fetchFlow(fetchFn)]);
-	return { board, flow, netlog: netlog().recent(20), korgBase: korgBase() };
+	return { board, flow, netlog: netlog().recent(20), korgBase: korgBase(), build: buildId() };
 }

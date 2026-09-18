@@ -45,6 +45,53 @@ describe('PaneState', () => {
 		expect(p.href).toBe('https://korg.example/n/1470');
 	});
 
+	// #1551. The pane is one-way, so `node` is what kfdc last SET and never where
+	// the reader has navigated to inside korg. That makes re-asking for the node
+	// on show a real request, and `frame` is what carries it: KorgPane keys the
+	// iframe on this, so a bump is a fresh element and a fresh element is a
+	// navigation.
+	describe('re-showing the node already on show (#1551)', () => {
+		it('counts every request, not every change of node', () => {
+			const p = new PaneState(BASE);
+			expect(p.frame).toBe(0);
+
+			p.show(1203);
+			const first = p.frame;
+			expect(first).toBeGreaterThan(0);
+
+			// The click that used to do nothing.
+			p.show(1203);
+			expect(p.node).toBe(1203);
+			expect(p.frame).toBeGreaterThan(first);
+
+			// And a different node is not a special case — same mechanism.
+			p.show(1470);
+			expect(p.frame).toBeGreaterThan(first + 1);
+		});
+
+		// It identifies an iframe in THIS document, so there is nothing for it to
+		// mean across a reload. Keeping it out of the store is also what keeps the
+		// stored shape `{ node }` — a second pane preference would be an added
+		// field, and this is not one.
+		it('is not persisted', () => {
+			const st = store();
+			const p = new PaneState(BASE, true, st);
+			p.show(1203);
+			p.show(1203);
+			expect(JSON.parse(st.value!)).toEqual({ node: 1203 });
+		});
+
+		// The wall has no pane to re-target, and `show` is a no-op there. A frame
+		// counter ticking on a disabled pane would be the wall holding state about
+		// an iframe it never draws.
+		it('does not move on a disabled pane', () => {
+			const p = new PaneState(BASE, false);
+			p.show(1203);
+			p.show(1203);
+			expect(p.frame).toBe(0);
+		});
+	});
+
 	it('closes back to nothing', () => {
 		const p = new PaneState(BASE);
 		p.show(1203);
