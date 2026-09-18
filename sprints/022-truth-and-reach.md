@@ -303,3 +303,88 @@ Two things noted and deliberately not filed:
   shared decision on this leg's own judgement is exactly what the amend rule
   hands to whoever holds the context — and here that is a decision, not a
   correction.
+
+## Deployed
+
+**`0.5.0-d6d5268`** to **kubsdb**, 2026-09-18 06:08:06 UTC, from merged `main`
+(`d6d5268`). Published from a clean `main` and installed as that artifact —
+`just publish` then `just deploy 0.5.0-d6d5268`, one knarr call, exit 0.
+
+knarr status document, asserted rather than re-probed (`ok`, `resolved_version`,
+every step, and `confirm`'s **detail** equal to the version — a `confirm` that is
+merely `ok` says only that a cwd was readable):
+
+| step | status | ms | detail |
+|---|---|---|---|
+| stage | ok | 397 | uploaded to `/tmp/knarr-kfdc-0.5.0-d6d5268.tar.gz` |
+| backup | ok | 195 | `current -> 0.5.0-f2b1b19` |
+| install | ok | 208 | unpacked `versions/0.5.0-d6d5268`; `current ->` it |
+| restart | ok | 231 | restarted `kfdc.service` (user scope) |
+| ready | ok | 262 | ready after 1 attempt |
+| confirm | ok | 199 | **`0.5.0-d6d5268`** |
+| cleanup | ok | 0 | pruned `0.5.0-00ca4e0` |
+
+`sha256 e602cfacb5f70a9c55bd5a394721de4911c6704b487c8b202d14995781798435`,
+**1893ms end to end** with `restart` at 231ms — in line with sprint 013's
+measured 1.91s, so the shutdown fix is still bought.
+
+**Verified live over the tailnet from kai** (not loopback — `tailscale_serve` is
+the half loopback does not exercise): `/` HTTP 200 with SSR rendered (`fire
+missions` present), `/wall` HTTP 200. Three-way agreement: store `latest`, the
+host's top entry and `running` are all `0.5.0-d6d5268`. Rollback target:
+`just deploy 0.5.0-f2b1b19`, which stays unpacked on the host.
+
+### The sprint's own change, live
+
+`/api/page` served **no `build` key at all** before this deploy and serves
+`0.5.0-d6d5268` after it, matching the deployed version. Both routes' SSR
+payloads carry it, so `servedBuild` reaches the client on the desk and the wall.
+
+### The trigger test, and what it could and could not prove
+
+#2190's acceptance is a **test with a trigger, not a soak** — no work item was
+created for it. Three measurements against the **deployed** bundle in a real
+browser, with only the `/api/page` XHR perturbed so what runs is the shipped
+client's own comparison rather than a fixture:
+
+| leg | measurement | result |
+|---|---|---|
+| **negative control** — desk, build **unchanged**, 8 refreshes | reloaded? notice drawn? | **no reload, notice count 0** |
+| desk, build differs, one refresh | notice text, then reload | **`BOARD UPDATED reloading`**, then reloaded |
+| wall, build differs, unattended | reload on its own poll | **reloaded at ~185s**, 1 poll intercepted (cadence 180s); no gear on the wall |
+
+The control is the half that matters most: the wall polls all day, every day, and
+a board that reloaded on an unchanged build would be worse than the bug this
+replaces.
+
+### What this deploy could NOT prove, measured rather than reasoned
+
+**This fix cannot demonstrate itself on the deploy that introduces it.** The
+board that was open across Phase 7 was running `0.5.0-f2b1b19`, and that release
+contains **no reload logic anywhere** — grepped on the host across both unpacked
+releases: no chunk of `0.5.0-f2b1b19` mentions the notice string, and
+`0.5.0-d6d5268`'s client chunk does. So the old client had nothing to compare and
+could not have reloaded, whatever it was shown.
+
+**The first deploy #2190 actually protects is the next one.** That is why the
+three measurements above perturb the payload instead of waiting for a second real
+deploy — the alternative was republishing an identical artefact purely to make a
+test fire, which churns the store's `latest` for no change.
+
+Stated this plainly on purpose. "Verified in production" would have been the
+comfortable phrasing and it would have been false, and the specific way it would
+mislead is a future reader concluding the protection was proven on 2026-09-18.
+A note to that effect is on WI 2190 as well as here.
+
+Sprint 021's deploy record ends with *"reload before judging it (kfdc WI 2190):
+an already-open board keeps the old bundle until the tab is reloaded."* **This is
+the last deploy record that needs that caveat** — and the last one where it was
+still true.
+
+### One locator note, inherited from 021
+
+The version string was also grepped out of the live SSR'd HTML for both routes,
+and that check is the weak one by 021's own lesson: *a text match over a board
+that renders korg's text will eventually match korg's text.* It is reported above
+only as corroboration. The load-bearing evidence is the parsed `/api/page` JSON
+and the browser measurements, both of which assert on structure.
