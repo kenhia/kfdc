@@ -89,6 +89,27 @@ asserts its unknown-literal specimen's own fictionality against the mirrored
 vocabulary — and no kfdc test uses `on-demand` as a hypothetical. The amendment's
 warning was checked rather than assumed.
 
+### The ruling
+
+The overseer verified the finding independently rather than taking it on report,
+and accepted it as an error in the work item rather than a gap in the reading:
+2823 had asserted that kfdc *"meets an undecorated `on-demand` and renders it
+neutral"*, taken from korg #2183's text and the GP-14 amendment, neither of which
+had been checked against kfdc.
+
+**Ruled (c), with one change: 2823 is out of this sprint, and does not become a
+slice yet.** Explicitly *not* resolved as "nothing to build" — the gap is real,
+and what this sprint found is not *no work* but **different work, and bigger**:
+adding a surface the board has never had, in its densest column. That is a
+board-design decision with a height cost, and it is **Ken's**. The overseer is
+re-scoping 2823 into that question and marking it Awaiting Ken; if Ken wants it,
+it becomes its own kfdc slice of program korg:2816. The item itself was left
+untouched by this leg on instruction.
+
+So this sprint ships four items, and the fifth is a question in Ken's hands
+rather than an open item nobody is working. That is the outcome the premise check
+existed to produce: a sprint shrinking at its start is a win.
+
 ## What shipped
 
 ### 2184 — the curator's fence is the fence it documents
@@ -227,8 +248,58 @@ here, and not a failure.
   which was open across a deploy and did **not** reload is a live acceptance
   check with `just versions` as the diagnostic.
 
+## Cross-repo changes made
+
+**One, on the overseer's instruction, and it is Branch A under the plan repo's
+own amend rule** — *amend in the sprint that invalidates; the diverging session
+has the context, a later audit will not.*
+
+`cross-project-planning`, `korg+/PLAN.md`, commit `d6b099a` on `main`
+(no branch, no PR — that repo's README says the commit history is the review
+trail). The 2026-09-17 GP-14 amendment carried the same false claim WI 2823 did:
+that *"kfdc's Sensor Net meets an undecorated `on-demand` and renders it
+neutral"*. Corrected to what kfdc actually does — consume no report-source
+freshness at all — with the gap named and left as Ken's decision.
+
+**Only the instance claim changed.** The general half — freshness as the fourth
+register, and a constant justified by a measurement carrying that measurement's
+expiry date — is untouched and stands; it was verified against korg's own span
+gate and both Ken and the overseer have ruled it sound.
+
+Two things checked in the same pass rather than assumed:
+
+- **The other two instance claims in that file are true.** `parked` (GP-19) and
+  `soaking` both say kfdc meets an undecorated literal and renders it neutral,
+  and kfdc really does render both — `palette.test.ts` asserts `.op-parked`,
+  `.op-soaking` and their chips. Left alone. Had either been false it would have
+  been the identical harm, so it was worth the one grep.
+- **The correction came from measuring kfdc**, not from re-reading korg's
+  description of it, and the commit message says so because that is the whole of
+  how the error survived: the claim was true of korg's *own* web app, which did
+  have both the exclusion list and the `{:else}` arm, and it reached kfdc without
+  anyone opening kfdc.
+
+The plan repo is **6 commits ahead of `origin/main`**, five of them from other
+sessions (the korg 081 amendment and three `karc+` commits). Not pushed: that is
+a pre-existing state, and publishing other sessions' commits is not this leg's
+call.
+
 ## Follow-ups
 
-None filed. The only open question is 2823's ruling, which belongs to the
-overseer and is recorded as a comment on the proposal rather than as a work
-item — filing one would be filing the question back at the person being asked.
+**None filed.** 2823 is not a follow-up — it is live, re-scoped by the overseer
+into a question for Ken, and marked Awaiting Ken. Filing a work item for it would
+have been filing the question back at the person being asked.
+
+Two things noted and deliberately not filed:
+
+- `jsdom` prints 6 "Not implemented: navigation" lines from pre-existing
+  anchor-click tests, measured identical on `main` and this branch. Harmless, and
+  "quieten it" carries a real question — assert anchor behaviour, or stub it? —
+  that nothing in front of this sprint answers. Neither a repair nor a work item.
+- GP-13's consumer half generalised cleanly to a field **kfdc owns** rather than
+  one of korg's: 2190's *two nulls are not a change* is the same rule in kfdc's
+  own register, and it is what stops a dev-mode reload loop. Raised with the
+  overseer as a possible line for the plan; not written, because amending a
+  shared decision on this leg's own judgement is exactly what the amend rule
+  hands to whoever holds the context — and here that is a decision, not a
+  correction.
