@@ -159,3 +159,50 @@ None filed. The one thing this sprint found and could not settle is the
 `due_schedules` claim above — it is a wrong premise in four decision records,
 not a defect in a running thing, and correcting another repo's decision record
 is not this sprint's call. Raised with the overseer instead.
+
+## Deployed
+
+**`0.5.0-6de4d6d` on kubsdb, 2026-09-22 05:15 UTC**, by the `deploy-board`
+skill declared in `.sprint-deploy` — `just publish` from merged `main`, then
+`just deploy 0.5.0-6de4d6d`, which is one `knarr` call. Rollback target:
+`0.5.0-d6d5268`, still unpacked on the host.
+
+knarr's status document asserted clean — `ok`, `resolved_version` matching, and
+the **`confirm` step's own detail** equal to the version (a `confirm` that is
+merely `ok` says a cwd was readable; one whose detail is the version says it
+was the right one):
+
+```
+resolved  0.5.0-6de4d6d
+sha256    4e99daf03ee004a56ec692ccc1327652f70527addc21517e21a671fb61de0882
+total     1902ms
+host      kubsdb  (user scope, shape directory, 1901ms)
+  stage    ok  401ms  uploaded to /tmp/knarr-kfdc-0.5.0-6de4d6d.tar.gz
+  backup   ok  198ms  current -> 0.5.0-d6d5268
+  install  ok  209ms  unpacked versions/0.5.0-6de4d6d; current -> 0.5.0-6de4d6d
+  restart  ok  224ms  restarted kfdc.service (user scope)
+  ready    ok  259ms  ready after 1 attempt(s)
+  confirm  ok  207ms  0.5.0-6de4d6d
+  cleanup  ok    0ms  pruned 1 old version(s): 0.5.0-eb7bc5a
+```
+
+1.9s end to end, `restart` 224ms — in line with the 1.91s/220ms sprint 013
+measured, so nothing has reintroduced a handle that keeps the event loop alive.
+
+**Verified against what this sprint changed**, from kai over the tailnet (the
+path a viewer takes, which is the half loopback does not exercise):
+
+- `GET /` → 200, and `Fire Missions` present, so SSR rendered the board rather
+  than an error shell.
+- **`Standing Orders` present**, with its empty line: *"no scheduled work in
+  flight — every standing order is between firings"*. Production's
+  `in_flight_schedules` is `len=0`, so that is the panel's correct steady state
+  and not a failed render — a schedule leaves the block the moment its work
+  finishes.
+- The CSS repairs proven in the **served** hashed stylesheet
+  (`/_app/immutable/assets/0.BoJSybQ1.css`) rather than inferred from the
+  commit: `.call p` and `.call h3` both carry `overflow-wrap:anywhere`, and
+  `.order .proj`, `.status.open` and `.status.resolved` are all present.
+
+Three views agree: store `latest: 0.5.0-6de4d6d`, host `here:` top entry
+`0.5.0-6de4d6d`, `running: 0.5.0-6de4d6d`.
