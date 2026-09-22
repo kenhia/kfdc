@@ -14,8 +14,9 @@ fire missions (active sprints), priorities of fire (the ranked queue),
 deconfliction (sequencing collisions), commander's call (decisions only Ken
 can make).
 
-> Status: **in production** — Fire Missions, On Deck, statline, Commander's
-> Call, Net Log, Deconfliction, Sensor Net, Operations and the Ticker render
+> Status: **in production** — Fire Missions, Standing Orders, On Deck,
+> statline, Commander's Call, Net Log, Deconfliction, Sensor Net, Operations,
+> Rate of Fire, Delayed Ops and the Ticker render
 > production korg at `https://kubsdb.encke-wahoo.ts.net:8100` (tailnet
 > only). Phase 3 closed in sprint 009 with the move off kai, the interim
 > host. The live plan is korg — the board is how you read it; the approved
