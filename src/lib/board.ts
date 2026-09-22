@@ -224,6 +224,70 @@ export interface EventRow {
 	to_status: string;
 }
 
+// The work-item literals STANDING ORDERS paints (#1645), and the same kind of
+// list as PROGRAM_STATUSES above: NOT a second definition of korg's vocabulary,
+// but the record of which literals this board has chosen a treatment for.
+// palette.test.ts holds it to that, and `InFlightSchedule.wi_status` stays
+// `string` so nothing here can be mistaken for korg's domain (GP-14).
+//
+// It is korg's `WI_UNFINISHED_STATUSES` as of korg sprint 076, because that is
+// the set korg's own predicate filters this block on — `parked` included, which
+// is the one korg wrote a comment to protect (#810). A literal korg adds later
+// arrives with no rule and lands on the neutral base, which is #1444's runtime
+// half; this list is the compile-time half and cannot see that coming.
+export const SCHEDULED_WI_STATUSES = ['open', 'resolved', 'parked'] as const;
+
+/**
+ * One IN-FLIGHT SCHEDULE (korg #1644, kfdc #1645): a standing order that has
+ * fired, and the unfinished work it produced. Newest firing first, uncapped,
+ * and bounded by construction — a schedule leaves the block the moment its
+ * item is finished.
+ *
+ * The block exists because this work was invisible BETWEEN two surfaces. The
+ * instant a schedule materializes it stops being *due* — korg's
+ * outstanding-item clause, stopping a schedule competing with the item it just
+ * produced — and the open item it left behind landed in no board panel at all:
+ * in no proposal, not blocked, not awaiting, and `events` carries status
+ * CHANGES, so being created was never one. Measured on korg WI #1635 (schedule
+ * 1112): the first-ever materialization made its own work invisible.
+ */
+export interface InFlightSchedule {
+	/**
+	 * The SCHEDULE's node id — not the work item's. korg carries it explicitly
+	 * "so a consumer can link the schedule as well as the item" (its own
+	 * `InFlightSchedule` doc), which is why this is the one compact line on the
+	 * board that draws two refs.
+	 */
+	node_id: number;
+	/**
+	 * The schedule's template title, verbatim and UNSUBSTITUTED — `{DATE}` and
+	 * its siblings still in it, exactly as korg's `ScheduleRow.title` carries
+	 * them. What the firing actually produced is `wi_title`, already
+	 * substituted, which is why there is no `preview_title` here and none is
+	 * wanted.
+	 */
+	title: string;
+	/** Null for an unassigned item, as everywhere else korg carries a project. */
+	project: string | null;
+	wi_number: number;
+	wi_title: string;
+	/**
+	 * korg's literal for the ITEM's state, and `string` on purpose (GP-14).
+	 * Every row is one of korg's `WI_UNFINISHED_STATUSES` by construction —
+	 * `open`, `resolved`, `parked` today — but that is a SAMPLE of korg's
+	 * vocabulary at one deploy, not a domain kfdc may switch exhaustively on.
+	 * Standing Orders paints a rule per literal it knows and lands the rest on
+	 * the neutral base (#1444).
+	 */
+	wi_status: string;
+	/**
+	 * When the schedule fired, read from the work item's own `created` rather
+	 * than the `materializes` edge's nullable one (korg 0016 §4) — so it is
+	 * always a real timestamp and the panel never renders an optional age.
+	 */
+	materialized_at: string;
+}
+
 export interface Board {
 	generated: string;
 	active: ProposalRow[];
@@ -237,6 +301,12 @@ export interface Board {
 	depth: DepthRow[];
 	reports: ReportRow[];
 	events: EventRow[];
+	/**
+	 * korg's `in_flight_schedules` (#1644). `due_schedules` rides beside it on
+	 * the wire and is deliberately NOT declared here: this interface states the
+	 * contract the board reads, and kfdc renders no due-schedules surface.
+	 */
+	in_flight_schedules: InFlightSchedule[];
 }
 
 // Statline per korg's D-3 table: every figure derives from the lists it is
@@ -396,6 +466,15 @@ export const PARKED = 'parked';
  *   - `events` — the Ticker quotes korg verbatim, and `→ parked` is exactly the
  *     transition worth quoting. A board that hid parking would go silent about
  *     the act of parking.
+ *   - `in_flight_schedules` — and this is the one where filtering would undo
+ *     work korg did on purpose. korg's predicate reads `WI_UNFINISHED_STATUSES`
+ *     precisely so a parked materialized item stays in the block (#810,
+ *     korg #1644): "parked scheduled work is deferred, not finished, and
+ *     dropping it would re-hide exactly the item a person deliberately set
+ *     aside". A parked row here is also not the thing the setting is about —
+ *     Ken's ask (#1540) was a queue he could not see past, and this block is
+ *     bounded by construction. Suppressing it would re-create #1644's bug for
+ *     the one status korg wrote a comment to protect.
  *
  * AND IT REPORTS WHAT IT HID, because the board's first rule is that nothing
  * disappears silently (docs/design.md): a panel that hides rows names what it

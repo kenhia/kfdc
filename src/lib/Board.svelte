@@ -16,6 +16,7 @@
 	import Operations from '$lib/panels/Operations.svelte';
 	import RateOfFire from '$lib/panels/RateOfFire.svelte';
 	import SensorNet from '$lib/panels/SensorNet.svelte';
+	import StandingOrders from '$lib/panels/StandingOrders.svelte';
 	import Ticker from '$lib/panels/Ticker.svelte';
 	import { tickerLines } from '$lib/ticker';
 
@@ -283,6 +284,19 @@
 		<div class="board">
 			<div class="col">
 				<FireMissions active={shown.active} />
+				<!-- Below Fire Missions and above Deconfliction (#1645), so the first
+				     column reads: what is firing, what a standing order put in flight,
+				     what collides. Scheduled work has no other host — it is in no
+				     proposal and no queue, which is how it came to be invisible at all.
+
+				     TAKES THE UNFILTERED BOARD, like Delayed Ops and for a sharper
+				     reason. korg's predicate reads WI_UNFINISHED_STATUSES expressly so
+				     a PARKED materialized item stays in the block, because dropping it
+				     would re-hide the item somebody deliberately set aside. Routing
+				     this through `shown` would put a kfdc filter in front of a korg
+				     decision — see withoutParked() in board.ts, which records it as
+				     one of the collections the setting must not reach. -->
+				<StandingOrders rows={board.in_flight_schedules} generated={board.generated} />
 				<Deconfliction board={shown} />
 			</div>
 			<div class="col">

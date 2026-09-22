@@ -543,6 +543,36 @@ section.panel {
 	padding: 1px 6px;
 }
 
+/* ---- work-item statuses, painted only by Standing Orders (#1645) ----
+   korg's WI_UNFINISHED_STATUSES, which is what its in-flight predicate filters
+   on. `parked` needs no rule of its own here: GP-19 is a rule about EVERY node
+   kind, a parked work item means what a parked proposal means, and giving the
+   same word a second treatment is how a palette stops being one.
+
+   OPEN IS THE QUIET ONE, and it is the majority of this panel: every row in the
+   block is in flight by construction, so the chip is not there to announce that
+   — it is there to separate the three states from each other. Making the
+   commonest of them the loudest would spend the panel's whole contrast on the
+   fact its heading already states. Unfilled, because a filled chip reads as
+   something happening and the row's own presence says that. */
+.status.open {
+	color: var(--muted);
+	border: 1px solid var(--line);
+	padding: 1px 6px;
+}
+/* RESOLVED — the work is done and somebody still has to say so. Green because
+   this is the done family, outlined and not filled because it is not `done`
+   yet, which is exactly the argument `soaking` makes one rule up.
+   Deliberately NOT red, and #1196 is why with more force than usual: "wants
+   Ken" is a column on the node (`set_awaiting`) drawn by Commander's Call, and
+   never a status value. A resolved scheduled item that genuinely needs him is
+   already in that lane. */
+.status.resolved {
+	color: var(--green);
+	border: 1px solid color-mix(in oklab, var(--green) 45%, var(--line));
+	padding: 1px 6px;
+}
+
 /* ---------- fire missions ---------- */
 .mission-card {
 	border: 1px solid var(--line);
@@ -786,6 +816,66 @@ tr.prog-slice:last-child td {
 	font-variant-numeric: tabular-nums;
 }
 
+/* ---------- standing orders ---------- */
+/* AMBER-DIM, not amber. This is firing — a standing order fired and its work is
+   being done — so it belongs to the amber family and saying otherwise would be
+   the palette disagreeing with the panel. Dimmed because Fire Missions sits
+   directly above it in the same column, and at a glance across a widescreen two
+   stacks of full-amber cards read as one long list of missions. The subordinate
+   tone is the thing that keeps the column's three panels legible as three. */
+.order {
+	margin: 0 12px 9px;
+	padding: 9px 11px;
+	border: 1px solid var(--line);
+	border-left: 3px solid var(--amber-dim);
+	background: var(--panel-2);
+}
+.order .row1 {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 4px;
+	flex-wrap: wrap;
+}
+.order h3 {
+	font-size: 13px;
+	font-weight: 600;
+	margin: 0;
+	/* Nothing renders past its box (#1284): the substituted title is korg's and
+	   can be any length, and this one sits in a flex column whose width is the
+	   panel's. */
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+/* `margin-left: auto` here and not on `.sched`, so the age and the schedule ref
+   travel to the right edge as ONE group and keep their order. */
+.order .age {
+	margin-left: auto;
+	font-family: var(--mono);
+	font-size: 10.5px;
+	color: var(--faint);
+}
+/* NOTHING RENDERS PAST ITS BOX (#1284), measured rather than assumed: a
+   headless run at 1280 put a 54-character korg project name in this chip and
+   the row forced the panel, the column, the board and the document past their
+   widths — 48px at the row, 20px at the document. `.proj` is `nowrap` and is
+   SHARED with Commander's Call, Delayed Ops and Operations, so the remedy is
+   scoped here rather than applied to the chip: a flex item cannot shrink below
+   its content without `min-width: 0`, and ellipsis cannot fire without it
+   either. The full name rides in the chip's `title`, so the truncation costs a
+   hover rather than the fact. */
+.order .proj {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.order .sched {
+	font-family: var(--mono);
+	font-size: 10.5px;
+	color: var(--faint);
+	white-space: nowrap;
+}
+
 /* ---------- commander's call ---------- */
 .call {
 	margin: 0 12px 9px;
@@ -801,15 +891,24 @@ tr.prog-slice:last-child td {
 	margin-bottom: 4px;
 	flex-wrap: wrap;
 }
+/* NOTHING RENDERS PAST ITS BOX (#1284). Repaired in passing during #1645,
+   which had to run the headless measurement anyway: at 1280 the awaiting note
+   on korg:2912 overflowed this card by 53px and took the panel, the column, the
+   board and the document with it — the note names environment variables
+   (`KCTRLDECK_TOKEN_KWORK_PAIR`) and paths, and a token with no break
+   opportunity cannot wrap without being told it may. Both the title and the
+   note are arbitrary korg strings, so both get the same permission. */
 .call h3 {
 	font-size: 13px;
 	font-weight: 600;
 	margin: 0 0 3px;
+	overflow-wrap: anywhere;
 }
 .call p {
 	margin: 0;
 	font-size: 12px;
 	color: var(--muted);
+	overflow-wrap: anywhere;
 }
 .call .age {
 	margin-left: auto;
