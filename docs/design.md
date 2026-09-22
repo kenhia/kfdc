@@ -584,6 +584,87 @@ Defaulting to hide would let a diligent morning empty the panel down to
 therefore fixes this one to **show** — the opposite of its parked answer, and
 both are written as literals at the point of use.
 
+## Scheduled work in flight — Standing Orders
+
+korg gained `in_flight_schedules` on the board rollup in its sprint 076 (korg
+#1644), and kfdc's half is sprint 023 (#1645). **Standing Orders** renders it,
+in the first column between Fire Missions and Deconfliction.
+
+**The failure is an invisibility, and it happened between two surfaces.** A
+korg *schedule* is a work-item template plus a cadence — the restore drill, the
+quarterly rotation, the thing a date makes appear. While it is due it sits in
+`due_schedules`. The instant somebody materializes it, it stops being due —
+correctly; that is korg's outstanding-item clause stopping a schedule competing
+with the item it just produced — and the open work item it left behind landed
+in **no board panel at all**: in no proposal, not blocked, not awaiting, and
+korg's `events` carries status *changes*, so being created was never one.
+Measured on korg WI #1635 (schedule 1112): the first-ever materialization made
+its own work invisible, and its only surfaces were korg's Schedules page and
+the find-by-ID box.
+
+**It is a panel because it had no host.** Fire Missions is proposals; On Deck
+is the ranked queue; Commander's Call is the awaiting-Ken column; Delayed Ops
+is soaking programs. Work that recurs by standing order rather than by anyone
+calling for it is none of those, and having nowhere to sit is precisely how it
+came to be invisible. It follows Fire Missions, so the first column reads:
+**what is firing, what a standing order put in flight, what collides.**
+
+**The chip wears `--amber-dim`, not `--amber`.** This *is* firing — a standing
+order fired and its work is being done — so it belongs to the amber family and
+a cooler colour would have the palette disagree with the panel. It is dimmed
+because Fire Missions sits directly above it in the same column, and on a 3440px
+screen two stacks of full-amber cards read as one long list of missions. The
+subordinate tone is what keeps the column legible as three panels.
+
+**The row draws two refs, and it is the only compact line on the board that
+does.** korg carries the schedule's `node_id` expressly "so a consumer can link
+the schedule as well as the item", and the two are different destinations for
+different questions: `#wi` is the work being done, `⟳ korg:<id>` is the standing
+order that will fire again. Both refs live in `row1` and the title below is
+plain text — a clickable title as well would put three links on two
+destinations, and it would leave the id grey and clickable beside another grey
+thing that was not.
+
+The title drawn is **`wi_title`**, the substituted one. korg's `title` on this
+row is the *template*, `{DATE}` and all; printing a placeholder where a reader
+expects work would quote a form instead of naming the job. The template rides
+in the schedule ref's tooltip.
+
+**The parked filter does not reach this block, and that is the sharpest rule
+here.** korg's predicate reads `WI_UNFINISHED_STATUSES` on purpose so a parked
+materialized item *stays* in it — "parked scheduled work is deferred, not
+finished, and dropping it would re-hide exactly the item a person deliberately
+set aside" (korg #810/#1644). Suppressing it on this side would re-create
+#1644's own bug behind a checkbox, so `withoutParked` leaves
+`in_flight_schedules` alone and `Board.svelte` passes the **unfiltered** board,
+on the desk and on the wall alike. The wall suppresses parked *proposals*
+unconditionally; these are a different fact wearing the same word.
+
+**First work-item statuses the board paints.** Every chip before this one wore
+a proposal's or a program's literal. `open` is the quiet one — unfilled, muted
+— and deliberately so: every row in the block is in flight by construction, so
+the chip is not there to announce that, it is there to separate the three
+states from each other, and making the commonest the loudest would spend the
+panel's contrast on what the heading already says. `resolved` is green and
+outlined (the done family, not yet `done` — `soaking`'s argument exactly), and
+**not red**, because #1196's rule holds here with force: "wants Ken" is a
+column set by `set_awaiting` and drawn by Commander's Call, never a status
+value. `parked` reuses the chip `parked` already has: GP-19 is a rule about
+every node kind, and one word must not grow a second treatment.
+
+**The panel is empty most of the time**, because a schedule leaves the block the
+moment its work finishes — so its nothing-here line has to read as an answer
+rather than as a panel that failed to load.
+
+**No due-schedules surface, and the record says otherwise.** korg WI 1644's
+decision comment, korg's `docs/api.md` §1644, `board.rs`'s doc comment and
+korg+ `PLAN.md` all state that kfdc and korg-dash "already render
+`due_schedules`" and "inherit it for free". Neither does, as of 2026-09-22 —
+verified by grep in both repos. The claim was load-bearing for a decision that
+is still right (an additive sibling field costs consumers nothing), but nothing
+in kfdc has ever drawn a due schedule. Rendering one is a separate question and
+nobody has filed it.
+
 ## Tokens
 
 | Token | Value | Role |

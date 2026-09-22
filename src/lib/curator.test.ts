@@ -61,6 +61,7 @@ const board = (over: Partial<Board> = {}): Board => ({
 	depth: [],
 	reports: [],
 	events: [],
+	in_flight_schedules: [],
 	...over
 });
 

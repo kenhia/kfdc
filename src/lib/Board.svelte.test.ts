@@ -10,7 +10,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Board from './Board.svelte';
-import type { Board as BoardData, ProposalRow } from './board';
+import type { Board as BoardData, InFlightSchedule, ProposalRow } from './board';
 import { PANE_STORAGE_KEY } from './pane.svelte';
 import { STORAGE_KEY as SETTINGS_KEY } from './settings.svelte';
 
@@ -28,7 +28,8 @@ const board: BoardData = {
 	awaiting: [],
 	depth: [],
 	reports: [],
-	events: []
+	events: [],
+	in_flight_schedules: []
 };
 
 function render(wall: boolean, extra: Record<string, unknown> = {}) {
@@ -186,6 +187,65 @@ describe('parked rows (#1540)', () => {
 	it('leaves the parked row out of the live count it is printed beside', () => {
 		const v = render(false, { board: withParked });
 		expect(v.target.querySelector('.statline')!.textContent).toMatch(/0\s*live proposals/);
+		unmount(v.app);
+	});
+});
+
+// #1645. Standing Orders is where the board draws work korg's parked filter
+// must NOT be allowed to reach, and that is a different claim from the panel
+// existing — it is the one the next person rearranging `withoutParked` could
+// break without touching this panel at all.
+describe('in-flight scheduled work (#1645)', () => {
+	const PARKED_DRILL = 'a drill somebody set aside mid-flight';
+	const inFlight: InFlightSchedule = {
+		node_id: 1112,
+		title: 'a standing order — {DATE}',
+		project: 'krot',
+		wi_number: 1635,
+		wi_title: PARKED_DRILL,
+		wi_status: 'parked',
+		materialized_at: '2026-08-20T09:00:00Z'
+	};
+	const withDrill: BoardData = { ...board, in_flight_schedules: [inFlight] };
+	const shows = (t: HTMLElement) => t.textContent!.includes(PARKED_DRILL);
+
+	it('draws the panel on the desk', () => {
+		const v = render(false);
+		expect(v.target.textContent).toMatch(/Standing Orders/);
+		unmount(v.app);
+	});
+
+	// Wall mode is a display MODE, not a second layout: a panel differs there
+	// only where an affordance does, and this one has none.
+	it('draws the panel on the wall too', () => {
+		const v = render(true);
+		expect(v.target.textContent).toMatch(/Standing Orders/);
+		unmount(v.app);
+	});
+
+	// THE CLAIM THAT MATTERS. korg's in-flight predicate reads
+	// WI_UNFINISHED_STATUSES expressly so a parked materialized item stays in
+	// the block — dropping it would re-hide exactly the item somebody
+	// deliberately set aside, which is korg #1644's own bug. Suppressing it on
+	// this side would re-create that bug behind a checkbox.
+	it('draws a parked in-flight item with the desk setting off', () => {
+		const v = render(false, { board: withDrill });
+		expect(shows(v.target)).toBe(true);
+		unmount(v.app);
+	});
+
+	// And on the wall, which suppresses parked PROPOSALS unconditionally. The
+	// two are different facts wearing one word, and this is the test that says
+	// so out loud.
+	it('draws it on the wall, which suppresses parked proposals unconditionally', () => {
+		const v = render(true, { board: withDrill });
+		expect(shows(v.target)).toBe(true);
+		unmount(v.app);
+	});
+
+	it('says the empty case rather than drawing an empty panel', () => {
+		const v = render(false);
+		expect(v.target.textContent).toMatch(/no scheduled work in flight/);
 		unmount(v.app);
 	});
 });
