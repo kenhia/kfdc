@@ -656,11 +656,12 @@ every node kind, and one word must not grow a second treatment.
 moment its work finishes — so its nothing-here line has to read as an answer
 rather than as a panel that failed to load.
 
-**No due-schedules surface, and the record says otherwise.** korg WI 1644's
+**No due-schedules surface, whatever the record once said.** korg WI 1644's
 decision comment, korg's `docs/api.md` §1644, `board.rs`'s doc comment and
-korg+ `PLAN.md` all state that kfdc and korg-dash "already render
-`due_schedules`" and "inherit it for free". Neither does, as of 2026-09-22 —
-verified by grep in both repos. The claim was load-bearing for a decision that
+korg+ `PLAN.md` all stated that kfdc and korg-dash "already render
+`due_schedules`" and "inherit it for free". Neither did, as of 2026-09-22 —
+verified by grep in both repos. All four were corrected on 2026-09-25 (korg
+#3085, korg sprint 088). The claim was load-bearing for a decision that
 is still right (an additive sibling field costs consumers nothing), but nothing
 in kfdc has ever drawn a due schedule. Rendering one is a separate question and
 nobody has filed it.
