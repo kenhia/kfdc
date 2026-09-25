@@ -22,10 +22,10 @@
 	//
 	// THE OVERSEER'S CALL WAS "beside `due_schedules`", AND THERE IS NO BESIDE:
 	// kfdc renders no due-schedules surface, and neither does korg-dash, though
-	// four decision records say both do. What survives of the call is its
-	// substance and it is honoured here — due is a nag, in-flight is a tracker,
-	// and folding the two together would lose the distinction korg's sibling
-	// field was created to keep.
+	// four decision records said both did (corrected 2026-09-25, korg #3085).
+	// What survives of the call is its substance and it is honoured here — due
+	// is a nag, in-flight is a tracker, and folding the two together would lose
+	// the distinction korg's sibling field was created to keep.
 	let { rows, generated }: { rows: InFlightSchedule[]; generated: string } = $props();
 </script>
 
