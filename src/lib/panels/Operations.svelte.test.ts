@@ -107,3 +107,38 @@ describe('Operations program state', () => {
 		unmount(v.app);
 	});
 });
+
+describe('Operations program count', () => {
+	// #3322: the program's finished/total work items, printed right after the
+	// status chip (where Ken marked it), with the parts spelled out on hover.
+	it('prints finished/total right after the status chip', () => {
+		const v = render({
+			programs: [
+				program({
+					slices: [
+						{ ...slice(1, 'done'), open: 0, done: 1 },
+						{ ...slice(2, 'active'), open: 2, resolved: 1, covered_count: 3 }
+					]
+				})
+			]
+		});
+		const cnt = v.target.querySelector('.row1 .op-cnt') as HTMLElement;
+		expect(cnt.textContent!.trim()).toBe('2/4');
+		expect(cnt.previousElementSibling).toBe(v.chip());
+		expect(cnt.title).toBe('2 finished of 4 work items');
+		unmount(v.app);
+	});
+
+	it('shows Ken-verified the way a slice count does, and says so on hover', () => {
+		const v = render({
+			programs: [program({ slices: [{ ...slice(1, 'done'), open: 0, closed: 1 }, slice(2)] })]
+		});
+		const cnt = v.target.querySelector('.op-cnt') as HTMLElement;
+		// The gap between the parts is CSS (`.ver`'s margin — Svelte drops the
+		// whitespace opening an {#if}), which jsdom cannot see; assert the parts.
+		expect(cnt.firstChild!.textContent).toBe('1/2');
+		expect(cnt.querySelector('.ver')!.textContent).toBe('1✓');
+		expect(cnt.title).toBe('1 finished of 2 work items, 1 verified by Ken');
+		unmount(v.app);
+	});
+});

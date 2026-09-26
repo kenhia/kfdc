@@ -4,6 +4,7 @@ import {
 	fireMissionOrder,
 	formatAge,
 	onDeckRows,
+	programProgress,
 	progress,
 	soakClock,
 	splashing,
@@ -107,6 +108,47 @@ describe('progress', () => {
 			verified: 1,
 			total: 1
 		});
+	});
+});
+
+describe('programProgress', () => {
+	const s = (over: Partial<ProgramSlice>): ProgramSlice => ({
+		node_id: 1,
+		title: 't',
+		project: 'korg',
+		status: 'active',
+		rank: '0',
+		open: 0,
+		resolved: 0,
+		done: 0,
+		closed: 0,
+		covered_count: 0,
+		...over
+	});
+
+	// #3322: the program's own count is its slices' counts added up — the same
+	// #980 parts, not a new definition of "finished".
+	it('sums every slice`s three parts', () => {
+		expect(
+			programProgress([
+				s({ open: 3, covered_count: 3 }),
+				s({ resolved: 1, covered_count: 1 }),
+				s({ done: 1, covered_count: 1 }),
+				s({ closed: 1, open: 1, covered_count: 2 })
+			])
+		).toEqual({ complete: 3, verified: 1, total: 7 });
+	});
+
+	// Parked work is part of the program and not finished, so it counts in the
+	// total only. korg's covered_count already includes it and the numerator
+	// never reads it — pinned here so a later edit cannot start counting it.
+	it('counts parked items in the total and never as finished', () => {
+		const parked = { ...s({ done: 1, covered_count: 3 }), parked: 2 };
+		expect(programProgress([parked])).toEqual({ complete: 1, verified: 0, total: 3 });
+	});
+
+	it('is 0/0 on a program with no slices', () => {
+		expect(programProgress([])).toEqual({ complete: 0, verified: 0, total: 0 });
 	});
 });
 

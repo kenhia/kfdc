@@ -1204,14 +1204,21 @@ footer.ticker .src-note {
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
-.slice .s-cnt {
+/* The program's own count (#3322) wears the slice count's typography: one
+   count style on the panel, the program's just sums the chips below it. */
+.slice .s-cnt,
+.op .op-cnt {
 	font-family: var(--mono);
 	font-size: 10px;
 	color: var(--faint);
 	font-variant-numeric: tabular-nums;
 }
-.slice .s-cnt .ver {
+.slice .s-cnt .ver,
+.op .op-cnt .ver {
 	color: var(--green);
+	/* Svelte drops the whitespace opening an {#if}, so without this `1/1` and
+	   `1✓` render as `1/11✓` — which reads as one of eleven. */
+	margin-left: 0.6ch;
 }
 .arrow {
 	font-family: var(--mono);

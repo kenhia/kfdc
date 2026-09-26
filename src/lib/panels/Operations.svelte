@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { progress, type Board, type ProgramRow, type ProgramSlice } from '$lib/board';
+	import {
+		programProgress,
+		progress,
+		type Board,
+		type ProgramRow,
+		type ProgramSlice
+	} from '$lib/board';
 	import NodeRef from '$lib/NodeRef.svelte';
 
 	let {
@@ -49,6 +55,7 @@
 	</div>
 
 	{#each programs as prog (prog.node_id)}
+		{@const t = programProgress(prog.slices)}
 		<!-- One card class per korg status literal (#1444). Not a predicate per
 		     state: a predicate leaves every unmatched literal wearing the base
 		     treatment, which is how `queued` arrived from korg 069 and read as
@@ -57,6 +64,14 @@
 			<div class="row1">
 				<h3><NodeRef nodeId={prog.node_id} title="korg:{prog.node_id}">{prog.title}</NodeRef></h3>
 				<span class="status {prog.status}">{prog.status}</span>
+				<span
+					class="op-cnt"
+					title="{t.complete} finished of {t.total} work items{t.verified > 0
+						? `, ${t.verified} verified by Ken`
+						: ''}"
+					>{t.complete}/{t.total}{#if t.verified > 0}
+						<span class="ver">{t.verified}✓</span>{/if}</span
+				>
 				<span class="span-chips">
 					{#each prog.span as proj (proj)}<span class="proj">{proj}</span>{/each}
 				</span>
