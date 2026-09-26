@@ -56,3 +56,24 @@ agrees with `get_program`'s slices: 3+1+1+1+1+1+1 covered, 4 finished
   `.ver`, which the new program count shares. The gate proves the markup
   structure. The gap itself is CSS, which jsdom cannot see; no program on the
   live board had a closed item to look at.
+
+## Deployed
+
+2026-09-26 03:07 UTC (2026-09-25 20:07 PDT), through `deploy-board` from merged
+`main` (`392da3a`, PR #31):
+
+- `just publish` published **`0.5.0-392da3a`** (store `latest` moved).
+- `just deploy 0.5.0-392da3a` (knarr) to **kubsdb**: rc 0, sha256
+  `1197644d…a7513f69`, **1918ms** total. stage 399, backup 197, install 217,
+  restart 236, ready 270 (1 attempt), `confirm` 202ms with detail
+  `0.5.0-392da3a`, cleanup pruned `0.5.0-f2b1b19`. The status-document
+  assertion (every host, every step ok, `confirm` == version) passed.
+- Tailnet from kai: `https://kubsdb.encke-wahoo.ts.net:8100/` returned 200, and
+  `Fire Missions` rendered.
+- **The sprint's own behaviour, live:** program korg:3314 renders
+  `<span class="op-cnt" title="5 finished of 9 work items">5/9`, right after
+  its status chip on the same line (`.scratch/024-shot.mjs` against the
+  deployed board). It read `4/9` before this slice resolved.
+- `just versions`: store `latest`, `here:` top and `running:` are all
+  `0.5.0-392da3a`.
+- Rollback target: `0.5.0-6de4d6d` (still unpacked on kubsdb).
