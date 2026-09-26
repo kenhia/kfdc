@@ -337,6 +337,21 @@ export function progress(r: {
 	};
 }
 
+// A program's own count (#3322): its slices' three parts, added up. korg
+// inlines every slice on the board rollup, uncapped, so the sum is exact —
+// not a figure korg must return for us (GP-13). Parked items sit in
+// `covered_count` and in no numerator term, so they count in the total only.
+export function programProgress(slices: ProgramSlice[]) {
+	const sum = { complete: 0, verified: 0, total: 0 };
+	for (const s of slices) {
+		const p = progress(s);
+		sum.complete += p.complete;
+		sum.verified += p.verified;
+		sum.total += p.total;
+	}
+	return sum;
+}
+
 // SPLASH (kfdc #990, 11C semantics): rounds complete, watch for impact — an
 // active mission whose rollup reached work-complete == total. Sprint-ship is
 // imminent and Ken's verification is the next event.
