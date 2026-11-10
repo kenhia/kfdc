@@ -90,3 +90,33 @@ relay rather than being landed here.
   since sprint 013; they now name `deploy/bootstrap.sh`. Gate: `just check`
   (prettier) plus a grep showing the remaining `install.sh` mentions are
   historical.
+
+## Deployed
+
+2026-11-09 19:03 PST (03:03Z), by `deploy-board` from merged `main` (PR #33,
+`a56e7c0`), as karc leg `kfdc-f026db` on its ship turn.
+
+- Published `0.5.0-a56e7c0`; `just deploy` (knarr) to kubsdb, status
+  document asserted clean: sha256 `b643219d…2bcc86`, **1918ms** total —
+  stage 405, backup 196, install 217, restart 229, ready 280, confirm 200
+  (`0.5.0-a56e7c0`), cleanup pruned `0.5.0-6de4d6d`. Rollback target
+  `0.5.0-10f9a24`. Only `kfdc.service` restarted.
+- `LAN_HOST=192.168.1.60` was appended to kubsdb's `~/.config/kfdc/kfdc.env`
+  on the working turn (inert until this version).
+- **The unit by hand, this once:** knarr never writes units and
+  `bootstrap.sh` refuses to re-run, so `kfdc.service` was fetched from the
+  store's `0.5.0-a56e7c0` on kubsdb, checked against its `SHA256SUMS`,
+  copied to `~/.config/systemd/user/` and `daemon-reload`ed (no restart).
+  md5 `42da9e92…` equals `systemd/kfdc.service`. That there is no
+  supported route for this went to Ken as a design question via the
+  overseer (korg:4436 comment).
+- Live: `ss -ltn` on kubsdb shows `127.0.0.1:8100` and `192.168.1.60:8100`
+  owned by the one kfdc PID, beside tailscaled's own tailnet binds; the
+  journal says `kfdc: also listening on 192.168.1.60:8100`.
+- From inside the kwebi container: `fetch('http://192.168.1.60:8100/')` →
+  200, board rendered ("Fire Missions").
+- From kai, kwebi `scripts/post-deploy-check.sh` (fresh baseline, then
+  compare): **PASS, zero failures**, the `:8100` tile "up, and kubsdb
+  agrees (200)".
+- From kai, `https://kubsdb.encke-wahoo.ts.net:8100/` → 200 and renders
+  the board. `just versions`: store latest = running = `0.5.0-a56e7c0`.
