@@ -16,7 +16,7 @@
 		return parseSynopsis(row.synopsis.body)?.line || null;
 	}
 
-	// Track segment states, three-part per korg #980: Ken-verified (closed) as
+	// Track segment states, three-part per korg #980: Ken-verified (closed+cut) as
 	// green, work-complete-but-unverified as amber, remainder as unfilled.
 	function segments(row: ProposalRow): ('verified' | 'complete' | 'open')[] {
 		const p = progress(row);

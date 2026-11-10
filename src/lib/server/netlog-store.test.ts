@@ -20,6 +20,7 @@ const row = (over: Partial<ProposalRow> = {}): ProposalRow => ({
 	resolved: 0,
 	done: 0,
 	closed: 0,
+	cut: 0,
 	updated: '2026-08-05T00:00:00Z',
 	synopsis: null,
 	...over
