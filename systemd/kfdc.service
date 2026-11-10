@@ -1,4 +1,4 @@
-# kfdc — the board itself. Installed by deploy/install.sh from a published
+# kfdc — the board itself. Installed by deploy/bootstrap.sh from a published
 # bundle, never hand-written on a host. Until sprint 005 this unit existed
 # only in ~/.config/systemd/user on kai and in no repo at all; it is here
 # now so the unit that shipped with a build is recoverable with that build.
@@ -20,10 +20,19 @@ WorkingDirectory=%h/.local/share/kfdc/current
 EnvironmentFile=%h/.config/kfdc/kfdc.env
 Environment=NODE_ENV=production
 
-# Loopback, always. tailscaled holds <ts-ip>:<port> itself to serve this
-# host's own ts.net traffic, so a wildcard bind fights it for the port and
-# crash-loops with EADDRINUSE (the homelab's oldest serve gotcha). The
-# adapter's default is 0.0.0.0, so leaving this out is not neutral.
+# Loopback is the primary bind, and never a wildcard. tailscaled holds
+# <ts-ip>:<port> itself to serve this host's own ts.net traffic, so a
+# wildcard bind fights it for the port and crash-loops with EADDRINUSE (the
+# homelab's oldest serve gotcha). The adapter's default is 0.0.0.0, so
+# leaving this out is not neutral.
+#
+# Until sprint 026 this read "Loopback, always", and that is no longer the
+# rule: Ken decided (2026-11-09, korg:4436) the board ALSO binds the host's
+# LAN address, so kwebi's container can probe it and its kFDC tile stops
+# reading Down while the board serves. That address is placement, so it is
+# LAN_HOST in the env file, not a line here; the app refuses a wildcard
+# there for the same reason as above. Do not "restore" loopback-only
+# without reading sprints/026-lan-bind.md.
 Environment=HOST=127.0.0.1
 
 # PORT and ORIGIN come from the env file: they are placement, not shape.

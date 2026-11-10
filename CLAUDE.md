@@ -180,7 +180,11 @@ after they are.
   older version is the rollback. The service runs out of
   `~/.local/share/kfdc/current`, not the clone, with placement (PORT,
   ORIGIN) in `~/.config/kfdc/kfdc.env` — which is why sprint 009's move to
-  kubsdb changed no application code. **The clone and the service are on
+  kubsdb changed no application code. Since sprint 026 it also listens on
+  `LAN_HOST` (kubsdb: `192.168.1.60`) beside the unit's loopback `HOST`, so
+  kwebi's container can probe it — **two named addresses, never a
+  wildcard**, which would fight tailscaled for the port; the unit's old
+  "Loopback, always" comment was reversed on purpose (korg:4436). **The clone and the service are on
   different machines now**: `KFDC_DEPLOY_HOST` in `.env` names the serving
   host. Since sprint 013 `just deploy` is **one `knarr` call** — the fleet
   deploy runner — not a hand-rolled ssh bootstrap; `deploy/install.sh` is
