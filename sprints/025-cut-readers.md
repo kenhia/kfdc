@@ -47,15 +47,30 @@ widening the predicate is enough.
   overseer ruling and Ken can reverse it. `closed` and `done` keep today's
   behaviour. The new test failed before the fix.
 
-## Findings for the overseer
+## Findings, and the overseer's ruling
+
+The pre-ship handoff (korg:4420) raised two findings as decisions. The
+overseer ruled that both are defects and should be repaired here, on each
+repo's own main.
 
 - **koverwatch's 17:52 stop.** The user journal records only `Consumed 2.761s
   CPU` at 17:52:46. There is no `Stopping` job and no failure result, so the
   node process exited cleanly on its own. adapter-node exits 0 on
-  SIGTERM/SIGINT, and the unit is `Restart=on-failure`, which does not restart
-  a clean exit. That is consistent with an external signal sent straight to
-  the PID, not a crash. The journal does not say who sent it. Whether to make
-  the unit `Restart=always` is a policy call, so it is not changed here.
-- **`kmuster-projectcheck` takes no arguments.** It ignores `--help` and runs
-  the real weekly pass (`--fix --file`). Running it to read usage after the
-  deploy executed it live. It was clean: 0 findings and no korg writes.
+  SIGTERM/SIGINT, and `Restart=on-failure` does not restart a clean exit. The
+  journal does not say who sent the signal. **Repaired** in koverwatch
+  `3fa6194`: the unit source in `deploy/` is now `Restart=always` with the
+  existing `RestartSec=5`, installed by `just deploy` (verify 5/5). Proof: a
+  direct `kill -TERM` of the main PID (3152017) brought it back as 3152181 on
+  a scheduled restart 5 s later, and `/` answered 200. The exit itself again
+  left no journal line of its own, which matches the 17:52 signature.
+- **`kmuster-projectcheck` ignored its arguments.** It ran the real weekly
+  pass (`--fix --file`) when asked for `--help`, and that run executed live
+  (clean: 0 findings, no korg writes). **Repaired** in kmuster `0c89a45`.
+  With no arguments it still runs the pass, which is what the unit's
+  `ExecStart` passes. `--version` still answers for knarr's confirm step.
+  `--help`/`-h` print usage and exit 0, and anything else prints usage and
+  exits 2 before the binary is invoked. `tests/projectcheck_runner.rs` pins
+  all four with a fake `KMUSTER_BIN` that records every call; the two new
+  guards failed before the fix. Published as `0.3.0-0c89a45` and deployed to
+  kai and kubs0. The live `--help` and `--bogus` calls left the state file's
+  mtime untouched.
