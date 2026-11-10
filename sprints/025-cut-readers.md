@@ -74,3 +74,24 @@ repo's own main.
   guards failed before the fix. Published as `0.3.0-0c89a45` and deployed to
   kai and kubs0. The live `--help` and `--bogus` calls left the state file's
   mtime untouched.
+
+## Deployed
+
+2026-11-09, by `deploy-board` from merged main (`10f9a24`, PR #32) through
+sprint-ship Phase 7, on the karc ship turn.
+
+- Published `0.5.0-10f9a24`, and the store's `latest` moved to it. The
+  rollback target is `0.5.0-392da3a`, which is still unpacked on kubsdb.
+- knarr to kubsdb, total 1942 ms. Every step was ok: stage 390, backup 203,
+  install 212, restart 242, ready 280 (first attempt), confirm 205 with detail
+  `0.5.0-10f9a24`, and cleanup pruned `0.5.0-d6d5268`. The bundle sha256 is
+  `3da6f5d4…bf99f`. The status document passed the skill's `all(.hosts[])`
+  assertion.
+- From kai over the tailnet, `https://kubsdb.encke-wahoo.ts.net:8100/` answered
+  200 and rendered Fire Missions. Operations printed program korg:4368 as
+  `19/20` and korg:3689 as `37/40`. I recomputed both from korg's live
+  `/api/board` with `cut` included, and they match. No live row carried a
+  `cut` item at deploy time, so the new term contributed zero on live data.
+  Its behaviour is proven by the unit tests, not by a live specimen.
+- `just versions`: the store's latest, the top unpacked version and the
+  running version are all `0.5.0-10f9a24`.
