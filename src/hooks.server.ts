@@ -5,6 +5,7 @@
 
 import { building } from '$app/environment';
 import { fetchBoard } from '$lib/server/korg';
+import { lanHost, startLanBind } from '$lib/server/lanbind';
 import { netlog } from '$lib/server/netlog';
 import type { ServerInit } from '@sveltejs/kit';
 
@@ -15,6 +16,7 @@ export const POLL_INTERVAL_MS = 3 * 60_000;
 
 const COMPACT_EVERY_TICKS = (24 * 60 * 60 * 1000) / POLL_INTERVAL_MS;
 const POLLER = Symbol.for('kfdc.netlog.poller');
+const LAN = Symbol.for('kfdc.lanbind');
 
 export const init: ServerInit = () => {
 	if (building) return;
@@ -50,4 +52,28 @@ export const init: ServerInit = () => {
 		clearInterval(poller);
 		g[POLLER] = undefined;
 	});
+
+	startLan(g);
 };
+
+// korg:4436: LAN_HOST (placement, from kfdc.env) adds a second listener on
+// the same PORT, forwarding to the loopback server — see lanbind.ts. Unset
+// means loopback only, which is also what `npm run dev` gets.
+function startLan(g: Record<symbol, unknown>) {
+	const { HOST, PORT, LAN_HOST } = process.env;
+	const host = lanHost(LAN_HOST, HOST);
+	if (!host || !PORT) return;
+	const lan = startLanBind({
+		host,
+		port: Number(PORT),
+		target: HOST ?? '127.0.0.1',
+		log: (msg) => console.log(msg)
+	});
+	g[LAN] = lan;
+	// The listening socket is referenced, so it must close with the server or
+	// the process never exits after SIGTERM (the kfdc #1200 shape again).
+	process.once('sveltekit:shutdown', () => {
+		lan.close();
+		g[LAN] = undefined;
+	});
+}

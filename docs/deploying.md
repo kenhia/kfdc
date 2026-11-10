@@ -132,6 +132,19 @@ adapter-node's default is `0.0.0.0`, and a wildcard bind fights tailscaled
 for the port and crash-loops with `EADDRINUSE` — the homelab's oldest serve
 gotcha, not a hypothetical.
 
+Loopback is the primary bind, not the only one. `LAN_HOST` in the env file
+names **one** more address on the same `PORT` (sprint 026, korg:4436) — on
+kubsdb, `192.168.1.60`, so kwebi's container can probe the board. Two named
+addresses, never a wildcard: the app refuses `0.0.0.0`/`::` there and stops,
+so the deploy's `ready` step fails rather than the service fighting
+tailscaled. adapter-node takes one `HOST` and one socket-activation fd, so
+the second address is an in-process TCP forwarder into the loopback server
+(`src/lib/server/lanbind.ts`), started from the `init` hook. `ExecStart` is
+unchanged, so `--expect-file build/index.js` and rollback both still hold —
+a version from before 026 just ignores `LAN_HOST`. If the address is not up
+yet at boot, the listener logs and retries every 10s while the board serves
+on loopback.
+
 ## What a deploy proves before it is finished
 
 knarr stops at the first failure and reports each step in its status
