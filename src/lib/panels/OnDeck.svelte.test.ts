@@ -22,6 +22,7 @@ const row = (node_id: number, over: Partial<ProposalRow> = {}): ProposalRow => (
 	resolved: 0,
 	done: 0,
 	closed: 0,
+	cut: 0,
 	updated: '2026-08-08T00:00:00Z',
 	synopsis: null,
 	...over
@@ -37,6 +38,7 @@ const slice = (node_id: number, status = 'proposed'): ProgramSlice => ({
 	resolved: 0,
 	done: 0,
 	closed: 0,
+	cut: 0,
 	covered_count: 1
 });
 

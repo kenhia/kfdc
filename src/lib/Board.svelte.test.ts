@@ -137,6 +137,7 @@ describe('parked rows (#1540)', () => {
 		resolved: 0,
 		done: 0,
 		closed: 0,
+		cut: 0,
 		updated: '2026-08-20T09:00:00Z',
 		synopsis: null
 	};

@@ -20,6 +20,7 @@ const slice = (node_id: number, status = 'proposed'): ProgramSlice => ({
 	resolved: 0,
 	done: 0,
 	closed: 0,
+	cut: 0,
 	covered_count: 1
 });
 

@@ -43,6 +43,7 @@ const opsRow = (over: Partial<DelayedOpsRow> = {}): DelayedOpsRow => ({
 				resolved: 0,
 				done: 1,
 				closed: 0,
+				cut: 0,
 				covered_count: 1
 			}
 		],

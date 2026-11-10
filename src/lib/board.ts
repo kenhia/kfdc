@@ -22,6 +22,8 @@ export interface ProposalRow {
 	resolved: number;
 	done: number;
 	closed: number;
+	// korg #4366 (sprint 098): closed's twin — Ken decided not to do it.
+	cut: number;
 	updated: string;
 	// The newest ⟦curator⟧-marked comment (korg #1003), or null until the
 	// curator's first pass over this row. Format contract: curator/prompt.md;
@@ -90,6 +92,7 @@ export interface ProgramSlice {
 	resolved: number;
 	done: number;
 	closed: number;
+	cut: number;
 	covered_count: number;
 }
 
@@ -322,17 +325,21 @@ export function statline(b: Board) {
 }
 
 // Three-part progress, semantics pinned on korg #980:
-// work-complete (resolved+done+closed) / Ken-verified (closed) / total.
-// Takes anything carrying the four counts — a proposal row or a program slice.
+// work-complete (resolved+done+closed+cut) / Ken-verified (closed+cut) / total.
+// `cut` (korg #4366) is Ken's decided-not-to-do: finished business, and a
+// status only he sets, so it sits on both sides — the split korg's own
+// docs/usage.md states. Takes anything carrying the counts — a proposal row
+// or a program slice.
 export function progress(r: {
 	resolved: number;
 	done: number;
 	closed: number;
+	cut: number;
 	covered_count: number;
 }) {
 	return {
-		complete: r.resolved + r.done + r.closed,
-		verified: r.closed,
+		complete: r.resolved + r.done + r.closed + r.cut,
+		verified: r.closed + r.cut,
 		total: r.covered_count
 	};
 }

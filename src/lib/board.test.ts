@@ -35,6 +35,7 @@ const row = (over: Partial<ProposalRow> = {}): ProposalRow => ({
 	resolved: 0,
 	done: 0,
 	closed: 0,
+	cut: 0,
 	updated: '2026-08-05T00:00:00Z',
 	synopsis: null,
 	...over
@@ -103,10 +104,21 @@ describe('progress', () => {
 	// #1029: a program slice carries the same four counts — one derivation,
 	// not a fourth progress variant.
 	it('derives the same three parts from a program slice', () => {
-		expect(progress({ resolved: 0, done: 0, closed: 1, covered_count: 1 })).toEqual({
+		expect(progress({ resolved: 0, done: 0, closed: 1, cut: 0, covered_count: 1 })).toEqual({
 			complete: 1,
 			verified: 1,
 			total: 1
+		});
+	});
+
+	// korg #4366 (sprint 098): `cut` is closed's twin — Ken decided not to do
+	// it. Finished business on both sides, the split korg's docs/usage.md
+	// fixes: complete is resolved+done+closed+cut, verified is closed+cut.
+	it('counts cut as finished and as Ken-verified', () => {
+		expect(progress(row({ open: 1, resolved: 1, closed: 1, cut: 1, covered_count: 4 }))).toEqual({
+			complete: 3,
+			verified: 2,
+			total: 4
 		});
 	});
 });
@@ -122,6 +134,7 @@ describe('programProgress', () => {
 		resolved: 0,
 		done: 0,
 		closed: 0,
+		cut: 0,
 		covered_count: 0,
 		...over
 	});
@@ -145,6 +158,12 @@ describe('programProgress', () => {
 	it('counts parked items in the total and never as finished', () => {
 		const parked = { ...s({ done: 1, covered_count: 3 }), parked: 2 };
 		expect(programProgress([parked])).toEqual({ complete: 1, verified: 0, total: 3 });
+	});
+
+	it('counts a cut slice item as finished, not as remaining work', () => {
+		expect(
+			programProgress([s({ cut: 2, covered_count: 2 }), s({ open: 1, covered_count: 1 })])
+		).toEqual({ complete: 2, verified: 2, total: 3 });
 	});
 
 	it('is 0/0 on a program with no slices', () => {
@@ -194,6 +213,7 @@ describe('withoutParked', () => {
 		resolved: 0,
 		done: 0,
 		closed: 0,
+		cut: 0,
 		covered_count: 1
 	});
 	const program = (over: Partial<ProgramRow> = {}): ProgramRow => ({
@@ -350,6 +370,7 @@ describe('onDeckRows', () => {
 		resolved: 0,
 		done: 0,
 		closed: 0,
+		cut: 0,
 		covered_count: 1
 	});
 	const program = (over: Partial<ProgramRow> = {}): ProgramRow => ({
@@ -472,6 +493,7 @@ describe('soaking', () => {
 		resolved: 0,
 		done: 1,
 		closed: 0,
+		cut: 0,
 		covered_count: 1
 	});
 
