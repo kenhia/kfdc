@@ -308,7 +308,9 @@ with the same assertions above — a rollback is a deploy.
   and `~/.config/systemd/user/kfdc.service` are host state. knarr will never
   write either — it ships artifacts, restarts services and verifies versions,
   and nothing else (knarr D12). Both are `deploy/bootstrap.sh`, once per host,
-  ever; it refuses to run once they are in place. `PORT` must match the
+  ever; it refuses to run once they are in place. The one later change is a
+  newer unit, and that is step 2a's `just update-unit` (sprint 027) — the
+  config is never re-seeded. `PORT` must match the
   `tailscale_serve` entry declared for that host in k-homelab
   `manifests/<host>.yml`.
 - **The curator.** `bin/update-fdc`, `just curator` and `kfdc-curator.timer`
