@@ -67,3 +67,31 @@ setup script owns it, knarr keeps D12.
 None. (`--help` used a hard-coded `sed -n '2,45p'`; it now prints up to
 `set -eu`, but that was forced by this sprint growing the header, not a
 pre-existing defect.)
+
+## Deployed
+
+2026-11-27 ~12:10 PST, by `deploy-board` from merged `main` (PR #36,
+`58f331c`), as karc leg `kfdc-c18453` on its ship turn, from kai.
+
+- Published `0.5.0-58f331c` (`latest` moved). Rollback target
+  `0.5.0-a56e7c0`, still unpacked on kubsdb.
+- **`just update-unit 0.5.0-58f331c`, first run:** fetched and verified
+  latest's `bootstrap.sh` on kubsdb, `kfdc.service checksum OK`, printed the
+  one-hunk diff (this sprint's header comment), installed, `daemon-reload`ed,
+  and said `NOT restarted`. `MainPID` stayed 2216; installed unit md5 became
+  `b9307cda…` = `systemd/kfdc.service`; env md5 `ed202cff…` unchanged.
+- **`just deploy 0.5.0-58f331c` (knarr), status document asserted clean:**
+  sha256 `317700d2…abb99`, **1865ms** total: stage 386, backup 192,
+  install 209, restart 224, ready 264, confirm 194 (`0.5.0-58f331c`),
+  cleanup pruned `0.5.0-392da3a`. That restart is the one that applied the
+  new unit; nothing else restarted.
+- **`just update-unit 0.5.0-58f331c`, second run:** `already matches … nothing
+  to do`. `NeedDaemonReload=no`, PID 431089 active.
+- Live, probed from kubsdb for the binds and from kai for the tailnet:
+  `127.0.0.1:8100` 200, `192.168.1.60:8100` 200 (`ss -ltn` shows both plus
+  tailscaled's own), `https://kubsdb.encke-wahoo.ts.net:8100/` 200 and
+  renders "Fire Missions". `just versions`: store latest, top of `here:`,
+  and `running:` all `0.5.0-58f331c`.
+- Follow-on PR #37 (`a8561c3`) fixed one stale line in `deploy-board`'s
+  not-do list. It is skill-only and not in the bundle, so there was nothing to
+  redeploy.
