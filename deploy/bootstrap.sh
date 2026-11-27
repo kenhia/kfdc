@@ -2,7 +2,9 @@
 # kfdc bootstrap — the parts of standing a host up that knarr will never do.
 #
 # Run ONCE per host, ever. It is not a deploy route, and it refuses to be
-# used as one (see the guard below). Deploys go through knarr:
+# used as one (see the guard below). The one later use is --update-unit,
+# below, which replaces the unit file and nothing else. Deploys go through
+# knarr:
 #
 #     knarr deploy kfdc --host <host> --shape directory --user \
 #         --unit kfdc.service --expect-file build/index.js --ready-cmd '…'
@@ -23,12 +25,24 @@
 #
 # Usage:
 #   bootstrap.sh [--store URL] [--version VER] [--dry-run]
+#   bootstrap.sh --update-unit [--restart] [--store URL] [--version VER] [--dry-run]
 #
 #   --store URL   package store base, or $KFDC_STORE_URL. No default, on
 #                 purpose: a guessed hostname fails later as a confusing
 #                 curl error instead of here as a sentence.
 #   --version VER which published bundle to take the unit and template
 #                 from; omit to resolve `latest`.
+#   --update-unit on a host that is ALREADY bootstrapped, replace the
+#                 installed unit with the bundle's: verify it against
+#                 SHA256SUMS, show the diff, install, daemon-reload. Touches
+#                 nothing else — not the env file, not `enable`, not the
+#                 running version — and is a no-op when the unit matches.
+#                 (Ken's ruling, korg:4767 comment 5219: the setup script
+#                 owns the unit on a live host; knarr keeps D12.)
+#   --restart     with --update-unit only: restart the service after a
+#                 CHANGED unit is installed. Off by default, so a unit update
+#                 is never a surprise outage; without it the new unit takes
+#                 effect at the next restart, which the next knarr deploy does.
 #
 # Bootstrapping a host with no checkout — bootstrap.sh is itself
 # checksum-verified before it runs, which `curl | sh` cannot offer:
@@ -45,6 +59,8 @@ NAME=kfdc
 STORE_URL="${KFDC_STORE_URL:-}"
 STORE_VERSION=""
 DRY_RUN=0
+UPDATE_UNIT=0
+RESTART=0
 
 SHARE_DIR="$HOME/.local/share/$NAME"
 CURRENT="$SHARE_DIR/current"
@@ -68,12 +84,17 @@ while [ $# -gt 0 ]; do
             shift; [ $# -gt 0 ] || fail "--version needs a value"
             STORE_VERSION="$1" ;;
         --dry-run) DRY_RUN=1 ;;
+        --update-unit) UPDATE_UNIT=1 ;;
+        --restart) RESTART=1 ;;
         -h|--help)
-            sed -n '2,45p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+            sed -n '2,/^set -eu$/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) fail "unknown argument: $1 (try --help)" ;;
     esac
     shift
 done
+
+[ "$RESTART" -eq 0 ] || [ "$UPDATE_UNIT" -eq 1 ] \
+    || fail "--restart only means something with --update-unit"
 
 # --- 0. Refuse to be the deploy route -------------------------------------
 #
@@ -82,7 +103,12 @@ done
 # and then the fleet has one service that does not deploy through the fleet
 # tool. knarr's own deploy/seed.sh holds the same line.
 
-if [ -f "$UNIT" ] && [ -f "$CONF" ]; then
+if [ "$UPDATE_UNIT" -eq 1 ]; then
+    # The other direction: an update mode on a host that was never set up
+    # would be a bootstrap that skipped seeding and validating the config.
+    [ -f "$UNIT" ] || fail "--update-unit needs an installed unit and there is none at $UNIT.
+       This host is not bootstrapped; run bootstrap.sh without --update-unit."
+elif [ -f "$UNIT" ] && [ -f "$CONF" ]; then
     printf '%s is already bootstrapped on %s:\n' "$NAME" "$(hostname -s)"
     note "unit   $UNIT"
     note "config $CONF"
@@ -91,10 +117,11 @@ if [ -f "$UNIT" ] && [ -f "$CONF" ]; then
     printf '  knarr deploy %s --host %s --shape directory --user --unit %s.service\n' \
         "$NAME" "$(hostname -s)" "$NAME"
     printf 'or, from the clone on kai:  just deploy [version]\n'
+    printf '\nTo replace only the unit file with a published one: bootstrap.sh --update-unit\n'
     exit 1
 fi
 
-for cmd in curl sha256sum systemctl; do
+for cmd in curl sha256sum systemctl cmp; do
     command -v "$cmd" >/dev/null 2>&1 || fail "$cmd not found on this host; the bootstrap needs it"
 done
 
@@ -121,12 +148,17 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 # --- 2. Fetch and verify the two host-state files -------------------------
 #
 # The tarball is knarr's to fetch, not this script's. All that is wanted
-# here is the unit and the config template.
+# here is the unit and the config template — or, with --update-unit, the
+# unit alone: that mode has no use for the template, and not fetching it
+# means it cannot be the thing that touches the config.
 
 SUMS=$(curl -fsS "$VERSION_URL/SHA256SUMS") \
     || fail "cannot read $VERSION_URL/SHA256SUMS — is $STORE_VERSION published?"
 
-for f in "$NAME.service" "$NAME.env.example"; do
+FILES="$NAME.service $NAME.env.example"
+[ "$UPDATE_UNIT" -eq 0 ] || FILES="$NAME.service"
+
+for f in $FILES; do
     curl -fsS -o "$WORK/$f" "$VERSION_URL/$f" \
         || fail "fetch failed: $VERSION_URL/$f — is $STORE_VERSION published with a full bundle?"
     line=$(printf '%s\n' "$SUMS" | grep -E "[[:space:]][*]?$(printf '%s' "$f" | sed 's/[.[\*^$]/\\&/g')\$" | head -1)
@@ -135,6 +167,40 @@ for f in "$NAME.service" "$NAME.env.example"; do
         || fail "checksum MISMATCH for $f — refusing to install"
     note "$f  checksum OK"
 done
+
+# --- 2u. --update-unit: the unit, and only the unit -----------------------
+#
+# Everything a host needs after its bootstrap that knarr will not do
+# (knarr D12): a published unit replacing the installed one. Config is not
+# read, `enable` is not re-run (that was a statement about boot, made once),
+# and the running version is not touched unless --restart asks for it.
+
+if [ "$UPDATE_UNIT" -eq 1 ]; then
+    if cmp -s "$WORK/$NAME.service" "$UNIT"; then
+        printf '%s already matches %s from %s — nothing to do.\n' \
+            "$UNIT" "$NAME.service" "$STORE_VERSION"
+        exit 0
+    fi
+    printf '%s differs from %s in %s:\n' "$UNIT" "$NAME.service" "$STORE_VERSION"
+    diff -u --label "installed $UNIT" --label "$STORE_VERSION $NAME.service" \
+        "$UNIT" "$WORK/$NAME.service" || true
+    run "cp '$WORK/$NAME.service' '$UNIT'"
+    run "systemctl --user daemon-reload"
+    if [ "$RESTART" -eq 1 ]; then
+        run "systemctl --user restart '$NAME.service'"
+        if [ "$DRY_RUN" -eq 0 ]; then
+            sleep 2
+            systemctl --user is-active --quiet "$NAME.service" \
+                || fail "$NAME.service is not active after the restart — see: journalctl --user -u $NAME.service -n 50"
+            printf 'installed and restarted; %s is active.\n' "$NAME.service"
+        fi
+    elif [ "$DRY_RUN" -eq 0 ]; then
+        printf '\ninstalled and daemon-reloaded. NOT restarted: the running service\n'
+        printf 'still uses the old unit until it next restarts. The next knarr deploy\n'
+        printf 'restarts it; to apply it now instead, re-run with --restart.\n'
+    fi
+    exit 0
+fi
 
 # --- 3. Configuration (host state, never shipped, never overwritten) ------
 

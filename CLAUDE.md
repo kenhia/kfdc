@@ -191,7 +191,11 @@ after they are.
   host. Since sprint 013 `just deploy` is **one `knarr` call** — the fleet
   deploy runner — not a hand-rolled ssh bootstrap; `deploy/install.sh` is
   gone and `deploy/bootstrap.sh` keeps only what knarr never does (seed
-  config, install the unit), refusing to run once both exist. knarr fetches
+  config, install the unit), refusing to run once both exist — except
+  `--update-unit` (sprint 027, Ken's ruling korg:4767), the **only** route a
+  changed unit has onto a live host: `just update-unit V` before
+  `just deploy V`, no restart of its own, script from `latest` and unit from
+  `V` so rollbacks work. knarr fetches
   and verifies the bundle *here* and uploads the verified bytes, so the
   serving host no longer needs the store for a deploy, and exit 2 literally
   means the host was never touched. Verification reads knarr's JSON status
