@@ -101,6 +101,25 @@ the version is what makes the report checkable:
 V=0.5.0-<sha>           # exactly what publish printed
 ```
 
+### 2a. Bring the unit file up to that version — every time
+
+```sh
+just update-unit "$V"
+```
+
+knarr never writes the unit (D12), so this is the only route a changed
+`systemd/kfdc.service` has onto the serving host (sprint 027). Run it on
+**every** deploy rather than deciding whether the unit changed: a matching
+unit prints `already matches … nothing to do` and calls no `systemctl`. A
+changed one prints its diff, installs and `daemon-reload`s, and deliberately
+does **not** restart — step 3's restart is what applies it, so the new build
+never starts under the old unit. A non-zero exit is a stop: do not deploy
+past a unit that failed its checksum.
+
+On a **rollback** run it too, with the old version: `just update-unit "$PREV"`
+before `just deploy "$PREV"`. The script always comes from `latest`; only the
+unit comes from the version named.
+
 ### 3. Install on the serving host
 
 knarr writes **exactly one JSON status document** to stdout and human-readable
@@ -274,6 +293,7 @@ verb:**
 
 ```sh
 just versions               # what the store holds
+just update-unit "$PREV"    # its unit first — a no-op unless the unit changed
 just deploy "$PREV"         # this is the rollback
 ```
 

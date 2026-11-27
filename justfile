@@ -12,6 +12,7 @@ dev:
 
 # Run CI gates: harness invariants + lint + svelte-check + build + test
 check: harness
+    deploy/test-bootstrap.sh
     npm run lint
     npm run check
     npm run build
@@ -99,7 +100,9 @@ publish:
 #
 # What knarr deliberately does NOT do is seed config or install the unit
 # (knarr D12, decided on korg #1449). That is `deploy/bootstrap.sh`, run
-# once per host, ever — not part of a deploy.
+# once per host, ever — not part of a deploy. A unit that changes later
+# reaches the host by `bootstrap.sh --update-unit`, run on it BEFORE the
+# deploy that needs it (sprint 027, docs/deploying.md).
 #
 # Naming an older version is still the whole rollback: published versions
 # are immutable and the last 3 stay unpacked on the host, so it is a
@@ -139,6 +142,41 @@ deploy version="":
     args+=(--ready-cmd '. ~/.config/kfdc/kfdc.env; curl -fs -o /dev/null "http://127.0.0.1:$PORT/api/board"')
     exec knarr "${args[@]}"
 
+# The unit file is the one piece of host state a deploy needs that knarr
+# never writes (D12). This runs bootstrap.sh --update-unit on the host for the
+# named version's unit (default: latest): diff, install, daemon-reload, no
+# restart; a no-op when the unit already matches. Run it BEFORE
+# `just deploy <same version>`, so the deploy's restart is what applies it.
+#
+# The SCRIPT always comes from `latest`, checksum-verified on the host; only
+# the UNIT comes from <version>. A rollback to a version older than sprint 027
+# needs its unit too, and that version's own bootstrap.sh has no update mode.
+# Sprint 027; docs/deploying.md.
+#
+# Bring the serving host's unit file up to a published version's
+update-unit version="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    : "${KFDC_STORE_URL:?set KFDC_STORE_URL in .env}"
+    : "${KFDC_DEPLOY_HOST:?set KFDC_DEPLOY_HOST in .env}"
+    latest=$(curl -fsS "$KFDC_STORE_URL/artifacts/kfdc/latest" | tr -d '[:space:]')
+    [[ -n "$latest" ]] || { echo "update-unit: the store's latest pointer is empty" >&2; exit 1; }
+    v="{{ version }}"
+    if [[ -z "$v" ]]; then v="$latest"; fi
+    script='set -eu
+    d=$(mktemp -d); trap "rm -rf $d" EXIT; cd "$d"
+    base="$3/artifacts/kfdc/$2"
+    curl -fsS -O "$base/bootstrap.sh"
+    curl -fsS "$base/SHA256SUMS" | grep " bootstrap.sh$" | sha256sum -c --status - \
+        || { echo "update-unit: bootstrap.sh failed its checksum in $2" >&2; exit 1; }
+    sh bootstrap.sh --update-unit --version "$1" --store "$3"'
+    echo "==> unit for kfdc $v on $KFDC_DEPLOY_HOST (bootstrap.sh from $latest)"
+    if [[ "$KFDC_DEPLOY_HOST" == "$(hostname -s)" ]]; then
+        sh -c "$script" update-unit "$v" "$latest" "$KFDC_STORE_URL"
+    else
+        ssh "$KFDC_DEPLOY_HOST" sh -s -- "$v" "$latest" "$KFDC_STORE_URL" <<<"$script"
+    fi
+
 # What the store holds, and what the SERVING host has unpacked and is
 # running. Three views of one version; if they disagree, which one disagrees
 # is the whole diagnostic.
@@ -176,6 +214,7 @@ harness:
     @test -f docs/design.md
     @test -f docs/design/kfdc-concept.html
     @test -x deploy/bootstrap.sh
+    @test -x deploy/test-bootstrap.sh
     @test -x bin/update-fdc
     @test -x bin/collision-hints
     @grep -q '^  --permission-mode dontAsk \\$' bin/update-fdc || { echo "harness: bin/update-fdc lost the --permission-mode dontAsk argv line — the curator's allowlist is decorative without it, because a headless run inherits kai's bypassPermissions default (#2184)" >&2; exit 1; }

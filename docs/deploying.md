@@ -211,10 +211,11 @@ knarr deploy kfdc --host <h> --shape directory --user --unit kfdc.service \
 ```
 
 `bootstrap.sh` **refuses to run** once the unit and config are both in place,
-printing the knarr call instead. A once-ever script that still works on the
-hundredth run quietly becomes the install route, and then the fleet has one
-service that does not deploy through the fleet tool. knarr's own
-`deploy/seed.sh` holds the same line for the same reason.
+printing the knarr call instead — the unit alone is the one exception, and
+it takes an explicit `--update-unit` (next section). A once-ever script that
+still works on the hundredth run quietly becomes the install route, and then
+the fleet has one service that does not deploy through the fleet tool.
+knarr's own `deploy/seed.sh` holds the same line for the same reason.
 
 This was the whole of the Phase-3 move to kubsdb on the kfdc side, done in
 sprint 009: same artifact fetched there, a new `tailscale_serve` entry
@@ -224,6 +225,88 @@ to survive the move, and the proof is pre-move lines still rendering in the
 strip afterward. Copy it **before first start**: the observer diffs against
 `last-digest.json`, so a host that starts without one records its first
 poll as a wall of spurious transitions.
+
+## Updating the unit on a host that is already set up
+
+knarr never writes a unit file (D12) and `bootstrap.sh` refuses a second
+run, so until sprint 027 a changed `kfdc.service` had **no sanctioned route**
+onto a host that was already bootstrapped. Sprint 026 met it as a
+comment-only drift and installed the unit by hand (fetched from the store,
+checked against `SHA256SUMS`, copied, `daemon-reload`). A real `ExecStart`
+change would have hit the gap for real. Ken's ruling (korg:4767 comment
+5219): **the setup script owns this, knarr keeps D12.** So:
+
+```sh
+just update-unit [version]      # from the clone on kai; default latest
+just deploy [version]           # the same version — its restart applies the unit
+```
+
+`just update-unit` runs this on the serving host, which is also the whole
+procedure for a host you are logged into:
+
+```sh
+base="$KFDC_STORE_URL/artifacts/kfdc"
+latest=$(curl -fsS "$base/latest")
+v=<the version you are about to deploy>
+curl -fsS -O "$base/$latest/bootstrap.sh"
+curl -fsS "$base/$latest/SHA256SUMS" | grep ' bootstrap.sh$' | sha256sum -c -
+sh bootstrap.sh --update-unit --version "$v" --store "$KFDC_STORE_URL"
+```
+
+**The script comes from `latest`; only the unit comes from `$v`.** They are
+different on a rollback, and they have to be: a version published before
+sprint 027 carries a `bootstrap.sh` with no update mode, so running a
+version's *own* script would make every rollback across 027 impossible.
+Found by running it, not by reading it.
+
+It fetches only `kfdc.service`, verifies it against that version's
+`SHA256SUMS`, prints a unified diff against the installed unit, installs it
+and runs `daemon-reload`. A matching unit is a no-op that says so and calls
+no `systemctl` at all, so running it before every deploy is safe. `--dry-run`
+shows the diff and changes nothing.
+
+**It does not restart**, and says so: a unit update should never be a
+surprise outage. The new unit takes effect at the next restart, and the next
+`just deploy` is one. `--restart` exists for the case where the unit change
+must apply now and no deploy is coming; it checks the service is active
+afterwards.
+
+**Order matters when a version needs its unit.** Update the unit *for
+version V* first, then `just deploy V` — the deploy's own restart starts V
+under V's unit, and nothing runs the new build under the old `ExecStart` or
+the old build under the new one. A rollback across a unit change is the
+same move backwards: `--update-unit --version <old>`, then
+`just deploy <old>`. Every published version carries its own unit, which is
+why both directions work.
+
+### The pattern, for another knarr-deployed repo
+
+Nothing above is kfdc-specific except names. A repo whose setup script
+installs a unit (kyac's does) can copy these properties:
+
+1. **An explicit flag, not a relaxed guard.** The run-twice refusal stays
+   exactly as it was for a plain run; only the flag gets past it, and the
+   flag refuses a host that was never bootstrapped (no unit to update means
+   the config was never seeded or validated either).
+2. **The unit and nothing else.** Fetch only the unit — not the config
+   template, so the mode cannot be what touches config — and do not re-run
+   `enable`, which was a statement about boot made once.
+3. **The source bootstrap already trusts**: the store bundle for a named
+   version, checked against its `SHA256SUMS` before anything is written.
+   A mismatch installs nothing.
+4. **Show the diff, then install and `daemon-reload`.** A match is a no-op
+   with a clear message and no `systemctl` call.
+5. **No restart by default**, said plainly in the output; an explicit
+   `--restart` for when it must apply now.
+6. **Unit for V before deploy of V**, so the deploy's restart is the one that
+   applies it.
+7. **The newest script, any version's unit.** Take the script from `latest`
+   and the unit from the named version, or rollbacks past the version that
+   introduced the mode cannot use it.
+
+`deploy/test-bootstrap.sh` (run by `just check`) asserts each of those
+against a fake store, a fake `HOME` and a fake `systemctl`, with no
+dependencies — that file is the easiest part to copy.
 
 ## Where things run, after sprint 009
 
